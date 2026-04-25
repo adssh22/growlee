@@ -1,0 +1,49 @@
+{% extends 'admin/base.html' %}
+{% block title %}QR principal · Growlee{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="eyebrow">QR principal</div>
+    <div class="title">QR brandé</div>
+    <div class="subtitle">Prévisualisez un QR plus propre, mieux intégré à l’identité du commerce.</div>
+  </div>
+</div>
+
+{% if created %}
+<div class="card" style="margin-bottom:18px; border:1px solid rgba(134,239,172,0.24);">
+  <div class="section-title">QR généré</div>
+  <div class="section-sub">Le point d’entrée principal est prêt à être testé ou imprimé.</div>
+  {% if qr_entry_code %}
+    <div class="split-actions" style="margin-top:12px;">
+      <a class="btn" href="/admin/qr/{{ qr_entry_code }}.svg" target="_blank">Voir le QR</a>
+      <a class="btn secondary" href="/play/{{ merchant.slug }}/" target="_blank">Tester le parcours</a>
+    </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="grid">
+    <div class="card span-6">
+      <div class="section-title">Campagne</div>
+      {{ campaign_form.as_p }}
+    </div>
+    <div class="card span-6">
+      <div class="section-title">Rendu</div>
+      <p class="section-sub">Le QR reprend automatiquement les couleurs du commerce pour un rendu plus élégant et plus cohérent.</p>
+      {% if qr_entry_code %}
+      <div class="split-actions" style="margin-top:16px;">
+        <a class="btn" href="/admin/qr/{{ qr_entry_code }}.svg" target="_blank">Ouvrir le QR</a>
+        <a class="btn secondary" href="/play/{{ merchant.slug }}/" target="_blank">Ouvrir le parcours</a>
+      </div>
+      {% endif %}
+    </div>
+    <div class="card span-12">
+      <div class="section-title">Récompense principale</div>
+      {{ reward_form.as_p }}
+    </div>
+  </div>
+  <button class="btn" type="submit" style="margin-top:18px;">Enregistrer</button>
+</form>
+{% endblock %}

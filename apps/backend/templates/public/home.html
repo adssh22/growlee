@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Growlee</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#0f172a; color:#e5e7eb; margin:0; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+    .btn { display:inline-block; margin-right:12px; padding:12px 18px; border-radius:10px; background:#22c55e; color:#052e16; text-decoration:none; font-weight:700; }
+    .muted { color:#94a3b8; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-top:24px; }
+    .card { background:#111827; border:1px solid #1f2937; border-radius:16px; padding:20px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p>Growlee MVP</p>
+    <h1>Transformez chaque visite en retour client</h1>
+    <p class="muted">Plateforme SaaS multi-tenant pour commerces physiques, entre acquisition, récompense, revisite et fidélité digitale.</p>
+    <a class="btn" href="/login/">Connexion commerçant</a>
+    <a class="btn" href="/play/demo-bistro/" style="background:#f59e0b;color:#111827;">Flow client démo</a>
+
+    <div class="grid">
+      {% for merchant in merchants %}
+      <div class="card">
+        <h3>{{ merchant.name }}</h3>
+        <p class="muted">{{ merchant.slug }}</p>
+        <a class="btn" href="/play/{{ merchant.slug }}/">Ouvrir</a>
+      </div>
+      {% empty %}
+      <div class="card">Aucun commerce actif pour le moment.</div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

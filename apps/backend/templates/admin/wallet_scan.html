@@ -1,0 +1,42 @@
+{% extends 'admin/base.html' %}
+{% block title %}Scan Wallet · Growlee{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="eyebrow">Wallet scan</div>
+    <div class="title">Valider un passage</div>
+    <div class="subtitle">QR scanné depuis le pass Apple / Google Wallet du client.</div>
+  </div>
+  <div class="badge {% if is_complete %}neutral{% endif %}">{{ wallet_pass.stamps }}/{{ wallet_pass.stamps_target }} passages</div>
+</div>
+
+<div class="card" style="max-width:560px;margin:0 auto;">
+  {% if scan_error %}
+    <div style="padding:16px;border-radius:16px;background:#FAECE7;color:#993C1D;font-weight:700;margin-bottom:12px;">{{ scan_error }}</div>
+    <div class="mini">Code scanné : {{ scan_code }}</div>
+    <a class="btn secondary" href="/admin/game/wallet/" style="width:100%;margin-top:18px;">Retour Wallet</a>
+  {% else %}
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+    <div style="width:54px;height:54px;border-radius:18px;background:var(--color-brand-soft);color:var(--color-brand);display:flex;align-items:center;justify-content:center;font-weight:800;">{{ customer.first_name|default:customer.phone|slice:':2' }}</div>
+    <div>
+      <div style="font-size:18px;font-weight:700;">{{ customer.first_name|default:'Client' }}</div>
+      <div class="mini">{{ customer.phone }} · {{ wallet_pass.get_provider_display }}</div>
+    </div>
+  </div>
+
+  <div style="height:10px;background:var(--color-border-tertiary);border-radius:999px;overflow:hidden;margin-bottom:12px;">
+    <div style="height:100%;background:var(--color-brand);width:{% widthratio wallet_pass.stamps wallet_pass.stamps_target 100 %}%;"></div>
+  </div>
+  <div class="mini" style="margin-bottom:18px;">Campagne : {{ campaign.name }}</div>
+
+  {% if is_complete %}
+    <div style="padding:14px;border-radius:16px;background:var(--color-success-soft);color:var(--color-success);font-weight:700;margin-bottom:14px;">Objectif atteint 🎉</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn" type="submit" style="width:100%;">+ Ajouter un point de passage</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

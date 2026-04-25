@@ -1,0 +1,137 @@
+{% extends 'admin/base.html' %}
+{% block title %}Dashboard · Growlee{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="eyebrow">Pilotage</div>
+    <div class="title">Dashboard</div>
+    <div class="subtitle">Vue unifiée des performances, des modules actifs et des campagnes en cours avec un rendu aligné sur les maquettes premium.</div>
+  </div>
+  <div class="badge neutral">30 derniers jours</div>
+</div>
+
+<div class="grid" style="margin-bottom:20px; grid-template-columns:repeat(4,1fr);">
+  <div class="metric-card"><div class="metric-label">Scans</div><div class="metric-value">{{ stats.scans }}</div><div class="metric-delta">activité Growlee</div></div>
+  <div class="metric-card"><div class="metric-label">Données collectées</div><div class="metric-value">{{ stats.contacts }}</div><div class="metric-delta">contacts captés</div></div>
+  <div class="metric-card"><div class="metric-label">Campagnes en cours</div><div class="metric-value">{{ stats.campaigns_live }}</div><div class="metric-delta">actives maintenant</div></div>
+  <div class="metric-card"><div class="metric-label">Campagnes à venir</div><div class="metric-value">{{ stats.campaigns_scheduled }}</div><div class="metric-delta">planifiées</div></div>
+</div>
+
+<div style="font-size:12px; font-weight:600; color:var(--color-text-secondary); margin-bottom:12px; letter-spacing:0.04em;">TUNNEL DE CONVERSION</div>
+<div class="card" style="padding:20px 24px; margin-bottom:20px;">
+  <div style="display:flex; align-items:center; gap:0;">
+    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.scans }}</div><div class="mini">Scan</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:100%;"></div></div></div>
+    <div style="color:var(--color-text-tertiary); font-size:14px; margin:0 -4px;">›</div>
+    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.distributed }}</div><div class="mini">Jeu lancé</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:79%;"></div></div></div>
+    <div style="color:var(--color-text-tertiary); font-size:14px; margin:0 -4px;">›</div>
+    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.contacts }}</div><div class="mini">Coordonnées saisies</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:66%;"></div></div></div>
+    <div style="color:var(--color-text-tertiary); font-size:14px; margin:0 -4px;">›</div>
+    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.review_clicks }}</div><div class="mini">Avis laissé</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:24%;"></div></div></div>
+    <div style="color:var(--color-text-tertiary); font-size:14px; margin:0 -4px;">›</div>
+    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.redeemed }}</div><div class="mini">Wallet add</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:15%;"></div></div></div>
+  </div>
+</div>
+
+<a class="btn" href="/play/{{ merchant.slug }}/?step=landing" style="width:100%; margin-bottom:20px;">Voir le parcours client →</a>
+
+<div class="grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+  <div class="card" style="padding:18px 18px 10px; background:linear-gradient(180deg, color-mix(in srgb, var(--color-brand) 5%, var(--color-background-primary)) 0%, var(--color-background-primary) 100%);">
+    <div style="font-size:12px; font-weight:700; color:var(--color-text-secondary); margin-bottom:14px; letter-spacing:0.06em;">ÉTAT DES MODULES</div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:10px; height:10px; border-radius:50%; background:{% if game_active %}#1D9E75{% else %}#C7CEDD{% endif %}; box-shadow:0 0 0 6px {% if game_active %}rgba(29,158,117,.12){% else %}rgba(199,206,221,.18){% endif %};"></div>
+          <div>
+            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">Jeu</div>
+            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{% if game_active %}Actif · {% else %}Désactivé · {% endif %}{{ campaign.get_game_type_display|default:'Roue' }}</div>
+          </div>
+        </div>
+        <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:{% if game_active %}#E1F5EE{% else %}#EEF1F8{% endif %}; color:{% if game_active %}#0F6E56{% else %}#6B7280{% endif %};">{% if game_active %}Actif{% else %}Inactif{% endif %}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:10px; height:10px; border-radius:50%; background:{% if review_active %}#1D9E75{% else %}#C7CEDD{% endif %}; box-shadow:0 0 0 6px {% if review_active %}rgba(29,158,117,.12){% else %}rgba(199,206,221,.18){% endif %};"></div>
+          <div>
+            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">Avis</div>
+            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">Google + feedback privé</div>
+          </div>
+        </div>
+        <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:{% if review_active %}#E1F5EE{% else %}#EEF1F8{% endif %}; color:{% if review_active %}#0F6E56{% else %}#6B7280{% endif %};">{% if review_active %}Actif{% else %}Inactif{% endif %}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:10px; height:10px; border-radius:50%; background:{% if wallet_active %}#1D9E75{% else %}#C7CEDD{% endif %}; box-shadow:0 0 0 6px {% if wallet_active %}rgba(29,158,117,.12){% else %}rgba(199,206,221,.18){% endif %};"></div>
+          <div>
+            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">Wallet</div>
+            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">Carte fidélité</div>
+          </div>
+        </div>
+        <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:{% if wallet_active %}#E1F5EE{% else %}#EEF1F8{% endif %}; color:{% if wallet_active %}#0F6E56{% else %}#6B7280{% endif %};">{% if wallet_active %}Actif{% else %}Inactif{% endif %}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:12px; font-weight:600; color:var(--color-text-secondary); margin-bottom:12px;">ACTIVITÉ RÉCENTE</div>
+    {% for customer in customers|slice:':3' %}
+      <div class="status-row"><span>{{ customer.first_name|default:customer.phone }}</span><span>récent</span></div>
+    {% empty %}
+      <div class="mini">Aucune activité récente.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+  <div class="card" style="padding:18px; background:linear-gradient(180deg, color-mix(in srgb, #1D9E75 5%, var(--color-background-primary)) 0%, var(--color-background-primary) 100%);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px;">
+      <div>
+        <div style="font-size:12px; font-weight:700; color:var(--color-text-secondary); letter-spacing:0.06em;">CAMPAGNES EN COURS</div>
+        <div style="font-size:12px; color:var(--color-text-tertiary); margin-top:4px;">Celles qui tournent maintenant</div>
+      </div>
+      <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:#E1F5EE; color:#0F6E56;">{{ stats.campaigns_live }}</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      {% for item in active_campaigns %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary); gap:12px;">
+          <div>
+            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">{{ item.name }}</div>
+            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{{ item.get_game_type_display|default:'Roue' }} · {% if item.review_enabled %}Avis activé{% else %}Avis désactivé{% endif %}</div>
+          </div>
+          <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:#E1F5EE; color:#0F6E56;">Actif</span>
+        </div>
+      {% empty %}
+        <div style="padding:16px; border-radius:16px; background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:13px;">Aucune campagne en cours.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card" style="padding:18px; background:linear-gradient(180deg, color-mix(in srgb, var(--color-brand) 6%, var(--color-background-primary)) 0%, var(--color-background-primary) 100%);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px;">
+      <div>
+        <div style="font-size:12px; font-weight:700; color:var(--color-text-secondary); letter-spacing:0.06em;">CAMPAGNES À VENIR</div>
+        <div style="font-size:12px; color:var(--color-text-tertiary); margin-top:4px;">Planifiées pour plus tard</div>
+      </div>
+      <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:var(--color-brand-soft); color:var(--color-brand);">{{ stats.campaigns_scheduled }}</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      {% for item in scheduled_campaigns %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary); gap:12px;">
+          <div>
+            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">{{ item.name }}</div>
+            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{{ item.get_game_type_display|default:'Roue' }} · Lancement différé</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px; font-weight:700; color:var(--color-brand);">Planifiée</div>
+            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{{ item.scheduled_for|date:'d/m H:i' }}</div>
+          </div>
+        </div>
+      {% empty %}
+        <div style="padding:16px; border-radius:16px; background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:13px;">Aucune campagne planifiée.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

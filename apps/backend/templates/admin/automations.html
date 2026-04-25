@@ -1,0 +1,192 @@
+{% extends 'admin/base.html' %}
+{% block title %}Campagnes · Growlee{% endblock %}
+{% block content %}
+<div id="campaign-step-1">
+  <button class="btn secondary" onclick="location.href='/admin/onboarding/'" style="margin-bottom:20px;">‹ Retour</button>
+  <div class="topbar" style="margin-bottom:8px;"><div class="title">Nouvelle campagne</div></div>
+  <div style="display:flex; align-items:center; gap:0; margin-bottom:20px;">
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand-soft); color:var(--color-brand); border:1.5px solid var(--color-brand);">1</div><div style="flex:1; height:1px; background:var(--color-border-tertiary);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-background-secondary); color:var(--color-text-tertiary);">2</div><div style="flex:1; height:1px; background:var(--color-border-tertiary);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-background-secondary); color:var(--color-text-tertiary);">3</div><div style="flex:1; height:1px; background:var(--color-border-tertiary);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-background-secondary); color:var(--color-text-tertiary);">4</div>
+  </div>
+  <div style="font-size:13px; font-weight:600; margin-bottom:12px; color:var(--color-text-secondary);">Étape 1, canal d'envoi</div>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;">
+    <div class="card" onclick="selectCard(this, 'channel')" data-selected="true" style="border:1.5px solid var(--color-brand); background:var(--color-brand-soft); text-align:center; cursor:pointer;">
+      <div style="font-size:13px; font-weight:600;">Email</div>
+      <div class="mini" style="margin-top:4px;">Illimité inclus</div>
+    </div>
+    <div class="card" onclick="selectCard(this, 'channel')" style="text-align:center; cursor:pointer;">
+      <div style="font-size:13px; font-weight:600;">SMS</div>
+      <div class="mini" style="margin-top:4px;">Facturé à l'usage</div>
+    </div>
+    <div class="card" onclick="selectCard(this, 'channel')" style="text-align:center; cursor:pointer;">
+      <div style="font-size:13px; font-weight:600;">Wallet push</div>
+      <div class="mini" style="margin-top:4px;">2/semaine max</div>
+    </div>
+  </div>
+  <button class="btn" style="width:100%;" onclick="showCampaignStep(2)">Continuer →</button>
+</div>
+
+<div id="campaign-step-2" style="display:none;">
+  <button class="btn secondary" onclick="showCampaignStep(1)" style="margin-bottom:20px;">‹ Canal</button>
+  <div class="topbar" style="margin-bottom:8px;"><div class="title">Nouvelle campagne</div></div>
+  <div style="display:flex; align-items:center; gap:0; margin-bottom:20px;">
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand); color:#fff;">1</div><div style="flex:1; height:1px; background:var(--color-brand);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand-soft); color:var(--color-brand); border:1.5px solid var(--color-brand);">2</div><div style="flex:1; height:1px; background:var(--color-border-tertiary);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-background-secondary); color:var(--color-text-tertiary);">3</div><div style="flex:1; height:1px; background:var(--color-border-tertiary);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-background-secondary); color:var(--color-text-tertiary);">4</div>
+  </div>
+  <div style="font-size:13px; font-weight:600; margin-bottom:12px; color:var(--color-text-secondary);">Étape 2, audience</div>
+  <div class="card" onclick="selectAudience(this)" data-selected="true" style="cursor:pointer; border-color:var(--color-brand); background:var(--color-brand-soft);"><div class="status-row" style="border:none;"><span><strong>Tous les clients</strong><div class="mini">847 destinataires</div></span><span>✓</span></div></div>
+  <div class="card" onclick="selectAudience(this)" style="cursor:pointer;"><div class="status-row" style="border:none;"><span><strong>Utilisateurs Wallet uniquement</strong><div class="mini">198 destinataires</div></span><span>○</span></div></div>
+  <div class="card" onclick="selectAudience(this)" style="cursor:pointer;"><div class="status-row" style="border:none;"><span><strong>Ayant laissé un avis</strong><div class="mini">312 destinataires</div></span><span>○</span></div></div>
+  <button class="btn" style="width:100%;" onclick="showCampaignStep(3)">Continuer →</button>
+</div>
+
+<div id="campaign-step-3" style="display:none;">
+  <button class="btn secondary" onclick="showCampaignStep(2)" style="margin-bottom:20px;">‹ Audience</button>
+  <div class="topbar" style="margin-bottom:8px;"><div class="title">Nouvelle campagne</div></div>
+  <div style="display:flex; align-items:center; gap:0; margin-bottom:20px;">
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand); color:#fff;">1</div><div style="flex:1; height:1px; background:var(--color-brand);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand); color:#fff;">2</div><div style="flex:1; height:1px; background:var(--color-brand);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand-soft); color:var(--color-brand); border:1.5px solid var(--color-brand);">3</div><div style="flex:1; height:1px; background:var(--color-border-tertiary);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-background-secondary); color:var(--color-text-tertiary);">4</div>
+  </div>
+  <div style="font-size:13px; font-weight:600; margin-bottom:12px; color:var(--color-text-secondary);">Étape 3, message</div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+    <div class="pill" onclick="setTemplate(this, 'promo')">Promotion</div>
+    <div class="pill" onclick="setTemplate(this, 'rappel')">Rappel</div>
+    <div class="pill" onclick="setTemplate(this, 'evenement')">Événement</div>
+    <div class="pill" onclick="setTemplate(this, 'nouveaute')">Nouveauté</div>
+  </div>
+  <textarea id="campaign-message" rows="5" oninput="updateCharCount()">Bonjour ! Cette semaine, profitez de -10% sur toute notre carte avec votre code fidélité. À très bientôt !</textarea>
+  <div style="font-size:11px; color:var(--color-text-tertiary); text-align:right; margin-top:4px;"><span id="char-count">92</span> / 160 caractères</div>
+  <div class="card" style="margin-top:16px; background:var(--color-background-secondary);">
+    <div class="mini" style="margin-bottom:8px;">Aperçu SMS</div>
+    <div style="background:var(--color-background-primary); border-radius:0 12px 12px 12px; padding:10px 14px; font-size:13px; color:var(--color-text-primary); max-width:240px;" id="campaign-preview">Bonjour ! Cette semaine, profitez de -10% sur toute notre carte avec votre code fidélité. À très bientôt !</div>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div class="card" style="margin-top:16px;">
+      <div class="status-row" style="border:none; padding:0 0 10px 0;"><span>Planifier l'envoi</span><button type="button" id="schedule-toggle" onclick="toggleSchedule()" style="width:36px; height:20px; background:{% if campaign and not campaign.send_immediately %}var(--color-brand){% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span id="schedule-knob" style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and not campaign.send_immediately %}left:18px;{% else %}left:2px;{% endif %} top:2px;"></span></button></div>
+      <input type="hidden" id="schedule_enabled" name="schedule_enabled" value="{% if campaign and not campaign.send_immediately %}1{% else %}0{% endif %}" />
+      <div id="schedule-fields" style="display:{% if campaign and not campaign.send_immediately %}block{% else %}none{% endif %}; margin-top:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div><div class="mini" style="margin-bottom:6px;">Date</div><input type="date" name="scheduled_date" value="{% if campaign and campaign.scheduled_for %}{{ campaign.scheduled_for|date:'Y-m-d' }}{% else %}2026-04-28{% endif %}" /></div>
+          <div><div class="mini" style="margin-bottom:6px;">Heure</div><input type="time" name="scheduled_time" value="{% if campaign and campaign.scheduled_for %}{{ campaign.scheduled_for|date:'H:i' }}{% else %}10:00{% endif %}" /></div>
+        </div>
+      </div>
+    </div>
+    <button class="btn secondary" type="submit" style="width:100%; margin-bottom:8px;">Enregistrer la planification</button>
+  </form>
+  <button class="btn" style="width:100%;" onclick="showCampaignStep(4)">Continuer →</button>
+</div>
+
+<div id="campaign-step-4" style="display:none;">
+  <button class="btn secondary" onclick="showCampaignStep(3)" style="margin-bottom:20px;">‹ Message</button>
+  <div class="topbar" style="margin-bottom:8px;"><div class="title">Nouvelle campagne</div></div>
+  <div style="display:flex; align-items:center; gap:0; margin-bottom:20px;">
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand); color:#fff;">1</div><div style="flex:1; height:1px; background:var(--color-brand);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand); color:#fff;">2</div><div style="flex:1; height:1px; background:var(--color-brand);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand); color:#fff;">3</div><div style="flex:1; height:1px; background:var(--color-brand);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand-soft); color:var(--color-brand); border:1.5px solid var(--color-brand);">4</div>
+  </div>
+  <div style="font-size:13px; font-weight:600; margin-bottom:16px; color:var(--color-text-secondary);">Étape 4, confirmation</div>
+  <div class="card">
+    <div class="conf-row"><span>Canal</span><span>Email</span></div>
+    <div class="conf-row"><span>Destinataires</span><span>847 clients</span></div>
+    <div class="conf-row"><span>Envoi</span><span>Maintenant</span></div>
+    <div class="conf-row"><span>Coût estimé</span><span>Inclus</span></div>
+  </div>
+  <div style="background:var(--color-brand-soft); border-radius:var(--border-radius-md); padding:12px 16px; font-size:12px; color:#3C3489; margin:12px 0;">Cette campagne sera ajoutée à votre facture mensuelle.</div>
+  <button class="btn" style="width:100%;" onclick="showCampaignStep(5)">Envoyer maintenant</button>
+  <button class="btn secondary" style="width:100%; margin-top:8px;" onclick="showCampaignStep(6)">Planifier</button>
+</div>
+
+<div id="campaign-step-5" style="display:none; text-align:center; padding:40px 20px;">
+  <div style="width:56px; height:56px; border-radius:50%; background:#E1F5EE; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; font-size:24px;">✓</div>
+  <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Campagne envoyée !</div>
+  <div class="mini" style="margin-bottom:24px;">847 emails en cours d'envoi</div>
+  <button class="btn" style="max-width:240px; margin:0 auto;" onclick="showCampaignStep(1)">Nouvelle campagne</button>
+</div>
+
+<div id="campaign-step-6" style="display:none; text-align:center; padding:40px 20px;">
+  <div style="width:56px; height:56px; border-radius:50%; background:var(--color-brand-soft); margin:0 auto 16px; display:flex; align-items:center; justify-content:center; font-size:24px;">🕘</div>
+  <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Campagne planifiée</div>
+  <div class="mini" style="margin-bottom:24px;">Envoi prévu le 28 avril à 10h00</div>
+  <button class="btn" style="max-width:240px; margin:0 auto;" onclick="showCampaignStep(1)">Nouvelle campagne</button>
+</div>
+
+<script>
+  function showCampaignStep(step) {
+    [1,2,3,4,5,6].forEach((n) => {
+      const el = document.getElementById('campaign-step-' + n);
+      if (el) el.style.display = n === step ? '' : 'none';
+    });
+  }
+  function selectCard(el, group) {
+    document.querySelectorAll('#campaign-step-1 .card').forEach(c => {
+      c.style.border = '0.5px solid var(--color-border-tertiary)';
+      c.style.background = 'var(--color-background-primary)';
+    });
+    el.style.border = '1.5px solid var(--color-brand)';
+    el.style.background = 'var(--color-brand-soft)';
+  }
+  function selectAudience(el) {
+    document.querySelectorAll('#campaign-step-2 .card').forEach(c => {
+      c.style.borderColor = 'var(--color-border-tertiary)';
+      c.style.background = 'var(--color-background-primary)';
+      const mark = c.querySelector('.status-row span:last-child');
+      if (mark) mark.textContent = '○';
+    });
+    el.style.borderColor = 'var(--color-brand)';
+    el.style.background = 'var(--color-brand-soft)';
+    const mark = el.querySelector('.status-row span:last-child');
+    if (mark) mark.textContent = '✓';
+  }
+  const templates = {
+    promo: 'Bonjour ! Cette semaine, profitez de -10% sur toute notre carte avec votre code fidélité. À très bientôt !',
+    rappel: 'Cela fait un moment qu’on ne vous a pas vu ! Revenez nous voir et présentez ce message pour un café offert.',
+    evenement: 'Soirée spéciale vendredi 2 mai dès 19h ! Réservez votre table dès maintenant, places limitées.',
+    nouveaute: 'Découvrez notre nouvelle carte de printemps, disponible dès maintenant. Venez la déguster !'
+  };
+  function setTemplate(el, key) {
+    document.querySelectorAll('#campaign-step-3 .pill').forEach(p => {
+      p.style.background = 'var(--color-background-secondary)';
+      p.style.color = 'var(--color-text-secondary)';
+      p.style.borderColor = 'var(--color-border-tertiary)';
+    });
+    el.style.background = 'var(--color-brand-soft)';
+    el.style.color = 'var(--color-brand)';
+    el.style.borderColor = 'var(--color-brand)';
+    const text = templates[key];
+    const area = document.getElementById('campaign-message');
+    const preview = document.getElementById('campaign-preview');
+    area.value = text;
+    preview.textContent = text;
+    updateCharCount();
+  }
+  function updateCharCount() {
+    const area = document.getElementById('campaign-message');
+    const preview = document.getElementById('campaign-preview');
+    const count = document.getElementById('char-count');
+    if (area && preview && count) {
+      preview.textContent = area.value;
+      count.textContent = area.value.length;
+    }
+  }
+  function toggleSchedule() {
+    const fields = document.getElementById('schedule-fields');
+    const toggle = document.getElementById('schedule-toggle');
+    const knob = document.getElementById('schedule-knob');
+    if (!fields || !toggle || !knob) return;
+    const open = fields.style.display === 'none' || fields.style.display === '';
+    fields.style.display = open ? 'block' : 'none';
+    toggle.style.background = open ? 'var(--color-brand)' : 'var(--color-border-secondary)';
+    knob.style.left = open ? '18px' : '2px';
+    document.getElementById('schedule_enabled').value = open ? '1' : '0';
+  }
+  updateCharCount();
+</script>
+{% endblock %}

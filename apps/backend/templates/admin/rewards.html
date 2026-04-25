@@ -1,0 +1,41 @@
+{% extends 'admin/base.html' %}
+{% block title %}Récompenses · Growlee{% endblock %}
+{% block content %}
+<button class="btn secondary" onclick="location.href='/admin/game/'" style="margin-bottom:20px;">‹ Jeu</button>
+<div class="topbar" style="margin-bottom:16px;">
+  <div class="title">Récompenses</div>
+  <div class="badge">{{ rewards|length }} configurée{% if rewards|length > 1 %}s{% endif %}</div>
+</div>
+
+<div class="grid">
+  <div class="card span-5">
+    <div class="section-title">Ajouter une récompense</div>
+    <div class="section-sub">Même logique visuelle que ta maquette, simple puis actionnable.</div>
+    <form method="post">
+      {% csrf_token %}
+      {{ reward_form.as_p }}
+      <button class="btn" type="submit">Enregistrer la récompense</button>
+    </form>
+  </div>
+
+  <div class="card span-7">
+    <div class="section-title">Récompenses configurées</div>
+    {% for reward in rewards %}
+      <div style="display:flex; gap:10px; align-items:center; padding:12px; background:var(--color-background-secondary); border-radius:var(--border-radius-md); margin-bottom:8px;">
+        <div style="width:36px; height:36px; border-radius:var(--border-radius-md); background:var(--color-brand-soft); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--color-brand); font-weight:500; flex-shrink:0;">{{ reward.name|slice:':2' }}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px; color:var(--color-text-primary);">{{ reward.name }}</div>
+          <div style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">{{ reward.get_reward_type_display }} · Probabilité : {{ reward.probability_weight }} · Quota : {{ reward.daily_quota }}</div>
+          <div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin-top:6px; overflow:hidden;"><div style="height:100%; border-radius:2px; background:var(--color-brand); width:{% if reward.probability_weight > 100 %}100{% else %}{{ reward.probability_weight }}{% endif %}%;"></div></div>
+        </div>
+        <form method="post" action="/admin/rewards/{{ reward.id }}/delete/" onsubmit="return confirm('Supprimer cette récompense ?');">
+          {% csrf_token %}
+          <button class="btn secondary" type="submit">Supprimer</button>
+        </form>
+      </div>
+    {% empty %}
+      <div class="mini">Aucune récompense.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

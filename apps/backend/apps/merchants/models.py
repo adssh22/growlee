@@ -1,0 +1,29 @@
+from django.db import models
+
+
+class Merchant(models.Model):
+    FONT_CHOICES = [
+        ('inter', 'Inter'),
+        ('poppins', 'Poppins'),
+        ('manrope', 'Manrope'),
+        ('dm-sans', 'DM Sans'),
+    ]
+
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(unique=True)
+    logo = models.ImageField(upload_to='merchants/logos/', blank=True, null=True)
+    logo_url = models.URLField(blank=True, null=True)
+    primary_color = models.CharField(max_length=20, default='#111827')
+    accent_color = models.CharField(max_length=20, default='#22c55e')
+    surface_color = models.CharField(max_length=20, default='#ffffff')
+    text_color = models.CharField(max_length=20, default='#1f2937')
+    heading_font = models.CharField(max_length=40, choices=FONT_CHOICES, default='inter')
+    body_font = models.CharField(max_length=40, choices=FONT_CHOICES, default='inter')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name

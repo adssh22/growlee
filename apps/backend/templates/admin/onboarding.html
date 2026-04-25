@@ -1,0 +1,128 @@
+{% extends 'admin/base.html' %}
+{% block title %}Configuration · Growlee{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="eyebrow">Parcours client</div>
+    <div class="title">Configuration</div>
+    <div class="subtitle">Structure les trois modules comme dans la référence Growly : cartes homogènes, actions rapides, bascules compactes et branding global centralisé.</div>
+  </div>
+  <div class="badge">{{ active_modules_count }} modules actifs</div>
+</div>
+
+<div class="card" style="cursor:pointer;" onclick="location.href='/admin/game/'">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+    <div>
+      <div style="font-size:15px; font-weight:600;">Jeu</div>
+      <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{{ campaign.get_game_type_display|default:'Roue' }} · {{ rewards|length }} récompense{% if rewards|length > 1 %}s{% endif %} configurée{% if rewards|length > 1 %}s{% endif %}</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;" onclick="event.stopPropagation();">
+      <form method="post" action="/admin/campaign/toggle/">
+        {% csrf_token %}
+        <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
+        <input type="hidden" name="flag" value="is_active" />
+        <input type="hidden" name="value" value="{% if campaign and campaign.is_active %}0{% else %}1{% endif %}" />
+        <input type="hidden" name="next" value="/admin/onboarding/" />
+        <button type="submit" style="width:36px; height:20px; background:{% if campaign and campaign.is_active %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.is_active %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button>
+      </form>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=landing" target="_blank">Voir parcours</a>
+        <span style="font-size:12px; color:var(--color-brand); font-weight:600;">Configurer →</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="cursor:pointer;" onclick="location.href='/admin/game/review/'">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+    <div>
+      <div style="font-size:15px; font-weight:600;">Avis</div>
+      <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">Redirection Google · Question personnalisée</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;" onclick="event.stopPropagation();">
+      <form method="post" action="/admin/campaign/toggle/">
+        {% csrf_token %}
+        <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
+        <input type="hidden" name="flag" value="review_enabled" />
+        <input type="hidden" name="value" value="{% if campaign and campaign.review_enabled %}0{% else %}1{% endif %}" />
+        <input type="hidden" name="next" value="/admin/onboarding/" />
+        <button type="submit" style="width:36px; height:20px; background:{% if campaign and campaign.review_enabled %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.review_enabled %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button>
+      </form>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=review" target="_blank">Voir parcours</a>
+        <span style="font-size:12px; color:var(--color-brand); font-weight:600;">Configurer →</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="cursor:pointer;" onclick="location.href='/admin/game/wallet/'">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+    <div>
+      <div style="font-size:15px; font-weight:600;">Wallet</div>
+      <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">Carte fidélité · 5e visite = café offert</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;" onclick="event.stopPropagation();">
+      <form method="post" action="/admin/campaign/toggle/">
+        {% csrf_token %}
+        <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
+        <input type="hidden" name="flag" value="wallet_enabled" />
+        <input type="hidden" name="value" value="{% if campaign and campaign.wallet_enabled %}0{% else %}1{% endif %}" />
+        <input type="hidden" name="next" value="/admin/onboarding/" />
+        <button type="submit" style="width:36px; height:20px; background:{% if campaign and campaign.wallet_enabled %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.wallet_enabled %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button>
+      </form>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=wallet" target="_blank">Voir parcours</a>
+        <span style="font-size:12px; color:var(--color-brand); font-weight:600;">Configurer →</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="background:var(--color-background-secondary); border:none; margin-top:8px;">
+  <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--color-text-primary);">Identité globale</div>
+  <div class="section-sub" style="margin-bottom:14px;">Appliquée à tout le parcours admin et mobile pour garder un rendu cohérent, plus premium et plus lisible.</div>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="font-size:11px; color:var(--color-text-tertiary);">Couleur principale</div>
+        {{ merchant_form.primary_color }}
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="font-size:11px; color:var(--color-text-tertiary);">Couleur secondaire</div>
+        {{ merchant_form.accent_color }}
+      </div>
+      <div style="flex:1; min-width:180px;">
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:4px;">Typo titres</div>
+        {{ merchant_form.heading_font }}
+      </div>
+      <div style="flex:1; min-width:180px;">
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:4px;">Typo textes</div>
+        {{ merchant_form.body_font }}
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="font-size:11px; color:var(--color-text-tertiary);">Fond parcours</div>
+        {{ merchant_form.surface_color }}
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="font-size:11px; color:var(--color-text-tertiary);">Texte parcours</div>
+        {{ merchant_form.text_color }}
+      </div>
+      <div style="min-width:220px;">
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:4px;">Logo</div>
+        {{ merchant_form.logo }}
+        {% if merchant.logo %}
+          <div style="font-size:11px; color:var(--color-text-secondary); margin-top:6px;">Actuellement: {{ merchant.logo.name }}</div>
+        {% endif %}
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-top:4px;">Laissez vide pour conserver le logo actuel.</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:4px;">Nom</div>
+      {{ merchant_form.name }}
+    </div>
+    <button class="btn" type="submit" style="margin-top:12px;">Appliquer à tous les modules</button>
+  </form>
+</div>
+{% endblock %}

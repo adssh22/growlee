@@ -1,0 +1,44 @@
+{% extends 'admin/base.html' %}
+{% block title %}Wallet · Growlee{% endblock %}
+{% block content %}
+<button class="btn secondary" onclick="location.href='/admin/onboarding/'" style="margin-bottom:20px;">‹ Configuration</button>
+<div class="topbar" style="margin-bottom:16px;"><div><div class="eyebrow">Module 3</div><div class="title">Wallet</div><div class="subtitle">Carte de fidélité plus premium et plus proche de la sous-page Growly : bénéfice clair, aperçu lisible et canaux wallet mis en avant.</div></div><form method="post" action="/admin/campaign/toggle/" style="margin:0;">{% csrf_token %}<input type="hidden" name="campaign_id" value="{{ campaign.id }}" /><input type="hidden" name="flag" value="wallet_enabled" /><input type="hidden" name="value" value="{% if campaign and campaign.wallet_enabled %}0{% else %}1{% endif %}" /><input type="hidden" name="next" value="/admin/game/wallet/" /><button type="submit" aria-label="Activer ou désactiver le wallet" style="width:36px; height:20px; background:{% if campaign and campaign.wallet_enabled %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.wallet_enabled %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button></form></div>
+<div class="card">
+  <div class="section-title">Récompense de fidélité</div>
+  <div class="section-sub">Offerte après X visites.</div>
+  <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
+    <div><div class="mini" style="margin-bottom:6px;">Récompense</div><input value="Café offert" /></div>
+    <div><div class="mini" style="margin-bottom:6px;">Nombre de visites</div><input type="number" value="5" /></div>
+  </div>
+</div>
+<div class="section-title">Aperçu de la carte</div>
+<div style="background:linear-gradient(160deg, #1a1040 0%, var(--color-brand) 55%, #6d62db 100%); border-radius:20px; padding:20px; color:#fff; margin:12px 0; border:0.5px solid rgba(255,255,255,.16); box-shadow:0 18px 40px rgba(83,74,183,.18);">
+  <div style="font-size:16px; font-weight:600; margin-bottom:4px;">{{ merchant.name|default:'Bella Italia' }}</div>
+  <div style="font-size:11px; opacity:.7; margin-bottom:16px;">Carte de fidélité</div>
+  <div style="display:flex; gap:8px; margin-bottom:16px;">
+    <div style="width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.9);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.9);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.9);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; border:1.5px solid rgba(255,255,255,.4);"></div>
+    <div style="width:28px; height:28px; border-radius:50%; border:1.5px solid rgba(255,255,255,.4);"></div>
+  </div>
+  <div style="font-size:12px; opacity:.8; margin-bottom:14px;">3/5 visites, encore 2 pour votre café offert</div>
+  <div style="font-size:18px; font-weight:700; line-height:1.25;">Ajoutez la carte au wallet pour revenir plus souvent.</div>
+</div>
+<div class="card">
+  <div class="section-title">Notifications Wallet</div>
+  <div class="section-sub">Limite hebdomadaire de push</div>
+  <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--color-text-secondary); margin-bottom:6px;"><span>Envois cette semaine</span><span style="font-weight:600; color:var(--color-text-primary);">1 / 2</span></div>
+  <div style="height:6px; background:var(--color-border-tertiary); border-radius:3px; overflow:hidden; margin-top:8px;"><div style="height:100%; border-radius:3px; background:var(--color-brand); width:50%;"></div></div>
+  <div style="font-size:11px; color:var(--color-text-tertiary); margin-top:6px;">1 notification restante cette semaine</div>
+</div>
+<div class="card" style="background:var(--color-background-secondary); border:none; box-shadow:none;">
+  <div class="section-title">Canaux wallet</div>
+  <div class="section-sub">Prévisualisez les deux écosystèmes avant publication.</div>
+  <div style="display:flex; gap:10px;">
+    <a class="btn secondary" href="/admin/setup/" style="flex:1;">Aperçu Apple Wallet</a>
+    <a class="btn secondary" href="/admin/setup/" style="flex:1;">Aperçu Google Wallet</a>
+  </div>
+</div>
+<button class="btn" style="width:100%; margin-top:10px;">Enregistrer</button>
+{% endblock %}

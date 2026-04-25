@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Growlee Admin{% endblock %}</title>
+  <style>
+    :root {
+      --color-brand: #534ab7;
+      --color-brand-soft: #eeedfe;
+      --color-brand-soft-2: #afa9ec;
+      --color-success: #1d9e75;
+      --color-success-soft: #e1f5ee;
+      --border-radius-md: 12px;
+      --border-radius-lg: 18px;
+      --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    html[data-theme="light"] {
+      --color-background-primary: rgba(255,255,255,0.88);
+      --color-background-secondary: #f5f6fb;
+      --color-background-tertiary: #eef1f8;
+      --color-border-secondary: rgba(111,119,145,0.16);
+      --color-border-tertiary: rgba(111,119,145,0.12);
+      --color-text-primary: #1f2430;
+      --color-text-secondary: #5f6778;
+      --color-text-tertiary: #98a0b3;
+      --shadow-soft: 0 18px 40px rgba(31,36,48,0.08);
+      --shadow-card: 0 16px 32px rgba(83,74,183,0.08);
+      --shell-grad: radial-gradient(circle at top left, rgba(83,74,183,0.10), transparent 28%), radial-gradient(circle at top right, rgba(29,158,117,0.08), transparent 22%), linear-gradient(180deg, #f8f9fd 0%, #edf1f8 100%);
+    }
+    html[data-theme="dark"] {
+      --color-background-primary: rgba(12,16,29,0.86);
+      --color-background-secondary: #151b2d;
+      --color-background-tertiary: #090d18;
+      --color-border-secondary: rgba(174,185,220,0.18);
+      --color-border-tertiary: rgba(174,185,220,0.12);
+      --color-text-primary: #f5f7ff;
+      --color-text-secondary: #bcc4da;
+      --color-text-tertiary: #7d88a6;
+      --shadow-soft: 0 24px 50px rgba(0,0,0,0.28);
+      --shadow-card: 0 18px 34px rgba(0,0,0,0.24);
+      --shell-grad: radial-gradient(circle at top left, rgba(83,74,183,0.18), transparent 30%), radial-gradient(circle at top right, rgba(29,158,117,0.10), transparent 22%), linear-gradient(180deg, #0b1020 0%, #060913 100%);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body { font-family: var(--font-sans); background: var(--shell-grad); color: var(--color-text-primary); min-height: 100vh; transition: background .25s ease, color .25s ease; }
+    .shell { padding: 18px; }
+    .app { display:flex; min-height:calc(100vh - 36px); background:rgba(255,255,255,0.02); border-radius:24px; overflow:hidden; border:0.5px solid var(--color-border-tertiary); backdrop-filter: blur(16px); box-shadow: var(--shadow-soft); }
+    .sidebar { width:220px; background:var(--color-background-primary); border-right:0.5px solid var(--color-border-tertiary); display:flex; flex-direction:column; padding:22px 0; flex-shrink:0; backdrop-filter: blur(18px); }
+    .logo { padding:0 20px 24px; font-size:18px; font-weight:600; color:var(--color-text-primary); display:flex; align-items:center; gap:10px; }
+    .logo-dot { width:10px; height:10px; border-radius:50%; background:var(--color-brand); box-shadow:0 0 0 6px rgba(83,74,183,0.12); }
+    .nav-section { font-size:10px; color:var(--color-text-tertiary); padding:16px 20px 6px; letter-spacing:.08em; text-transform:uppercase; }
+    .ni { padding:10px 20px; font-size:13px; color:var(--color-text-secondary); cursor:pointer; display:flex; align-items:center; gap:10px; border-left:2px solid transparent; transition:all .18s; text-decoration:none; }
+    .ni:hover { background:var(--color-background-secondary); color:var(--color-text-primary); }
+    .ni.active { color:var(--color-brand); border-left:2px solid var(--color-brand); background:var(--color-brand-soft); font-weight:600; }
+    .ni.sub { padding-left:36px; font-size:12px; }
+    .ni.sub.active { color:var(--color-brand); border-left:2px solid transparent; background:var(--color-brand-soft); }
+    .submenu-group { display:flex; flex-direction:column; margin-top:-2px; margin-bottom:4px; }
+    .sidebar-bot { margin-top:auto; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .av { width:34px; height:34px; border-radius:50%; background:var(--color-brand-soft); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:var(--color-brand); }
+    .theme-toggle { border:none; background:var(--color-background-secondary); color:var(--color-text-primary); border-radius:999px; padding:8px 12px; cursor:pointer; font-size:12px; }
+    .main { flex:1; overflow-y:auto; padding:28px; min-width:0; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; gap:12px; }
+    .eyebrow { font-size:11px; color:var(--color-text-tertiary); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+    .title { font-size:26px; font-weight:600; color:var(--color-text-primary); letter-spacing:-0.03em; }
+    .subtitle { font-size:13px; color:var(--color-text-secondary); margin-top:6px; max-width:780px; line-height:1.5; }
+    .card { background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:20px; padding:20px; margin-bottom:12px; box-shadow: var(--shadow-card); backdrop-filter: blur(14px); }
+    .section-title { font-size:13px; font-weight:600; color:var(--color-text-primary); margin-bottom:4px; }
+    .section-sub { font-size:12px; color:var(--color-text-secondary); margin-bottom:16px; }
+    .btn { background:linear-gradient(135deg, var(--color-brand), #6c61db); color:#fff; border:none; border-radius:var(--border-radius-md); padding:12px 20px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 10px 24px rgba(83,74,183,0.22); }
+    .btn:hover { opacity:.9; }
+    .btn.secondary { background:var(--color-background-secondary); border:0.5px solid var(--color-border-secondary); color:var(--color-text-primary); box-shadow:none; }
+    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:12px; }
+    .span-3 { grid-column:span 3; }
+    .span-4 { grid-column:span 4; }
+    .span-5 { grid-column:span 5; }
+    .span-6 { grid-column:span 6; }
+    .span-7 { grid-column:span 7; }
+    .span-8 { grid-column:span 8; }
+    .span-12 { grid-column:span 12; }
+    .metric-card { background:linear-gradient(180deg, rgba(83,74,183,0.05), transparent), var(--color-background-secondary); border-radius:16px; padding:16px; border:0.5px solid var(--color-border-tertiary); }
+    .metric-label { font-size:11px; color:var(--color-text-tertiary); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+    .metric-value { font-size:28px; font-weight:600; color:var(--color-text-primary); line-height:1; margin-bottom:4px; }
+    .metric-delta { font-size:11px; color:var(--color-success); }
+    .badge { font-size:12px; color:var(--color-success); background:var(--color-success-soft); padding:6px 12px; border-radius:20px; font-weight:600; }
+    .badge.neutral { color:var(--color-text-secondary); background:var(--color-background-secondary); }
+    .pill { padding:8px 16px; border-radius:20px; font-size:13px; border:0.5px solid var(--color-border-tertiary); background:var(--color-background-secondary); color:var(--color-text-secondary); }
+    .list-row, .conf-row, .status-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:0.5px solid var(--color-border-tertiary); font-size:13px; }
+    .list-row:last-child, .conf-row:last-child, .status-row:last-child { border-bottom:none; }
+    .mini, .muted { font-size:12px; color:var(--color-text-secondary); }
+    input, select, textarea { width:100%; background:var(--color-background-secondary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-md); padding:10px 12px; font-size:13px; color:var(--color-text-primary); font-family:var(--font-sans); }
+    input:focus, select:focus, textarea:focus { outline:none; border-color:var(--color-brand); box-shadow:0 0 0 4px rgba(83,74,183,0.10); }
+    input[type="color"] { padding:4px; height:42px; }
+    label { display:block; font-size:11px; color:var(--color-text-tertiary); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; margin-top:16px; }
+    label:first-child { margin-top:0; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; padding:12px; border-bottom:0.5px solid var(--color-border-tertiary); font-size:13px; }
+    th { font-size:11px; color:var(--color-text-tertiary); text-transform:uppercase; letter-spacing:.05em; }
+    .split-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    @media (max-width: 980px) {
+      .app { flex-direction:column; }
+      .sidebar { width:100%; }
+      .main { padding:18px; }
+      .span-3,.span-4,.span-5,.span-6,.span-7,.span-8,.span-12 { grid-column:span 12; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="app">
+      <aside class="sidebar">
+        <div class="logo"><div class="logo-dot"></div>Growlee</div>
+
+        <div class="nav-section">Principal</div>
+        <a class="ni {% if request.path == '/admin/' %}active{% endif %}" href="/admin/">Tableau de bord</a>
+        <a class="ni {% if request.path == '/admin/customers/' or '/admin/customers/' in request.path %}active{% endif %}" href="/admin/customers/">Clients</a>
+        <a class="ni {% if request.path == '/admin/onboarding/' or request.path == '/admin/game/' or request.path == '/admin/rewards/' or request.path == '/admin/game/review/' or request.path == '/admin/game/wallet/' %}active{% endif %}" href="/admin/onboarding/">Configuration</a>
+        <div class="submenu-group">
+          <a class="ni sub {% if request.path == '/admin/game/' %}active{% endif %}" href="/admin/game/">Jeu</a>
+          <a class="ni sub {% if request.path == '/admin/game/review/' %}active{% endif %}" href="/admin/game/review/">Avis</a>
+          <a class="ni sub {% if request.path == '/admin/game/wallet/' %}active{% endif %}" href="/admin/game/wallet/">Wallet</a>
+          <a class="ni sub {% if request.path == '/admin/rewards/' %}active{% endif %}" href="/admin/rewards/">Récompenses</a>
+        </div>
+        <a class="ni {% if request.path == '/admin/automations/' %}active{% endif %}" href="/admin/automations/">Campagnes</a>
+        <a class="ni {% if request.path == '/admin/setup/' %}active{% endif %}" href="/admin/setup/">Réglages</a>
+
+        <div class="sidebar-bot">
+          <div class="av">{{ merchant.name|default:'G'|slice:':2' }}</div>
+          <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <script>
+    const root = document.documentElement;
+    const toggle = document.getElementById('themeToggle');
+    const savedTheme = localStorage.getItem('growlee-admin-theme');
+    const preferredDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = savedTheme || (preferredDark ? 'dark' : 'light');
+    function applyTheme(theme) {
+      root.setAttribute('data-theme', theme);
+      if (toggle) toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    applyTheme(initialTheme);
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('growlee-admin-theme', next);
+        applyTheme(next);
+      });
+    }
+  </script>
+</body>
+</html>

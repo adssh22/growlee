@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: growlee
+      POSTGRES_USER: growlee
+      POSTGRES_PASSWORD: growlee
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U growlee -d growlee"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: ./apps/backend
+    environment:
+      POSTGRES_DB: growlee
+      POSTGRES_USER: growlee
+      POSTGRES_PASSWORD: growlee
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      DJANGO_DEBUG: 1
+      DJANGO_SECRET_KEY: growlee-dev-secret
+      APP_BASE_URL: http://192.168.1.27:8000
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:

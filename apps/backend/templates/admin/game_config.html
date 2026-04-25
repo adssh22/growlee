@@ -1,0 +1,227 @@
+{% extends 'admin/base.html' %}
+{% block title %}Jeu · Growlee{% endblock %}
+{% block content %}
+<div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
+  <button class="btn secondary" onclick="location.href='/admin/onboarding/'">‹ Configuration</button>
+  <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=landing" target="_blank">Ouvrir le parcours client</a>
+</div>
+<div class="topbar" style="margin-bottom:16px;">
+  <div>
+    <div class="eyebrow">Module 1</div>
+    <div class="title">Jeu</div>
+    <div class="subtitle">Page alignée avec la sous-page de référence : choix de mécanique, contenus d’accroche plus nets, mode avancé repliable et aperçu mobile intégré.</div>
+  </div>
+  <form method="post" action="/admin/campaign/toggle/" style="margin:0;" onclick="event.stopPropagation();">
+    {% csrf_token %}
+    <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
+    <input type="hidden" name="flag" value="is_active" />
+    <input type="hidden" name="value" value="{% if campaign and campaign.is_active %}0{% else %}1{% endif %}" />
+    <input type="hidden" name="next" value="/admin/game/" />
+    <button type="submit" style="width:36px; height:20px; background:{% if campaign and campaign.is_active %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.is_active %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button>
+  </form>
+</div>
+
+<div style="display:flex; align-items:center; gap:0; margin-bottom:24px;">
+  <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand); color:#fff;">1</div>
+  <div style="flex:1; height:1px; background:var(--color-brand);"></div>
+  <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-brand-soft); color:var(--color-brand); border:1.5px solid var(--color-brand);">2</div>
+  <div style="flex:1; height:1px; background:var(--color-border-tertiary);"></div>
+  <div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--color-background-secondary); color:var(--color-text-tertiary);">3</div>
+</div>
+
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="form_action" value="campaign" />
+    {{ campaign_form.name.as_hidden }}
+    {{ campaign_form.reward_label.as_hidden }}
+    {{ campaign_form.review_enabled.as_hidden }}
+    {{ campaign_form.wallet_enabled.as_hidden }}
+    {{ campaign_form.is_active.as_hidden }}
+
+    <div class="section-title">Choisir le type de jeu</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+      <label style="margin:0; text-transform:none; letter-spacing:0; cursor:pointer;">
+        <input type="radio" name="campaign-game_type" value="spin" {% if campaign_form.game_type.value == 'spin' or not campaign_form.game_type.value %}checked{% endif %} style="display:none;" onchange="setGameType('spin')">
+        <span class="pill game-type-pill" data-game-type="spin" onclick="chooseGameType('spin')" style="display:inline-block; {% if campaign_form.game_type.value == 'spin' or not campaign_form.game_type.value %}background:var(--color-brand-soft); color:var(--color-brand); border-color:var(--color-brand);{% endif %}">Spin wheel</span>
+      </label>
+      <label style="margin:0; text-transform:none; letter-spacing:0; cursor:pointer;">
+        <input type="radio" name="campaign-game_type" value="quiz" {% if campaign_form.game_type.value == 'quiz' %}checked{% endif %} style="display:none;" onchange="setGameType('quiz')">
+        <span class="pill game-type-pill" data-game-type="quiz" onclick="chooseGameType('quiz')" style="display:inline-block; {% if campaign_form.game_type.value == 'quiz' %}background:var(--color-brand-soft); color:var(--color-brand); border-color:var(--color-brand);{% endif %}">Quiz</span>
+      </label>
+      <label style="margin:0; text-transform:none; letter-spacing:0; cursor:pointer;">
+        <input type="radio" name="campaign-game_type" value="scratch" {% if campaign_form.game_type.value == 'scratch' %}checked{% endif %} style="display:none;" onchange="setGameType('scratch')">
+        <span class="pill game-type-pill" data-game-type="scratch" onclick="chooseGameType('scratch')" style="display:inline-block; {% if campaign_form.game_type.value == 'scratch' %}background:var(--color-brand-soft); color:var(--color-brand); border-color:var(--color-brand);{% endif %}">Scratch card</span>
+      </label>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Type de parcours client</div>
+      {{ campaign_form.journey_type }}
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+      <div>
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Titre écran d'accueil</div>
+        {{ campaign_form.landing_headline }}
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Texte bouton principal</div>
+        {{ campaign_form.cta_label }}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Texte d'introduction</div>
+      {{ campaign_form.landing_subheadline }}
+    </div>
+
+    <div style="border-top:0.5px solid var(--color-border-tertiary); padding-top:16px; margin-top:16px;">
+      <button type="button" onclick="toggleAdvancedGame()" style="display:flex; width:100%; align-items:center; justify-content:flex-start; gap:8px; font-size:12px; color:var(--color-text-secondary); margin-bottom:12px; background:none; border:none; cursor:pointer; padding:0;">
+        <span id="advanced-game-arrow">▶</span>
+        <span id="advanced-game-label">Mode avancé, probabilités et quotas</span>
+      </button>
+      <div id="advanced-game-panel" style="display:none;">
+        <div id="advanced-spin-panel">
+          {% for segment in segments %}
+          <div style="display:flex; gap:10px; align-items:center; padding:12px; background:var(--color-background-secondary); border-radius:var(--border-radius-md); margin-bottom:8px;">
+            <div style="width:36px; height:36px; border-radius:var(--border-radius-md); background:var(--color-brand-soft); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--color-brand); font-weight:600; flex-shrink:0;">{% if segment.reward %}{{ segment.reward.name|slice:':2' }}{% else %}{{ segment.label|slice:':2' }}{% endif %}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px; color:var(--color-text-primary);">{{ segment.label }}</div>
+              <div style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">Probabilité : {{ segment.probability_weight }}% · Quota : {{ segment.daily_quota }}</div>
+              <div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin-top:6px; overflow:hidden;"><div style="height:100%; border-radius:2px; background:var(--color-brand); width:{{ segment.probability_weight }}%;"></div></div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="mini" style="margin-bottom:8px;">Aucun segment configuré.</div>
+          {% endfor %}
+          <a class="btn secondary" href="/admin/rewards/" style="width:100%; margin-top:8px;">+ Ajouter une récompense</a>
+        </div>
+
+        <div id="advanced-quiz-panel" style="display:none;">
+          <div class="card" style="margin:0; background:var(--color-background-secondary); border:none; box-shadow:none;">
+            <div class="section-title">Configuration des questions</div>
+            <div class="mini" style="margin-bottom:12px;">Pour le quiz, le mode avancé ne montre que les questions et réponses.</div>
+            <div style="display:grid; gap:10px;">
+              <div><div class="mini" style="margin-bottom:6px;">Question</div>{{ campaign_form.quiz_question }}</div>
+              <div><div class="mini" style="margin-bottom:6px;">Réponse A</div>{{ campaign_form.quiz_answer_a }}</div>
+              <div><div class="mini" style="margin-bottom:6px;">Réponse B</div>{{ campaign_form.quiz_answer_b }}</div>
+              <div><div class="mini" style="margin-bottom:6px;">Réponse C</div>{{ campaign_form.quiz_answer_c }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="advanced-scratch-panel" style="display:none;">
+          <div class="card" style="margin:0 0 10px; background:var(--color-background-secondary); border:none; box-shadow:none;">
+            <div class="section-title">Ticket à gratter</div>
+            <div class="mini" style="margin-bottom:8px;">Texte affiché sur la zone à gratter</div>
+            {{ campaign_form.scratch_label }}
+          </div>
+          {% for segment in segments %}
+          <div style="display:flex; gap:10px; align-items:center; padding:12px; background:var(--color-background-secondary); border-radius:var(--border-radius-md); margin-bottom:8px;">
+            <div style="width:36px; height:36px; border-radius:var(--border-radius-md); background:var(--color-brand-soft); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--color-brand); font-weight:600; flex-shrink:0;">{% if segment.reward %}{{ segment.reward.name|slice:':2' }}{% else %}{{ segment.label|slice:':2' }}{% endif %}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px; color:var(--color-text-primary);">{{ segment.label }}</div>
+              <div style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">Probabilité : {{ segment.probability_weight }}% · Quota : {{ segment.daily_quota }}</div>
+              <div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin-top:6px; overflow:hidden;"><div style="height:100%; border-radius:2px; background:var(--color-brand); width:{{ segment.probability_weight }}%;"></div></div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="mini" style="margin-bottom:8px;">Aucun gain configuré.</div>
+          {% endfor %}
+          <a class="btn secondary" href="/admin/rewards/" style="width:100%; margin-top:8px;">+ Ajouter une récompense</a>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" type="submit" style="margin-top:16px;">Enregistrer le jeu</button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:12px;">
+  <div class="section-title">Personnalisation du parcours client</div>
+  <div class="section-sub">Typographies et couleurs appliquées au parcours mobile et à l’aperçu intégré.</div>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="form_action" value="merchant_style" />
+    {{ merchant_form.name.as_hidden }}
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div>
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Typo titres</div>
+        {{ merchant_form.heading_font }}
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Typo textes</div>
+        {{ merchant_form.body_font }}
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Couleur principale</div>
+        {{ merchant_form.primary_color }}
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Couleur accent</div>
+        {{ merchant_form.accent_color }}
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Fond parcours</div>
+        {{ merchant_form.surface_color }}
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px;">Texte parcours</div>
+        {{ merchant_form.text_color }}
+      </div>
+    </div>
+    <button class="btn secondary" type="submit" style="margin-top:16px; width:100%;">Enregistrer la personnalisation</button>
+  </form>
+</div>
+
+<div class="grid" style="margin-top:12px;">
+  <div class="card span-6">
+    <div class="section-title">État actuel</div>
+    <div class="status-row"><span>Type de jeu</span><span>{{ campaign.get_game_type_display|default:'Roue' }}</span></div>
+    <div class="status-row"><span>Segments actifs</span><span>{{ segments|length }}</span></div>
+    <div class="status-row"><span>Poids total</span><span>{{ total_weight }}</span></div>
+  </div>
+  <div class="card span-6">
+    <div class="section-title">Aperçu du parcours</div>
+    <div class="section-sub">Preview intégrée dans l’admin, dans l’esprit de la référence Growly plutôt qu’un simple lien externe.</div>
+    <div style="width:320px; max-width:100%; height:680px; margin:auto; border-radius:28px; overflow:hidden; border:0.5px solid var(--color-border-tertiary); box-shadow:0 0 0 8px var(--color-background-tertiary); background:#000;">
+      <iframe src="/play/{{ merchant.slug }}/?step=landing" title="Aperçu interactif du parcours client" style="width:100%; height:100%; border:0; background:#fff;"></iframe>
+    </div>
+  </div>
+</div>
+<script>
+function toggleAdvancedGame() {
+  const panel = document.getElementById('advanced-game-panel');
+  const arrow = document.getElementById('advanced-game-arrow');
+  if (!panel || !arrow) return;
+  const open = panel.style.display === 'none' || panel.style.display === '';
+  panel.style.display = open ? 'block' : 'none';
+  arrow.textContent = open ? '▼' : '▶';
+}
+function setGameType(type) {
+  document.querySelectorAll('.game-type-pill').forEach((pill) => {
+    const active = pill.dataset.gameType === type;
+    pill.style.background = active ? 'var(--color-brand-soft)' : 'var(--color-background-secondary)';
+    pill.style.color = active ? 'var(--color-brand)' : 'var(--color-text-secondary)';
+    pill.style.borderColor = active ? 'var(--color-brand)' : 'var(--color-border-tertiary)';
+  });
+  const spin = document.getElementById('advanced-spin-panel');
+  const quiz = document.getElementById('advanced-quiz-panel');
+  const scratch = document.getElementById('advanced-scratch-panel');
+  if (spin) spin.style.display = type === 'spin' ? 'block' : 'none';
+  if (quiz) quiz.style.display = type === 'quiz' ? 'block' : 'none';
+  if (scratch) scratch.style.display = type === 'scratch' ? 'block' : 'none';
+  const label = document.getElementById('advanced-game-label');
+  if (label) label.textContent = type === 'quiz' ? 'Mode avancé — configuration des questions' : 'Mode avancé — probabilités et quotas';
+}
+function chooseGameType(type) {
+  const input = document.querySelector('input[name="campaign-game_type"][value="' + type + '"]');
+  if (input) input.checked = true;
+  setGameType(type);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const checked = document.querySelector('input[name="campaign-game_type"]:checked');
+  setGameType(checked ? checked.value : 'spin');
+});
+</script>
+{% endblock %}

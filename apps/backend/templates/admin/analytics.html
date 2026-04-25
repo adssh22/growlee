@@ -1,0 +1,29 @@
+{% extends 'admin/base.html' %}
+{% block title %}Analyse · Growlee{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="eyebrow">Analyse</div>
+    <div class="title">Performance</div>
+    <div class="subtitle">Les métriques utiles pour lire l’impact du dispositif.</div>
+  </div>
+</div>
+<div class="grid">
+  <div class="card span-3"><div class="metric-label">Scans</div><div class="metric-value">{{ stats.scans }}</div><div class="metric-delta">7 jours</div></div>
+  <div class="card span-3"><div class="metric-label">Contacts</div><div class="metric-value">{{ stats.contacts }}</div><div class="metric-delta">captés</div></div>
+  <div class="card span-3"><div class="metric-label">Gains</div><div class="metric-value">{{ stats.distributed }}</div><div class="metric-delta">distribués</div></div>
+  <div class="card span-3"><div class="metric-label">Retour</div><div class="metric-value">{{ stats.return_rate }}</div><div class="metric-delta">utilisés / distribués</div></div>
+</div>
+<div class="grid" style="margin-top:18px;">
+  <div class="card span-6">
+    <div class="section-title">Distribution</div>
+    <div class="list-row"><span>Distribués</span><strong>{{ stats.distributed }}</strong></div>
+    <div class="list-row"><span>Utilisés</span><strong>{{ stats.redeemed }}</strong></div>
+    <div class="list-row"><span>Taux de retour</span><strong>{{ stats.return_rate }}</strong></div>
+  </div>
+  <div class="card span-6">
+    <div class="section-title">Lecture</div>
+    <p class="muted">Le signal utile, c’est le volume de scans, la captation CRM, les gains distribués et surtout les gains validés en caisse.</p>
+  </div>
+</div>
+{% endblock %}
