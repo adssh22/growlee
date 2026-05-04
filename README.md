@@ -13,14 +13,17 @@ Growlee est une plateforme SaaS multi-tenant de croissance client pour commerces
 - multi-tenant simple par `Merchant`
 - espace commerçant avec login Django
 - dashboard commerçant MVP
+- mode employé cloisonné avec scan QR/carte et validation de gains
+- sortie du mode employé par ré-authentification propriétaire/manager
 - page de configuration commerce / campagne / reward / point d'entrée
 - flow client public `/play/<slug>/` réaligné sur un parcours en étapes
-- landing brandée
+- landing brandée avec exemple QR façade
 - étape jeu MVP
 - collecte contact avec consentement RGPD
-- page gain avec code de claim
+- email de gain avec lien unique temporaire
+- page gain activable pendant 15 minutes avec code + QR de validation
 - page avis optionnelle
-- étape wallet placeholder
+- étape wallet placeholder Apple Wallet / Google Wallet
 - création de `Customer` et `GameSession` depuis le flow public
 - preview QR SVG par point d'entrée
 - admin Django natif via `/django-admin/`
@@ -37,6 +40,7 @@ docker compose up --build
 - App: http://localhost:8000
 - Login commerçant: http://localhost:8000/login/
 - Dashboard home: http://localhost:8000/admin/
+- Mode employé: http://localhost:8000/admin/employee/
 - Onboarding: http://localhost:8000/admin/onboarding/
 - Configuration mini jeu: http://localhost:8000/admin/game/
 - Scan / Tap / point d'entrée: http://localhost:8000/admin/setup/
@@ -54,8 +58,8 @@ docker compose up --build
 
 ## Étapes suivantes recommandées
 
-1. appliquer les migrations dans Docker au prochain lancement
-2. remplacer le faux QR SVG par une vraie génération QR
-3. ajouter écrans CRUD dédiés pour campagnes et entry points multiples
-4. ajouter statuts d'expiration / validité des gains
-5. ajouter SMS et relances
+1. brancher un provider SMS réel
+2. configurer HTTPS en prod pour le scan caméra live
+3. finaliser certificats Apple Wallet et issuer Google Wallet
+4. ajouter écrans CRUD dédiés pour campagnes et entry points multiples
+5. ajouter statuts d'expiration / reporting avancé des gains
