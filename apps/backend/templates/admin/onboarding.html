@@ -125,4 +125,46 @@
     <button class="btn" type="submit" style="margin-top:12px;">Appliquer à tous les modules</button>
   </form>
 </div>
+<div class="card" style="margin-top:12px;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:16px;">
+    <div>
+      <div class="eyebrow">Points d’entrée</div>
+      <div style="font-size:18px; font-weight:800; color:var(--color-text-primary);">QR code & carte NFC</div>
+      <div style="font-size:12px; color:var(--color-text-secondary); margin-top:4px; max-width:680px; line-height:1.5;">Le QR et la carte NFC redirigent vers un lien unique. Par défaut : parcours Growlee mobile. Vous pouvez aussi mettre un lien personnalisé.</div>
+    </div>
+    {% if qr_entry_code %}
+    <div class="split-actions">
+      <a class="btn" href="/admin/qr/{{ qr_entry_code }}.svg" target="_blank">Ouvrir le QR</a>
+      <a class="btn secondary" href="/go/{{ qr_entry_code }}/" target="_blank">Tester redirection</a>
+    </div>
+    {% endif %}
+  </div>
+  {% if qr_entry_code %}
+  <div class="grid">
+    <div class="span-5">
+      <div style="background:#fff;border:1px solid var(--color-border-tertiary);border-radius:28px;overflow:hidden;display:grid;place-items:center;padding:18px;box-shadow:0 18px 40px rgba(31,36,48,.08);">
+        <div style="width:min(100%,420px);height:auto;line-height:0;">{{ qr_svg|safe }}</div>
+      </div>
+    </div>
+    <div class="span-7">
+      <div class="card" style="margin:0;background:var(--color-background-secondary);box-shadow:none;">
+        <div class="status-row"><span>QR code</span><span>{{ qr_entry_code }}</span></div>
+        <div class="status-row"><span>Carte NFC</span><span>{{ nfc_entry_code }}</span></div>
+        <div class="status-row"><span>Lien par défaut</span><span>/go/{{ qr_entry_code }}/</span></div>
+        <div class="status-row"><span>Cible actuelle</span><span>{% if entry_form.instance.redirect_url %}{{ entry_form.instance.redirect_url }}{% else %}/play/{{ merchant.slug }}/{% endif %}</span></div>
+        <form method="post" style="margin-top:14px;">
+          {% csrf_token %}
+          <input type="hidden" name="form_action" value="entry_point" />
+          {{ entry_form.name.as_hidden }}{{ entry_form.code.as_hidden }}{{ entry_form.channel.as_hidden }}{{ entry_form.placement.as_hidden }}
+          <label style="margin-top:0;">Lien de redirection QR/NFC</label>
+          {{ entry_form.redirect_url }}
+          <div class="mini" style="margin-top:8px;line-height:1.45;">Laissez vide pour rediriger vers le parcours Growlee du commerce. Pour une carte NFC, programmez l’URL : <strong>/go/{{ qr_entry_code }}/</strong></div>
+          <button class="btn" type="submit" style="margin-top:12px;width:100%;">Enregistrer la redirection</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
 {% endblock %}

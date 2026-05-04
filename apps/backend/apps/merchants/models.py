@@ -19,6 +19,10 @@ class Merchant(models.Model):
     text_color = models.CharField(max_length=20, default='#1f2937')
     heading_font = models.CharField(max_length=40, choices=FONT_CHOICES, default='inter')
     body_font = models.CharField(max_length=40, choices=FONT_CHOICES, default='inter')
+    google_review_url = models.URLField(blank=True, null=True)
+    employee_pin = models.CharField(max_length=12, default='1234')
+    is_demo = models.BooleanField(default=False)
+    demo_expires_at = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

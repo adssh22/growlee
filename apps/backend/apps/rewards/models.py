@@ -6,10 +6,10 @@ from apps.merchants.models import Merchant
 
 class Reward(models.Model):
     REWARD_TYPES = [
-        ('discount', 'Discount'),
-        ('gift', 'Gift'),
-        ('free_item', 'Free item'),
-        ('custom', 'Custom'),
+        ('discount', 'Réduction'),
+        ('gift', 'Cadeau'),
+        ('free_item', 'Produit offert'),
+        ('custom', 'Offre personnalisée'),
     ]
 
     merchant = models.ForeignKey(Merchant, on_delete=models.CASCADE, related_name='rewards')

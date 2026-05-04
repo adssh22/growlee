@@ -10,11 +10,11 @@
   <div class="badge neutral">30 derniers jours</div>
 </div>
 
-<div class="grid" style="margin-bottom:20px; grid-template-columns:repeat(4,1fr);">
+<div class="responsive-4" style="margin-bottom:20px;">
   <div class="metric-card"><div class="metric-label">Scans</div><div class="metric-value">{{ stats.scans }}</div><div class="metric-delta">activité Growlee</div></div>
   <div class="metric-card"><div class="metric-label">Données collectées</div><div class="metric-value">{{ stats.contacts }}</div><div class="metric-delta">contacts captés</div></div>
+  <div class="metric-card"><div class="metric-label">Gains gagnés</div><div class="metric-value">{{ stats.gains_won }}</div><div class="metric-delta">{{ stats.gains_waiting }} à récupérer</div></div>
   <div class="metric-card"><div class="metric-label">Campagnes en cours</div><div class="metric-value">{{ stats.campaigns_live }}</div><div class="metric-delta">actives maintenant</div></div>
-  <div class="metric-card"><div class="metric-label">Campagnes à venir</div><div class="metric-value">{{ stats.campaigns_scheduled }}</div><div class="metric-delta">planifiées</div></div>
 </div>
 
 <div style="font-size:12px; font-weight:600; color:var(--color-text-secondary); margin-bottom:12px; letter-spacing:0.04em;">TUNNEL DE CONVERSION</div>
@@ -34,7 +34,7 @@
 
 <a class="btn" href="/play/{{ merchant.slug }}/?step=landing" style="width:100%; margin-bottom:20px;">Voir le parcours client →</a>
 
-<div class="grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+<div class="responsive-2">
   <div class="card" style="padding:18px 18px 10px; background:linear-gradient(180deg, color-mix(in srgb, var(--color-brand) 5%, var(--color-background-primary)) 0%, var(--color-background-primary) 100%);">
     <div style="font-size:12px; font-weight:700; color:var(--color-text-secondary); margin-bottom:14px; letter-spacing:0.06em;">ÉTAT DES MODULES</div>
 
@@ -84,7 +84,7 @@
   </div>
 </div>
 
-<div class="grid" style="grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+<div class="responsive-2" style="margin-top:12px;">
   <div class="card" style="padding:18px; background:linear-gradient(180deg, color-mix(in srgb, #1D9E75 5%, var(--color-background-primary)) 0%, var(--color-background-primary) 100%);">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px;">
       <div>

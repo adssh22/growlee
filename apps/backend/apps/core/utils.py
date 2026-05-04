@@ -46,10 +46,12 @@ def build_qr_svg(data: str, merchant_name: str, primary_color: str = '#111827', 
     initials = escape(''.join(part[:1] for part in merchant_name.split()[:2]).upper() or 'G')
     safe_logo_url = escape(logo_url) if logo_url else None
 
+    # Le logo doit rester petit : trop grand, il masque les modules du QR et certains téléphones ne scannent plus.
+    # Taille volontairement limitée à ~20% du QR utile, avec correction d'erreur H côté génération.
     if safe_logo_url:
-        logo = f'<image href="{safe_logo_url}" x="376" y="376" width="148" height="148" preserveAspectRatio="xMidYMid meet" />'
+        logo = f'<image href="{safe_logo_url}" x="410" y="410" width="80" height="80" preserveAspectRatio="xMidYMid meet" />'
     else:
-        logo = f'<rect x="376" y="376" width="148" height="148" rx="34" fill="{accent}"/><text x="450" y="471" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="52" font-weight="900" fill="#07111f">{initials}</text>'
+        logo = f'<rect x="410" y="410" width="80" height="80" rx="22" fill="{accent}"/><text x="450" y="462" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="900" fill="#07111f">{initials}</text>'
 
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 900 900">
       <defs>
@@ -70,7 +72,7 @@ def build_qr_svg(data: str, merchant_name: str, primary_color: str = '#111827', 
       <g filter="url(#shadow)">
         <rect x="110" y="230" width="680" height="520" rx="56" fill="#fff"/>
         <image href="{qr_data_uri}" x="154" y="274" width="592" height="432" preserveAspectRatio="xMidYMid meet" />
-        <rect x="358" y="358" width="184" height="184" rx="44" fill="#fff"/>
+        <rect x="396" y="396" width="108" height="108" rx="30" fill="#fff"/>
         {logo}
       </g>
 

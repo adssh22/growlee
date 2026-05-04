@@ -1,41 +1,162 @@
 import csv
-from datetime import datetime
+import io
+from datetime import datetime, timedelta
 
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, logout
+from django.utils.html import escape
+from django.utils.text import slugify
 from django.db.models import Q
+from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 
 from django.conf import settings
 from django.utils import timezone
 
-from apps.accounts.models import MerchantMembership
+import qrcode
+import qrcode.image.svg
+
+from apps.accounts.models import MerchantMembership, StaffMFA
 from apps.campaigns.models import Campaign, EntryPoint, WheelSegment
-from apps.core.forms import CampaignForm, EntryPointForm, MerchantForm, RewardForm
-from apps.core.utils import build_qr_svg
+from apps.core.forms import CampaignForm, EntryPointForm, MerchantForm, MerchantReviewForm, MerchantSignupForm, RewardForm, StaffMerchantCreateForm
+from apps.core.totp import generate_secret, provisioning_uri, verify_totp
+from apps.core.utils import build_qr_svg, generate_qr_data_uri
 from apps.customers.forms import ClaimRewardForm
 from apps.customers.models import Customer, GameSession, WalletPass
-from apps.customers.services import claim_reward
+from apps.customers.services import claim_reward, reward_claim_url, send_reward_notifications
 from apps.customers.wallet import build_wallet_payload, issue_wallet_pass_placeholder, wallet_config_status
 from apps.merchants.models import Merchant
 from apps.rewards.models import Reward
 
 
-def home(request):
-    merchants = Merchant.objects.filter(is_active=True)[:6]
-    return render(request, 'public/home.html', {'merchants': merchants})
+def _current_merchant(request):
+    membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
+    return membership.merchant if membership else None
 
+
+def home(request):
+    return render(request, 'public/home.html')
+
+
+def _first_membership(user):
+    return MerchantMembership.objects.select_related('merchant').filter(user=user).first()
+
+
+def _merchant_is_unlocked(merchant):
+    if merchant and merchant.is_demo and merchant.demo_expires_at and merchant.demo_expires_at < timezone.now():
+        return False
+    return bool(merchant and merchant.is_active)
+
+
+def _pricing_plans():
+    return [
+        {
+            'key': 'all_inclusive',
+            'name': 'Tout inclus',
+            'price': '90€ / mois',
+            'tagline': 'Une offre simple pour lancer Growlee dans votre restaurant.',
+            'features': ['Parcours QR mobile premium', 'Jeu cadeau', 'Avis Google + feedback privé', 'Wallet fidélité', 'Campagnes SMS & Email', 'Personnalisation logo/couleurs', 'Clients cloisonnés par commerce'],
+            'payment_link': settings.GROWLEE_PAYMENT_LINK_PRO,
+            'highlight': True,
+            'cta': 'Acheter maintenant',
+        },
+        {
+            'key': 'multi_restaurant',
+            'name': 'Multi-restaurants',
+            'price': 'Sur devis',
+            'tagline': 'Pour les groupes, franchises ou plusieurs établissements.',
+            'features': ['Plusieurs restaurants', 'Gestion centralisée', 'Offres et modules par établissement', 'Accompagnement au lancement', 'Tarif adapté au volume'],
+            'payment_link': '',
+            'contact': True,
+            'cta': 'Contactez-nous',
+        },
+    ]
+
+
+def _employee_mode_block_response(request):
+    allowed_paths = {'/admin/employee/', '/admin/employee/exit/', '/logout/'}
+    if request.session.get('growlee_employee_mode') and request.path not in allowed_paths:
+        return redirect('employee-mode')
+    return None
+
+
+def _admin_access_block_response(request, merchant=None):
+    employee_block = _employee_mode_block_response(request)
+    if employee_block is not None:
+        return employee_block
+    if request.user.is_superuser:
+        return redirect('staff-merchants')
+    membership = _first_membership(request.user)
+    merchant = merchant or (membership.merchant if membership else None)
+    if merchant is None:
+        messages.error(request, 'Aucun commerce n’est rattaché à ce compte.')
+        return redirect('logout')
+    if not _merchant_is_unlocked(merchant):
+        return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
+    return None
+
+
+def merchant_unlocked_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        blocked = _admin_access_block_response(request)
+        if blocked is not None:
+            return blocked
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+
+def _unique_merchant_slug(name):
+    base = slugify(name) or 'commerce'
+    slug = base[:48]
+    counter = 2
+    while Merchant.objects.filter(slug=slug).exists():
+        suffix = f'-{counter}'
+        slug = f"{base[:48-len(suffix)]}{suffix}"
+        counter += 1
+    return slug
+
+
+def signup_view(request):
+    if request.user.is_authenticated:
+        return redirect('admin-dashboard')
+    form = MerchantSignupForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        merchant = Merchant.objects.create(
+            name=form.cleaned_data['business_name'],
+            slug=_unique_merchant_slug(form.cleaned_data['business_name']),
+            primary_color='#4e3db7',
+            accent_color='#3f9d87',
+            is_active=False,
+        )
+        MerchantMembership.objects.create(user=user, merchant=merchant, role='owner')
+        campaign, _, _ = _ensure_default_growlee_setup(merchant)
+        campaign.is_active = False
+        campaign.review_enabled = False
+        campaign.wallet_enabled = False
+        campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
+        login(request, user)
+        messages.success(request, 'Compte créé. Votre espace sera activé après validation du paiement.')
+        return redirect('admin-dashboard')
+    return render(request, 'admin/signup.html', {'form': form})
 
 def login_view(request):
     if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('staff-merchants')
         return redirect('admin-dashboard')
     form = AuthenticationForm(request, data=request.POST or None)
     if request.method == 'POST' and form.is_valid():
         login(request, form.get_user())
-        return redirect('admin-dashboard')
+        if form.get_user().is_superuser and (request.GET.get('next') in {None, '', '/admin/'}):
+            return redirect('staff-merchants')
+        return redirect(request.GET.get('next') or 'admin-dashboard')
     return render(request, 'admin/login.html', {'form': form})
 
 
@@ -44,15 +165,101 @@ def logout_view(request):
     return redirect('home')
 
 
+def _control_access_granted(request):
+    return bool(request.session.get('growlee_control_2fa_ok'))
+
+
+def _is_superuser(user):
+    return bool(user.is_authenticated and user.is_active and user.is_superuser)
+
+
+superuser_required = user_passes_test(_is_superuser, login_url='/login/')
+
+
+def _staff_mfa_for_user(user):
+    mfa, _ = StaffMFA.objects.get_or_create(user=user, defaults={'secret': generate_secret()})
+    if not mfa.secret:
+        mfa.secret = generate_secret()
+        mfa.save(update_fields=['secret', 'updated_at'])
+    return mfa
+
+
+def _staff_mfa_qr_context(user, mfa=None):
+    mfa = mfa or _staff_mfa_for_user(user)
+    uri = provisioning_uri(mfa.secret, user.username)
+    img = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage)
+    buffer = io.BytesIO()
+    img.save(buffer)
+    return {
+        'mfa': mfa,
+        'qr_svg': buffer.getvalue().decode('utf-8'),
+        'secret': mfa.secret,
+        'otpauth_uri': uri,
+    }
+
+
+@superuser_required
+def staff_control_mfa_setup(request):
+    mfa = _staff_mfa_for_user(request.user)
+    error = None
+
+    if request.method == 'POST':
+        if request.POST.get('action') == 'reset':
+            mfa.secret = generate_secret()
+            mfa.enabled = False
+            mfa.save(update_fields=['secret', 'enabled', 'updated_at'])
+            request.session.pop('growlee_control_2fa_ok', None)
+            messages.success(request, '2FA réinitialisée. Scanne le nouveau QR code.')
+            return redirect('staff-control-mfa-setup')
+        if verify_totp(mfa.secret, request.POST.get('totp_code')):
+            mfa.enabled = True
+            mfa.save(update_fields=['enabled', 'updated_at'])
+            request.session['growlee_control_2fa_ok'] = True
+            request.session.set_expiry(60 * 60 * 4)
+            messages.success(request, '2FA téléphone activée.')
+            return redirect('staff-merchants')
+        error = 'Code 2FA invalide. Vérifie l’heure du téléphone et réessaie.'
+
+    context = _staff_mfa_qr_context(request.user, mfa)
+    context.update({
+        'error': error,
+    })
+    return render(request, 'admin/staff_control_mfa_setup.html', context)
+
+
+@superuser_required
+def staff_control_verify(request):
+    if _control_access_granted(request):
+        return redirect('staff-merchants')
+
+    mfa = _staff_mfa_for_user(request.user)
+    if not mfa.enabled:
+        return redirect('staff-merchants')
+
+    error = None
+    if request.method == 'POST':
+        if verify_totp(mfa.secret, request.POST.get('totp_code')):
+            request.session['growlee_control_2fa_ok'] = True
+            request.session.set_expiry(60 * 60 * 4)
+            return redirect(request.GET.get('next') or 'staff-merchants')
+        error = 'Code 2FA invalide.'
+
+    return render(request, 'admin/staff_control_verify.html', {'error': error})
+
+
 def _get_active_campaign_for_merchant(merchant):
     if merchant is None:
         return None
-    return Campaign.objects.filter(merchant=merchant, is_active=True).order_by('-created_at', '-id').first()
+    # Le parcours client suit la campagne courante du commerçant.
+    # Si la dernière campagne / le module Jeu est désactivé côté admin,
+    # on ne retombe pas sur une ancienne campagne active : le parcours est coupé aussi.
+    campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
+    return campaign if campaign and campaign.is_active else None
 
 
 def _merchant_context_for_user(user):
-    membership = MerchantMembership.objects.select_related('merchant').filter(user=user).first()
-    merchant = membership.merchant if membership else Merchant.objects.filter(slug='demo-bistro').first()
+    membership = _first_membership(user)
+    merchant = membership.merchant if membership else None
     campaigns = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id') if merchant else Campaign.objects.none()
     # L'admin doit refléter la campagne que l'utilisateur vient de modifier,
     # même si elle est désactivée. Sinon le dashboard retombe sur une ancienne
@@ -63,6 +270,8 @@ def _merchant_context_for_user(user):
     customers = Customer.objects.filter(merchant=merchant).order_by('-created_at')[:10] if merchant else []
     distributed = GameSession.objects.filter(campaign__merchant=merchant).count() if merchant else 0
     redeemed = GameSession.objects.filter(campaign__merchant=merchant, redeemed=True).count() if merchant else 0
+    gains_won = GameSession.objects.filter(campaign__merchant=merchant, is_winner=True).count() if merchant else 0
+    gains_waiting = GameSession.objects.filter(campaign__merchant=merchant, is_winner=True, redeemed=False).count() if merchant else 0
     now = timezone.now()
     active_campaigns = campaigns.filter(is_active=True).filter(
         Q(send_immediately=True) | Q(scheduled_for__isnull=True) | Q(scheduled_for__lte=now)
@@ -75,6 +284,8 @@ def _merchant_context_for_user(user):
         'return_rate': f"{int((redeemed / distributed) * 100) if distributed else 0}%",
         'distributed': distributed,
         'redeemed': redeemed,
+        'gains_won': gains_won,
+        'gains_waiting': gains_waiting,
         'review_clicks': 0,
         'review_target': 20,
         'campaigns_live': active_campaigns.count(),
@@ -102,8 +313,141 @@ def _merchant_context_for_user(user):
 
 @login_required
 def admin_dashboard(request):
+    if request.user.is_superuser:
+        return redirect('staff-merchants')
     context = _merchant_context_for_user(request.user)
+    if context['merchant'] is None:
+        if request.user.is_staff:
+            return redirect('staff-merchants')
+        messages.error(request, 'Aucun commerce n’est rattaché à ce compte.')
+        return redirect('logout')
+    blocked = _admin_access_block_response(request, context['merchant'])
+    if blocked is not None:
+        return blocked
     return render(request, 'admin/dashboard.html', context)
+
+
+@superuser_required
+def staff_merchants(request):
+    mfa = _staff_mfa_for_user(request.user)
+    if not mfa.enabled:
+        return redirect('staff-control-mfa-setup')
+    if mfa.enabled and not _control_access_granted(request):
+        return redirect(f'/growlee-control/verify/?next={request.path}')
+
+    form = StaffMerchantCreateForm(request.POST or None)
+    mfa_error = None
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'mfa_reset':
+            mfa.secret = generate_secret()
+            mfa.enabled = False
+            mfa.save(update_fields=['secret', 'enabled', 'updated_at'])
+            request.session.pop('growlee_control_2fa_ok', None)
+            messages.success(request, '2FA réinitialisée. Scanne le nouveau QR dans le panel.')
+            return redirect('staff-merchants')
+        if action == 'mfa_enable':
+            if verify_totp(mfa.secret, request.POST.get('totp_code')):
+                mfa.enabled = True
+                mfa.save(update_fields=['enabled', 'updated_at'])
+                request.session['growlee_control_2fa_ok'] = True
+                request.session.set_expiry(60 * 60 * 4)
+                messages.success(request, '2FA téléphone activée pour ce compte staff.')
+                return redirect('staff-merchants')
+            mfa_error = 'Code 2FA invalide. Vérifie l’heure du téléphone et réessaie.'
+        if action == 'toggle':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            merchant.is_active = not merchant.is_active
+            merchant.save(update_fields=['is_active'])
+            messages.success(request, f'{merchant.name} est maintenant {"actif" if merchant.is_active else "désactivé"}.')
+            return redirect('staff-merchants')
+        if action == 'toggle_demo':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            merchant.is_demo = not merchant.is_demo
+            merchant.demo_expires_at = timezone.now() + timedelta(days=14) if merchant.is_demo else None
+            merchant.is_active = True if merchant.is_demo else merchant.is_active
+            merchant.save(update_fields=['is_demo', 'demo_expires_at', 'is_active'])
+            messages.success(request, f'Accès démo {"activé" if merchant.is_demo else "désactivé"} pour {merchant.name}.')
+            return redirect('staff-merchants')
+        if action == 'delete_merchant':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            confirm = (request.POST.get('confirm_name') or '').strip()
+            if confirm != merchant.name:
+                messages.error(request, f'Suppression annulée : tape exactement le nom du commerce ({merchant.name}).')
+                return redirect('staff-merchants')
+            merchant_name = merchant.name
+            owner_users = [membership.user for membership in merchant.memberships.select_related('user').all()]
+            merchant.delete()
+            for user in owner_users:
+                if not user.is_staff and not user.merchant_memberships.exists():
+                    user.delete()
+            messages.success(request, f'Commerce supprimé : {merchant_name}.')
+            return redirect('staff-merchants')
+        if action == 'module_toggle':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
+            if campaign is None:
+                campaign, _, _ = _ensure_default_growlee_setup(merchant)
+                campaign.is_active = False
+                campaign.review_enabled = False
+                campaign.wallet_enabled = False
+                campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
+            flag = request.POST.get('flag')
+            if flag == 'game':
+                campaign.is_active = not campaign.is_active
+                campaign.save(update_fields=['is_active'])
+            elif flag == 'review':
+                campaign.review_enabled = not campaign.review_enabled
+                campaign.save(update_fields=['review_enabled'])
+            elif flag == 'wallet':
+                campaign.wallet_enabled = not campaign.wallet_enabled
+                campaign.save(update_fields=['wallet_enabled'])
+            messages.success(request, f'Module mis à jour pour {merchant.name}.')
+            return redirect('staff-merchants')
+        if action == 'create' and form.is_valid():
+            with transaction.atomic():
+                email = form.cleaned_data['owner_email']
+                username = form.cleaned_data['owner_username'] or email
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=form.cleaned_data['owner_password'],
+                )
+                merchant = Merchant.objects.create(
+                    name=form.cleaned_data['merchant_name'],
+                    slug=_unique_merchant_slug(form.cleaned_data['merchant_name']),
+                    primary_color='#4e3db7',
+                    accent_color='#3f9d87',
+                    is_active=form.cleaned_data['is_active'],
+                    is_demo=form.cleaned_data.get('is_demo') or False,
+                    demo_expires_at=(timezone.now() + timedelta(days=form.cleaned_data.get('demo_days') or 14)) if form.cleaned_data.get('is_demo') else None,
+                )
+                MerchantMembership.objects.create(user=user, merchant=merchant, role='owner')
+                _ensure_default_growlee_setup(merchant)
+            messages.success(request, f'Commerce créé : {merchant.name}. Propriétaire : {user.username}')
+            return redirect('staff-merchants')
+
+    merchants = Merchant.objects.prefetch_related('memberships__user').order_by('-created_at')
+    rows = []
+    for merchant in merchants:
+        campaigns = Campaign.objects.filter(merchant=merchant)
+        rows.append({
+            'merchant': merchant,
+            'owners': [m for m in merchant.memberships.all() if m.role == 'owner'],
+            'campaigns_count': campaigns.count(),
+            'customers_count': Customer.objects.filter(merchant=merchant).count(),
+            'active_campaign': campaigns.order_by('-created_at', '-id').first(),
+        })
+    mfa_context = _staff_mfa_qr_context(request.user, mfa)
+    return render(request, 'admin/staff_merchants.html', {
+        'form': form,
+        'rows': rows,
+        'total_merchants': merchants.count(),
+        'active_merchants': merchants.filter(is_active=True).count(),
+        'total_users': User.objects.count(),
+        'mfa_error': mfa_error,
+        **mfa_context,
+    })
 
 
 def _ensure_default_growlee_setup(merchant):
@@ -176,6 +520,7 @@ def _ensure_spin_defaults(campaign):
 
 
 @login_required
+@merchant_unlocked_required
 def merchant_onboarding(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -188,15 +533,48 @@ def merchant_onboarding(request):
         merchant = merchant_form.save()
         campaign, entry_point, reward = _ensure_default_growlee_setup(merchant)
         messages.success(request, 'Identité enregistrée. Votre campagne, votre reward et votre QR principal sont prêts.')
-        return redirect(f'/admin/setup/?created=1&entry={entry_point.code}')
+        return redirect('merchant-onboarding')
 
     context = _merchant_context_for_user(request.user)
     latest_campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
-    context.update({'merchant_form': merchant_form, 'campaign': latest_campaign})
+    qr_entry = None
+    nfc_entry = None
+    entry_form = None
+    qr_svg = ''
+    if latest_campaign:
+        qr_entry, _ = EntryPoint.objects.get_or_create(
+            merchant=merchant,
+            campaign=latest_campaign,
+            code=f'{merchant.slug}-qr-main',
+            defaults={'name': 'QR principal', 'channel': 'qr', 'placement': 'table'},
+        )
+        nfc_entry, _ = EntryPoint.objects.get_or_create(
+            merchant=merchant,
+            campaign=latest_campaign,
+            code=f'{merchant.slug}-nfc-card',
+            defaults={'name': 'Carte NFC', 'channel': 'nfc', 'placement': 'carte'},
+        )
+        entry_form = EntryPointForm(request.POST or None, instance=qr_entry, prefix='entry')
+        if request.method == 'POST' and request.POST.get('form_action') == 'entry_point' and entry_form.is_valid():
+            entry_form.save()
+            messages.success(request, 'Redirection QR/NFC mise à jour.')
+            return redirect('merchant-onboarding')
+        if qr_entry:
+            logo_url = merchant.logo.url if merchant.logo else merchant.logo_url
+            qr_svg = build_qr_svg(
+                data=f"{settings.APP_BASE_URL}/go/{qr_entry.code}/",
+                merchant_name=merchant.name,
+                primary_color=merchant.primary_color,
+                accent_color=merchant.accent_color,
+                logo_url=logo_url,
+                size=420,
+            )
+    context.update({'merchant_form': merchant_form, 'campaign': latest_campaign, 'qr_entry_code': qr_entry.code if qr_entry else '', 'nfc_entry_code': nfc_entry.code if nfc_entry else '', 'entry_form': entry_form, 'qr_svg': qr_svg})
     return render(request, 'admin/onboarding.html', context)
 
 
 @login_required
+@merchant_unlocked_required
 def game_configuration(request):
     context = _merchant_context_for_user(request.user)
     merchant = context['merchant']
@@ -207,9 +585,23 @@ def game_configuration(request):
     campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
     campaign_form = CampaignForm(request.POST or None, instance=campaign, prefix='campaign')
     merchant_style_form = MerchantForm(request.POST or None, request.FILES or None, instance=merchant, prefix='merchant-style')
+    reward_form = RewardForm(request.POST or None, prefix='reward', initial={
+        'reward_type': 'gift',
+        'probability_weight': 100,
+        'daily_quota': 50,
+        'expires_in_hours': 168,
+        'active': True,
+    })
 
     if request.method == 'POST':
         action = request.POST.get('form_action')
+        if action == 'reward' and reward_form.is_valid():
+            reward = reward_form.save(commit=False)
+            reward.merchant = merchant
+            reward.campaign = campaign
+            reward.save()
+            messages.success(request, 'Récompense ajoutée au jeu.')
+            return redirect('game-configuration')
         if action == 'merchant_style' and merchant_style_form.is_valid():
             merchant_style_form.save()
             messages.success(request, 'Personnalisation du parcours client mise à jour.')
@@ -223,19 +615,37 @@ def game_configuration(request):
             messages.success(request, 'Configuration mini jeu mise à jour.')
             return redirect('game-configuration')
 
+    entry_point = EntryPoint.objects.filter(merchant=merchant, campaign=campaign).order_by('-created_at', '-id').first() if campaign else None
+    if campaign and entry_point is None:
+        entry_point, _ = EntryPoint.objects.get_or_create(
+            merchant=merchant,
+            campaign=campaign,
+            code=f'{merchant.slug}-qr-main',
+            defaults={'name': 'QR principal', 'channel': 'qr', 'placement': 'counter'},
+        )
     segments = WheelSegment.objects.filter(campaign=campaign).select_related('reward').order_by('display_order', 'id') if campaign else []
+    rewards = Reward.objects.filter(merchant=merchant).order_by('name')
     total_weight = sum(segment.probability_weight for segment in segments if segment.active)
-    context.update({'campaign': campaign, 'campaign_form': campaign_form, 'segments': segments, 'total_weight': total_weight, 'merchant_form': merchant_style_form})
+    context.update({'campaign': campaign, 'campaign_form': campaign_form, 'segments': segments, 'total_weight': total_weight, 'merchant_form': merchant_style_form, 'rewards': rewards, 'reward_form': reward_form, 'qr_entry_code': entry_point.code if entry_point else ''})
     return render(request, 'admin/game_config.html', context)
 
 
 @login_required
+@merchant_unlocked_required
 def review_configuration(request):
     context = _merchant_context_for_user(request.user)
+    merchant = context['merchant']
+    form = MerchantReviewForm(request.POST or None, instance=merchant, prefix='merchant-review')
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Lien Google de l’établissement mis à jour.')
+        return redirect('review-configuration')
+    context.update({'merchant_form': form})
     return render(request, 'admin/review.html', context)
 
 
 @login_required
+@merchant_unlocked_required
 def toggle_campaign_flag(request):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
@@ -301,13 +711,16 @@ def wallet_pass_scan(request, scan_code):
     })
 
 @login_required
+@merchant_unlocked_required
 def wallet_configuration(request):
     context = _merchant_context_for_user(request.user)
     return render(request, 'admin/wallet.html', context)
 
 
 @login_required
+@merchant_unlocked_required
 def merchant_setup(request):
+    return redirect('game-configuration')
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
     if merchant is None:
@@ -315,46 +728,22 @@ def merchant_setup(request):
         return redirect('admin-dashboard')
 
     campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
+    if campaign is None:
+        campaign, entry_point, reward = _ensure_default_growlee_setup(merchant)
     entry_point = EntryPoint.objects.filter(merchant=merchant, campaign=campaign).order_by('-created_at', '-id').first() if campaign else EntryPoint.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
-    reward = Reward.objects.filter(merchant=merchant, campaign=campaign).order_by('-created_at', '-id').first() if campaign else Reward.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
-
-    merchant_form = MerchantForm(request.POST or None, instance=merchant, prefix='merchant')
-    campaign_form = CampaignForm(request.POST or None, instance=campaign, prefix='campaign')
-    entry_form = EntryPointForm(request.POST or None, instance=entry_point, prefix='entry')
-    reward_form = RewardForm(request.POST or None, instance=reward, prefix='reward')
-
-    if request.method == 'POST':
-        forms_valid = all([
-            merchant_form.is_valid(),
-            campaign_form.is_valid(),
-            entry_form.is_valid(),
-            reward_form.is_valid(),
-        ])
-        if forms_valid:
-            merchant = merchant_form.save()
-            campaign = campaign_form.save(commit=False)
-            campaign.merchant = merchant
-            campaign.save()
-            entry = entry_form.save(commit=False)
-            entry.merchant = merchant
-            entry.campaign = campaign
-            entry.save()
-            reward = reward_form.save(commit=False)
-            reward.merchant = merchant
-            reward.campaign = campaign
-            reward.save()
-            messages.success(request, 'Configuration Growlee mise à jour.')
-            return redirect('merchant-setup')
+    if entry_point is None:
+        entry_point, _ = EntryPoint.objects.get_or_create(
+            merchant=merchant,
+            campaign=campaign,
+            code=f'{merchant.slug}-qr-main',
+            defaults={'name': 'QR principal', 'channel': 'qr', 'placement': 'counter'},
+        )
 
     created = request.GET.get('created') == '1'
     qr_entry_code = request.GET.get('entry') or (entry_point.code if entry_point else '')
 
     return render(request, 'admin/merchant/setup.html', {
         'merchant': merchant,
-        'merchant_form': merchant_form,
-        'campaign_form': campaign_form,
-        'entry_form': entry_form,
-        'reward_form': reward_form,
         'created': created,
         'qr_entry_code': qr_entry_code,
     })
@@ -363,7 +752,7 @@ def merchant_setup(request):
 @login_required
 def qr_preview(request, code):
     entry_point = get_object_or_404(EntryPoint, code=code)
-    url = f"{settings.APP_BASE_URL}/play/{entry_point.merchant.slug}/"
+    url = f"{settings.APP_BASE_URL}/go/{entry_point.code}/"
     logo_url = entry_point.merchant.logo.url if entry_point.merchant.logo else entry_point.merchant.logo_url
     svg = build_qr_svg(
         data=url,
@@ -375,7 +764,14 @@ def qr_preview(request, code):
     return HttpResponse(svg, content_type='image/svg+xml')
 
 
+def entry_redirect(request, code):
+    entry_point = get_object_or_404(EntryPoint, code=code)
+    target = entry_point.redirect_url or f'/play/{entry_point.merchant.slug}/'
+    return redirect(target)
+
+
 @login_required
+@merchant_unlocked_required
 def customers_list(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -402,6 +798,7 @@ def customers_list(request):
 
 
 @login_required
+@merchant_unlocked_required
 def customer_detail(request, customer_id):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -414,6 +811,7 @@ def customer_detail(request, customer_id):
 
 
 @login_required
+@merchant_unlocked_required
 def delete_customer(request, customer_id):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
@@ -427,6 +825,7 @@ def delete_customer(request, customer_id):
 
 
 @login_required
+@merchant_unlocked_required
 def customers_export_csv(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -449,12 +848,20 @@ def customers_export_csv(request):
 
 
 @login_required
+@merchant_unlocked_required
 def rewards_list(request):
+    if request.method == 'GET':
+        return redirect('game-configuration')
     context = _merchant_context_for_user(request.user)
     merchant = context['merchant']
     rewards = Reward.objects.filter(merchant=merchant).order_by('name') if merchant else []
-    reward = rewards.first() if rewards else None
-    reward_form = RewardForm(request.POST or None, instance=reward, prefix='reward')
+    reward_form = RewardForm(request.POST or None, prefix='reward', initial={
+        'reward_type': 'gift',
+        'probability_weight': 100,
+        'daily_quota': 50,
+        'expires_in_hours': 168,
+        'active': True,
+    })
 
     if request.method == 'POST' and merchant and reward_form.is_valid():
         reward = reward_form.save(commit=False)
@@ -462,7 +869,7 @@ def rewards_list(request):
         reward.campaign = context['campaign']
         reward.save()
         messages.success(request, 'Récompense enregistrée.')
-        return redirect('rewards-list')
+        return redirect('game-configuration')
 
     context['rewards'] = rewards
     context['reward_form'] = reward_form
@@ -470,6 +877,7 @@ def rewards_list(request):
 
 
 @login_required
+@merchant_unlocked_required
 def reward_delete(request, reward_id):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
@@ -478,16 +886,18 @@ def reward_delete(request, reward_id):
     reward = get_object_or_404(Reward, id=reward_id, merchant=merchant)
     reward.delete()
     messages.success(request, 'Récompense supprimée.')
-    return redirect('rewards-list')
+    return redirect('game-configuration')
 
 
 @login_required
+@merchant_unlocked_required
 def analytics_view(request):
     context = _merchant_context_for_user(request.user)
     return render(request, 'admin/analytics.html', context)
 
 
 @login_required
+@merchant_unlocked_required
 def automations_view(request):
     context = _merchant_context_for_user(request.user)
     campaign = context['campaign']
@@ -509,6 +919,7 @@ def automations_view(request):
 
 
 @login_required
+@merchant_unlocked_required
 def redeem_session(request, session_id):
     if request.method != 'POST':
         return redirect('admin-dashboard')
@@ -520,6 +931,90 @@ def redeem_session(request, session_id):
         session.save(update_fields=['redeemed'])
         messages.success(request, f'Gain marqué comme utilisé pour {session.customer.phone}.')
     return redirect('customer-detail', customer_id=session.customer_id)
+
+
+@login_required
+@merchant_unlocked_required
+def employee_mode(request):
+    merchant = _current_merchant(request)
+    if merchant is None:
+        messages.error(request, 'Aucun commerce lié à ce compte.')
+        return redirect('admin-dashboard')
+    request.session['growlee_employee_mode'] = True
+    found_session = None
+    query = (request.POST.get('scan_code') or request.GET.get('scan_code') or '').strip()
+
+    if request.method == 'POST' and request.POST.get('action') == 'redeem':
+        session = get_object_or_404(GameSession.objects.select_related('customer', 'campaign'), id=request.POST.get('session_id'), campaign__merchant=merchant)
+        if session.redeemed:
+            messages.info(request, 'Ce gain a déjà été utilisé.')
+        elif not session.is_recovery_window_open:
+            messages.error(request, 'Fenêtre expirée : le client doit recliquer sur “Récupérer mon gain”.')
+        else:
+            session.redeemed = True
+            session.save(update_fields=['redeemed'])
+            messages.success(request, f'Gain validé : {session.reward_label}.')
+        return redirect('employee-mode')
+
+    if query:
+        lookup_code = query.rstrip('/').split('/')[-1] if '/gain/' in query else query
+        found_session = GameSession.objects.select_related('customer', 'campaign', 'reward').filter(
+            campaign__merchant=merchant
+        ).filter(Q(claim_code__iexact=lookup_code) | Q(claim_token__iexact=lookup_code)).order_by('-created_at').first()
+        if not found_session:
+            messages.error(request, 'Aucun gain trouvé pour ce code ou cette carte.')
+
+    return render(request, 'admin/employee.html', {
+        'merchant': merchant,
+        'scan_code': query,
+        'found_session': found_session,
+    })
+
+
+@login_required
+@merchant_unlocked_required
+def employee_exit(request):
+    merchant = _current_merchant(request)
+    form = AuthenticationForm(request, data=request.POST or None)
+    if request.method == 'POST':
+        if form.is_valid():
+            user = form.get_user()
+            allowed = MerchantMembership.objects.filter(
+                user=user,
+                merchant=merchant,
+                role__in=['owner', 'manager'],
+            ).exists()
+            if allowed:
+                login(request, user)
+                request.session.pop('growlee_employee_mode', None)
+                messages.success(request, 'Mode employeur réouvert.')
+                return redirect('admin-dashboard')
+            messages.error(request, 'Ce compte n’a pas les droits employeur pour ce commerce.')
+        else:
+            messages.error(request, 'Identifiant ou mot de passe incorrect.')
+    return render(request, 'admin/employee_exit.html', {'merchant': merchant, 'form': form})
+
+
+def reward_claim_page(request, token):
+    session = get_object_or_404(
+        GameSession.objects.select_related('customer', 'campaign__merchant', 'reward'),
+        claim_token=token,
+    )
+    now = timezone.now()
+    expired = bool(session.reward_expires_at and session.reward_expires_at < now)
+    if request.method == 'POST' and not expired and not session.redeemed:
+        session.reward_available_until = now + timedelta(minutes=15)
+        session.save(update_fields=['reward_available_until'])
+        messages.success(request, 'Votre gain est disponible pendant 15 minutes. Présentez cet écran au point de vente.')
+        return redirect('reward-claim-page', token=token)
+    return render(request, 'public/reward_claim.html', {
+        'session': session,
+        'merchant': session.campaign.merchant,
+        'expired': expired,
+        'window_open': session.is_recovery_window_open,
+        'claim_url': reward_claim_url(session),
+        'claim_qr': generate_qr_data_uri(reward_claim_url(session), fill_color=session.campaign.merchant.primary_color or '#111827'),
+    })
 
 
 def _font_stack(font_key):
@@ -580,7 +1075,9 @@ def google_wallet_pass(request, slug):
 
 def play_page(request, slug):
     merchant = get_object_or_404(Merchant, slug=slug, is_active=True)
-    campaign = _get_active_campaign_for_merchant(merchant)
+    # Le parcours public ne dépend plus uniquement du module Jeu.
+    # La campagne courante porte aussi les modules Avis / Wallet et la collecte d'infos.
+    campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
     if campaign is None:
         return render(request, 'public/play.html', {
             'merchant': merchant,
@@ -594,14 +1091,21 @@ def play_page(request, slug):
             'total_weight': 0,
             'heading_font_stack': _font_stack(getattr(merchant, 'heading_font', 'inter')),
             'body_font_stack': _font_stack(getattr(merchant, 'body_font', 'inter')),
-            'game_step_count': 4,
-            'wallet_enabled': True,
+            'game_step_count': 0,
+            'wallet_enabled': False,
         })
     entry_point = EntryPoint.objects.filter(merchant=merchant, campaign=campaign).order_by('-created_at', '-id').first()
-    if campaign.game_type in {'spin', 'scratch'}:
+    game_enabled = bool(campaign.is_active)
+    review_enabled = bool(campaign.review_enabled)
+    wallet_enabled = bool(campaign.wallet_enabled)
+    if game_enabled and campaign.game_type in {'spin', 'scratch'}:
         _ensure_spin_defaults(campaign)
     step = request.GET.get('step', 'landing')
-    if step == 'wallet' and not campaign.wallet_enabled:
+    if step in {'game'} and not game_enabled:
+        step = 'landing'
+    if step == 'review' and not review_enabled:
+        step = 'wallet' if wallet_enabled else 'landing'
+    if step == 'wallet' and not wallet_enabled:
         step = 'landing'
 
     if request.method == 'POST':
@@ -616,7 +1120,9 @@ def play_page(request, slug):
                 consent=form.cleaned_data.get('consent', False),
             )
             request.session[f'growlee_last_session_{merchant.slug}'] = session.id
-            return redirect(f"/play/{slug}/?step=reward")
+            send_reward_notifications(session)
+            next_step = 'reward' if game_enabled else ('review' if review_enabled else ('wallet' if wallet_enabled else 'landing'))
+            return redirect(f"/play/{slug}/?step={next_step}")
         step = 'collect'
     else:
         form = ClaimRewardForm()
@@ -641,6 +1147,9 @@ def play_page(request, slug):
         'total_weight': total_weight,
         'heading_font_stack': _font_stack(getattr(merchant, 'heading_font', 'inter')),
         'body_font_stack': _font_stack(getattr(merchant, 'body_font', 'inter')),
-        'game_step_count': 4 if campaign.review_enabled and campaign.wallet_enabled else (3 if campaign.review_enabled or campaign.wallet_enabled else 2),
-        'wallet_enabled': campaign.wallet_enabled,
+        'game_step_count': 4 if review_enabled and wallet_enabled else (3 if review_enabled or wallet_enabled else 2),
+        'game_enabled': game_enabled,
+        'review_enabled': review_enabled,
+        'wallet_enabled': wallet_enabled,
+        'google_review_url': merchant.google_review_url,
     })

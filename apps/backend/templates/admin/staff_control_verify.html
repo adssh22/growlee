@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Growlee Control · 2FA</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 12% 0,rgba(159,154,243,.30),transparent 30%),linear-gradient(180deg,#fff,#f7f6ff);color:#17152b}.card{width:100%;max-width:440px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.9);border-radius:30px;padding:30px;box-shadow:0 26px 70px rgba(39,32,91,.12)}.brand{display:flex;justify-content:center;margin-bottom:22px}.brand img{height:54px;width:auto}h1{font-size:30px;letter-spacing:-.055em;margin:0 0 8px}.muted{color:#6f6b86;line-height:1.55;margin:0 0 22px}.badge{display:inline-flex;padding:8px 11px;border-radius:999px;background:#f1efff;color:#4e3db7;font-size:12px;font-weight:900;margin-bottom:14px}label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6f6b86;font-weight:900;margin:14px 0 8px}input{width:100%;border:1px solid #eceaf7;border-radius:15px;padding:14px 15px;font-size:22px;letter-spacing:.22em;text-align:center;background:#fff}input:focus{outline:none;border-color:#4e3db7;box-shadow:0 0 0 4px rgba(78,61,183,.10)}button{width:100%;margin-top:18px;border:0;border-radius:999px;padding:14px 18px;background:linear-gradient(135deg,#4e3db7,#7367dc);color:#fff;font-weight:900;cursor:pointer}.error{background:#fff1f0;border:1px solid #fee4e2;color:#b42318;border-radius:15px;padding:12px;margin-bottom:14px;font-size:14px}.link{text-align:center;margin-top:18px}.link a{color:#4e3db7;font-weight:850;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <a class="brand" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
+    <div class="badge">Double authentification téléphone</div>
+    <h1>Code 2FA</h1>
+    <p class="muted">Entre le code à 6 chiffres affiché dans ton application d’authentification sur téléphone.</p>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="totp_code">Code téléphone</label>
+      <input id="totp_code" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus required>
+      <button type="submit">Déverrouiller</button>
+    </form>
+    <div class="link"><a href="/growlee-control/mfa/setup/">Configurer / réinitialiser la 2FA</a></div>
+    <div class="link"><a href="/logout/">Changer de compte</a></div>
+  </div>
+</body>
+</html>

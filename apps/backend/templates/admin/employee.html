@@ -1,0 +1,243 @@
+{% extends 'admin/base.html' %}
+{% block title %}Mode employé · Growlee{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <div class="eyebrow">Point de vente</div>
+    <div class="title">Mode employé</div>
+    <div class="subtitle">Écran cloisonné pour scanner un QR gain/carte via l’appareil photo ou vérifier un code manuellement. Le retour employeur demande une vraie reconnexion propriétaire/manager.</div>
+  </div>
+  <a class="btn secondary" href="/admin/employee/exit/">Mode employeur</a>
+</div>
+
+<style>
+  .scan-panel{position:relative;overflow:hidden;border-radius:22px;background:#090d18;border:1px solid var(--color-border-tertiary);min-height:320px;display:grid;place-items:center;color:#fff}
+  .scan-video{width:100%;height:360px;object-fit:cover;display:none;background:#050712}
+  .scan-panel.active .scan-video{display:block}
+  .scan-empty{padding:28px;text-align:center;max-width:420px}
+  .scan-panel.active .scan-empty{display:none}
+  .scan-frame{position:absolute;inset:50%;width:min(72vw,260px);height:min(72vw,260px);transform:translate(-50%,-50%);border:3px solid rgba(255,255,255,.88);border-radius:28px;box-shadow:0 0 0 999px rgba(0,0,0,.38);display:none;pointer-events:none}
+  .scan-panel.active .scan-frame{display:block}
+  .scan-line{position:absolute;left:16%;right:16%;top:50%;height:2px;background:#22c55e;box-shadow:0 0 18px #22c55e;animation:scanline 1.4s ease-in-out infinite;display:none}
+  .scan-panel.active .scan-line{display:block}@keyframes scanline{0%,100%{transform:translateY(-92px)}50%{transform:translateY(92px)}}
+  .scan-status{font-size:12px;color:var(--color-text-secondary);margin-top:10px;line-height:1.45}
+  .scan-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.scan-actions .btn{flex:1;min-width:150px}
+  @media(max-width:700px){.scan-video{height:62dvh}.scan-panel{min-height:62dvh}.scan-frame{width:72vw;height:72vw}.scan-actions .btn{width:100%}}
+</style>
+
+<div class="grid">
+  <div class="card span-7">
+    <div class="section-title">Scan caméra</div>
+    <div class="section-sub">Autorisez l’appareil photo, puis placez le QR du client dans le cadre. Le code est détecté automatiquement.</div>
+    <div id="scanPanel" class="scan-panel">
+      <div id="html5QrReader" style="width:100%;display:none;"></div>
+      <video id="scanVideo" class="scan-video" playsinline muted></video>
+      <div class="scan-frame"></div>
+      <div class="scan-line"></div>
+      <div class="scan-empty">
+        <div style="font-size:42px;margin-bottom:10px;">📷</div>
+        <div style="font-weight:800;font-size:18px;margin-bottom:6px;">Scanner avec l’appareil photo</div>
+        <div style="opacity:.72;font-size:13px;line-height:1.5;">Fonctionne en HTTPS. Si le navigateur bloque la caméra, le bouton ouvrira une prise de photo du QR.</div>
+      </div>
+    </div>
+    <div class="scan-actions">
+      <button id="startScan" class="btn" type="button">Ouvrir la caméra</button>
+      <button id="photoScan" class="btn secondary" type="button">Photo du QR</button>
+      <button id="stopScan" class="btn secondary" type="button">Fermer</button>
++      <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none">
+    </div>
+    <div id="scanStatus" class="scan-status">Scanner prêt.</div>
+  </div>
+
+  <div class="card span-5">
+    <div class="section-title">Saisie manuelle</div>
+    <div class="section-sub">Fallback lecteur douchette ou code tapé à la main.</div>
+    <form id="scanForm" method="get" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;"><label>Code gain ou carte</label><input id="scanCodeInput" name="scan_code" value="{{ scan_code }}" autofocus placeholder="Ex: A1B2C3D4 ou lien /gain/..." /></div>
+      <button class="btn" type="submit">Vérifier</button>
+    </form>
+    <div style="margin-top:18px;">
+      <div class="status-row"><span>Commerce</span><strong>{{ merchant.name }}</strong></div>
+      <div class="status-row"><span>Accès</span><span>Mode employé cloisonné</span></div>
+      <div class="status-row"><span>Sortie</span><span>Connexion employeur</span></div>
+    </div>
+  </div>
+</div>
+
+{% if found_session %}
+<div class="card">
+  <div class="section-title">Gain trouvé</div>
+  <div class="grid">
+    <div class="span-8">
+      <div class="metric-card">
+        <div class="metric-label">Votre gain</div>
+        <div class="metric-value" style="font-size:24px;line-height:1.15;">{{ found_session.reward_label }}</div>
+        <div class="mini">Client : {{ found_session.customer.first_name|default:found_session.customer.phone }} · Code {{ found_session.claim_code }}</div>
+      </div>
+    </div>
+    <div class="span-4">
+      {% if found_session.redeemed %}
+        <div class="badge neutral">Déjà utilisé</div>
+      {% elif found_session.is_recovery_window_open %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="redeem"><input type="hidden" name="session_id" value="{{ found_session.id }}"><button class="btn" style="width:100%;" type="submit">Valider le gain</button></form>
+        <div class="mini" style="margin-top:8px;">Fenêtre ouverte jusqu’à {{ found_session.reward_available_until|date:'H:i' }}.</div>
+      {% else %}
+        <div class="badge neutral">En attente client</div>
+        <div class="mini" style="margin-top:8px;">Le client doit ouvrir son lien et cliquer sur “Récupérer mon gain”.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+(() => {
+  const panel = document.getElementById('scanPanel');
+  const video = document.getElementById('scanVideo');
+  const qrReaderEl = document.getElementById('html5QrReader');
+  const startBtn = document.getElementById('startScan');
+  const stopBtn = document.getElementById('stopScan');
+  const photoBtn = document.getElementById('photoScan');
+  const photoInput = document.getElementById('photoInput');
+  const status = document.getElementById('scanStatus');
+  const input = document.getElementById('scanCodeInput');
+  const form = document.getElementById('scanForm');
+  let stream = null;
+  let detector = null;
+  let html5Qr = null;
+  let scanning = false;
+  let submitting = false;
+
+  function setStatus(text) { status.textContent = text; }
+  function normalizeScan(raw) {
+    const value = (raw || '').trim();
+    if (!value) return '';
+    try {
+      const url = new URL(value);
+      const parts = url.pathname.replace(/\/$/, '').split('/');
+      return parts.includes('gain') ? parts[parts.length - 1] : value;
+    } catch (_) {
+      return value;
+    }
+  }
+  function submitScan(raw) {
+    if (submitting) return;
+    const value = normalizeScan(raw);
+    if (!value) return;
+    submitting = true;
+    input.value = value;
+    stopScan();
+    setStatus('Code détecté, vérification…');
+    form.submit();
+  }
+  async function scanLoop() {
+    if (!scanning || !detector) return;
+    try {
+      const codes = await detector.detect(video);
+      if (codes && codes.length) {
+        submitScan(codes[0].rawValue || codes[0].rawData || '');
+        return;
+      }
+    } catch (err) {
+      setStatus('Lecture en cours… gardez le QR dans le cadre.');
+    }
+    requestAnimationFrame(scanLoop);
+  }
+  async function startScan() {
+    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      setStatus('Caméra live bloquée en HTTP. Ouverture du mode photo QR…');
+      photoInput.click();
+      return;
+    }
+    if (window.Html5Qrcode) {
+      try {
+        qrReaderEl.style.display = 'block';
+        panel.classList.add('active');
+        html5Qr = new Html5Qrcode('html5QrReader');
+        scanning = true;
+        setStatus('Caméra active. Placez le QR dans le cadre.');
+        await html5Qr.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 260, height: 260 } }, decoded => submitScan(decoded));
+        return;
+      } catch (err) {
+        setStatus('Caméra live indisponible. Essayez “Photo du QR” ou autorisez la caméra.');
+        panel.classList.remove('active');
+        qrReaderEl.style.display = 'none';
+      }
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('Caméra indisponible sur ce navigateur. Essayez “Photo du QR”.');
+      photoInput.click();
+      return;
+    }
+    if (!('BarcodeDetector' in window)) {
+      setStatus('Scanner QR natif non supporté. Essayez “Photo du QR” ou la saisie manuelle.');
+      photoInput.click();
+      return;
+    }
+    try {
+      detector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] });
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      video.srcObject = stream;
+      await video.play();
+      scanning = true;
+      panel.classList.add('active');
+      setStatus('Caméra active. Placez le QR dans le cadre.');
+      requestAnimationFrame(scanLoop);
+    } catch (err) {
+      setStatus('Impossible d’ouvrir la caméra : permissions navigateur refusées. Essayez “Photo du QR”.');
+      photoInput.click();
+    }
+  }
+  async function stopScan() {
+    scanning = false;
+    panel.classList.remove('active');
+    if (html5Qr) {
+      try { await html5Qr.stop(); } catch (_) {}
+      try { html5Qr.clear(); } catch (_) {}
+      html5Qr = null;
+    }
+    qrReaderEl.style.display = 'none';
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+    video.srcObject = null;
+    if (!submitting) setStatus('Scanner arrêté.');
+  }
+  async function scanPhotoFile(file) {
+    if (!file) return;
+    setStatus('Analyse de la photo…');
+    if (window.Html5Qrcode) {
+      try {
+        const scanner = new Html5Qrcode('html5QrReader');
+        const decoded = await scanner.scanFile(file, true);
+        submitScan(decoded);
+        return;
+      } catch (err) {
+        setStatus('QR non détecté sur la photo. Essayez avec plus de lumière ou saisissez le code.');
+        return;
+      }
+    }
+    if ('BarcodeDetector' in window) {
+      try {
+        const bitmap = await createImageBitmap(file);
+        const photoDetector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] });
+        const codes = await photoDetector.detect(bitmap);
+        if (codes && codes.length) submitScan(codes[0].rawValue || codes[0].rawData || '');
+        else setStatus('QR non détecté sur la photo. Essayez avec plus de lumière ou saisissez le code.');
+      } catch (err) {
+        setStatus('Analyse photo indisponible sur ce navigateur. Saisissez le code manuellement.');
+      }
+    } else {
+      setStatus('Analyse photo indisponible hors ligne. Saisissez le code manuellement.');
+    }
+  }
+  startBtn.addEventListener('click', startScan);
+  photoBtn.addEventListener('click', () => photoInput.click());
+  photoInput.addEventListener('change', event => scanPhotoFile(event.target.files && event.target.files[0]));
+  stopBtn.addEventListener('click', stopScan);
+  window.addEventListener('pagehide', stopScan);
+})();
+</script>
+{% endblock %}

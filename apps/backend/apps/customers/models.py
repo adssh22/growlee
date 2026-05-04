@@ -26,9 +26,17 @@ class GameSession(models.Model):
     reward_label = models.CharField(max_length=180)
     reward = models.ForeignKey('rewards.Reward', on_delete=models.SET_NULL, null=True, blank=True, related_name='game_sessions')
     claim_code = models.CharField(max_length=32, blank=True)
+    claim_token = models.CharField(max_length=64, unique=True, blank=True, null=True)
     is_winner = models.BooleanField(default=True)
     redeemed = models.BooleanField(default=False)
+    reward_expires_at = models.DateTimeField(blank=True, null=True)
+    reward_available_until = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def is_recovery_window_open(self):
+        from django.utils import timezone
+        return bool(self.reward_available_until and self.reward_available_until >= timezone.now())
 
     class Meta:
         ordering = ['-created_at']

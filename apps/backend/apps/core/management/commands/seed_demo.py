@@ -56,21 +56,41 @@ class Command(BaseCommand):
             },
         )
 
-        user, created = User.objects.get_or_create(
-            username='demo',
+        merchant_user, created = User.objects.get_or_create(
+            username='demo-merchant',
             defaults={
-                'email': 'demo@growlee.local',
-                'is_staff': True,
+                'email': 'merchant@growlee.local',
+                'is_staff': False,
+                'is_superuser': False,
             },
         )
         if created:
-            user.set_password('demo1234')
-            user.save()
+            merchant_user.set_password('demo1234')
+            merchant_user.save()
 
         MerchantMembership.objects.get_or_create(
-            user=user,
+            user=merchant_user,
             merchant=merchant,
             defaults={'role': 'owner'},
         )
 
-        self.stdout.write(self.style.SUCCESS('Demo seed ready. login=demo password=demo1234'))
+        admin_user, created = User.objects.get_or_create(
+            username='demo',
+            defaults={
+                'email': 'demo@growlee.local',
+                'is_staff': True,
+                'is_superuser': True,
+            },
+        )
+        if created:
+            admin_user.set_password('demo1234')
+            admin_user.save()
+        elif not admin_user.is_superuser:
+            admin_user.is_staff = True
+            admin_user.is_superuser = True
+            admin_user.save(update_fields=['is_staff', 'is_superuser'])
+
+        # Séparation stricte : le superuser n'est pas owner d'un commerce.
+        MerchantMembership.objects.filter(user=admin_user).delete()
+
+        self.stdout.write(self.style.SUCCESS('Demo seed ready. superuser=demo/demo1234 merchant=demo-merchant/demo1234'))

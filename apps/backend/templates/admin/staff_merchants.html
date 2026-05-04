@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Growlee Control · Commerçants</title>
+  <style>
+    :root{--purple:#4e3db7;--green:#3f9d87;--ink:#17152b;--muted:#6f6b86;--line:#eceaf7;--bg:#f7f6ff;--card:#fff;--danger:#b42318}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 10% 0,rgba(159,154,243,.28),transparent 28%),linear-gradient(180deg,#fff,#f7f6ff);color:var(--ink);min-height:100vh}.wrap{width:min(1180px,calc(100% - 36px));margin:0 auto;padding:26px 0 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px}.brand img{height:48px}.pill{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:13px}.btn{border:0;border-radius:999px;background:linear-gradient(135deg,var(--purple),#7367dc);color:#fff;font-weight:850;padding:12px 18px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.warn{background:#fff;color:var(--danger);border:1px solid #fee4e2}.btn.danger{background:var(--danger);color:#fff;border:1px solid var(--danger)}.delete-box{display:none;gap:8px;align-items:center;margin-top:8px;width:100%}.delete-box input{min-width:180px}.delete-toggle:checked + .delete-box{display:flex}.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin:18px 0 20px}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:900;color:var(--green);margin-bottom:8px}h1{font-size:42px;letter-spacing:-.06em;margin:0}.muted{color:var(--muted);line-height:1.55}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}.stat,.card{background:rgba(255,255,255,.86);border:1px solid rgba(255,255,255,.9);box-shadow:0 22px 58px rgba(39,32,91,.08);border-radius:26px;padding:22px}.stat strong{display:block;font-size:32px;letter-spacing:-.06em}.grid{display:grid;grid-template-columns:360px 1fr;gap:14px;align-items:start}.stack{display:flex;flex-direction:column;gap:14px}label{display:block;margin:14px 0 7px;font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:850;color:var(--muted)}input{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;font-size:14px}input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 4px rgba(78,61,183,.10)}.code-input{font-size:20px;letter-spacing:.18em;text-align:center}.check{display:flex;gap:10px;align-items:center;margin-top:14px}.check input{width:auto}.errors{background:#fff1f0;color:#991b1b;border:1px solid #fee4e2;border-radius:14px;padding:12px;font-size:13px}.messages{display:grid;gap:8px;margin-bottom:14px}.message{background:#ecfdf3;border:1px solid #abefc6;color:#067647;border-radius:16px;padding:12px 14px}.table{width:100%;border-collapse:separate;border-spacing:0 10px}th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:0 12px}td{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 12px;font-size:14px;vertical-align:middle}td:first-child{border-left:1px solid var(--line);border-radius:18px 0 0 18px}td:last-child{border-right:1px solid var(--line);border-radius:0 18px 18px 0}.name{font-weight:850}.slug{font-size:12px;color:var(--muted);margin-top:3px}.badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:850}.badge.on{background:#ecfdf3;color:#067647}.badge.off{background:#f2f4f7;color:#667085}.badge.warn{background:#fff1f0;color:#b42318}.owner{font-size:13px;color:var(--muted)}.row-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}form.inline{display:inline}.small{font-size:12px;color:var(--muted)}.qr{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;place-items:center;margin:12px 0}.qr svg{width:190px;height:190px}.secret{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f8f7ff;border:1px solid var(--line);border-radius:12px;padding:10px;word-break:break-all;color:var(--purple);font-size:12px}@media(max-width:950px){.grid,.stats{grid-template-columns:1fr}.hero{display:block}.table-wrap{overflow:auto}.top{align-items:flex-start}.brand img{height:40px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <span class="pill">Connecté : {{ request.user.username }}</span>
+        <a class="btn secondary" href="/admin/">Admin commerçant</a>
+        <a class="btn secondary" href="/logout/">Déconnexion</a>
+      </div>
+    </div>
+
+    {% if messages %}<div class="messages">{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}</div>{% endif %}
+
+    <div class="hero">
+      <div><div class="eyebrow">Page cachée · staff only</div><h1>Administration commerçants</h1><p class="muted">Création, rattachement propriétaire, activation/désactivation et accès rapide aux parcours.</p></div>
+      <span class="pill">URL : /growlee-control/merchants/</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><strong>{{ total_merchants }}</strong><span class="small">commerçants</span></div>
+      <div class="stat"><strong>{{ active_merchants }}</strong><span class="small">actifs</span></div>
+      <div class="stat"><strong>{{ total_users }}</strong><span class="small">comptes utilisateurs</span></div>
+    </div>
+
+    <div class="grid">
+      <div class="stack">
+        <div class="card">
+          <h2 style="margin:0 0 6px;letter-spacing:-.04em">Sécurité 2FA téléphone</h2>
+          {% if mfa.enabled %}
+            <p><span class="badge on">Activée</span></p>
+            <p class="muted">Le control panel demandera maintenant un code téléphone à chaque nouvelle session sensible.</p>
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="mfa_reset"><button class="btn warn" type="submit" style="width:100%">Réinitialiser la 2FA</button></form>
+          {% else %}
+            <p><span class="badge warn">À configurer</span></p>
+            <p class="muted">Scanne ce QR avec Google Authenticator, Authy, Microsoft Authenticator ou l’app mots de passe de ton téléphone.</p>
+            {% if mfa_error %}<div class="errors">{{ mfa_error }}</div>{% endif %}
+            <div class="qr">{{ qr_svg|safe }}</div>
+            <div class="secret">{{ secret }}</div>
+            <form method="post">
+              {% csrf_token %}<input type="hidden" name="action" value="mfa_enable">
+              <label for="totp_code">Code à 6 chiffres</label>
+              <input class="code-input" id="totp_code" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+              <button class="btn" type="submit" style="width:100%;margin-top:14px">Activer la 2FA</button>
+            </form>
+          {% endif %}
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 6px;letter-spacing:-.04em">Créer un commerçant</h2>
+          <p class="muted" style="margin-top:0">Un compte propriétaire + commerce + campagne de bienvenue seront créés.</p>
+          {% if form.errors %}<div class="errors">{{ form.errors }}</div>{% endif %}
+          <form method="post">
+            {% csrf_token %}<input type="hidden" name="action" value="create">
+            {{ form.merchant_name.label_tag }}{{ form.merchant_name }}
+            {{ form.owner_email.label_tag }}{{ form.owner_email }}
+            {{ form.owner_username.label_tag }}{{ form.owner_username }}
+            {{ form.owner_password.label_tag }}{{ form.owner_password }}
+            <label class="check">{{ form.is_active }} <span>Commerce actif</span></label>
+            <label class="check">{{ form.is_demo }} <span>Accès démo apporteur d’affaires</span></label>
+            {{ form.demo_days.label_tag }}{{ form.demo_days }}
+            <button class="btn" type="submit" style="width:100%;margin-top:18px">Créer le commerçant</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 14px;letter-spacing:-.04em">Commerçants existants</h2>
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th>Commerce</th><th>Owner</th><th>Modules</th><th>Clients</th><th>Statut</th><th></th></tr></thead>
+          <tbody>
+          {% for row in rows %}
+            <tr>
+              <td><div class="name">{{ row.merchant.name }}</div><div class="slug">/{{ row.merchant.slug }}/</div></td>
+              <td>{% for owner in row.owners %}<div class="owner">{{ owner.user.username }}<br>{{ owner.user.email }}</div>{% empty %}<span class="small">Aucun owner</span>{% endfor %}</td>
+              <td>
+                <div class="row-actions" style="justify-content:flex-start">
+                  <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><input type="hidden" name="flag" value="game"><button class="badge {% if row.active_campaign and row.active_campaign.is_active %}on{% else %}off{% endif %}" type="submit">Jeu</button></form>
+                  <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><input type="hidden" name="flag" value="review"><button class="badge {% if row.active_campaign and row.active_campaign.review_enabled %}on{% else %}off{% endif %}" type="submit">Avis</button></form>
+                  <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><input type="hidden" name="flag" value="wallet"><button class="badge {% if row.active_campaign and row.active_campaign.wallet_enabled %}on{% else %}off{% endif %}" type="submit">Wallet</button></form>
+                </div>
+              </td>
+              <td>{{ row.customers_count }}</td>
+              <td><span class="badge {% if row.merchant.is_active %}on{% else %}off{% endif %}">{% if row.merchant.is_active %}Actif{% else %}Désactivé{% endif %}</span>{% if row.merchant.is_demo %}<br><span class="badge warn" title="Expire {{ row.merchant.demo_expires_at|date:'d/m/Y' }}">Démo</span>{% endif %}</td>
+              <td><div class="row-actions">
+                <a class="btn secondary" href="/play/{{ row.merchant.slug }}/" target="_blank">Parcours</a>
+                <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><button class="btn {% if row.merchant.is_active %}warn{% else %}secondary{% endif %}" type="submit">{% if row.merchant.is_active %}Désactiver{% else %}Activer commerce{% endif %}</button></form>
+                <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_demo"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><button class="btn secondary" type="submit">{% if row.merchant.is_demo %}Stop démo{% else %}Accès démo{% endif %}</button></form>
+                <label class="btn warn" for="delete-merchant-{{ row.merchant.id }}" style="cursor:pointer">Supprimer</label>
+                <input class="delete-toggle" id="delete-merchant-{{ row.merchant.id }}" type="checkbox" style="display:none">
+                <form class="delete-box" method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_merchant"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><input name="confirm_name" placeholder="Tapez: {{ row.merchant.name }}" required><button class="btn danger" type="submit">Confirmer</button></form>
+              </div></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">Aucun commerçant.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

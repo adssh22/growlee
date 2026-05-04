@@ -22,3 +22,14 @@ class MerchantMembership(models.Model):
 
     def __str__(self):
         return f'{self.user.username} · {self.merchant.name} · {self.role}'
+
+
+class StaffMFA(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='staff_mfa')
+    secret = models.CharField(max_length=64)
+    enabled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'MFA · {self.user.username} · {"enabled" if self.enabled else "pending"}'

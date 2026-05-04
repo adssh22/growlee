@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -9,10 +10,16 @@
     .card { width:100%; max-width:420px; background:#111827; border:1px solid #1f2937; border-radius:16px; padding:24px; }
     input { width:100%; padding:12px; margin:8px 0 14px; border-radius:10px; border:1px solid #334155; background:#020617; color:#fff; }
     button { width:100%; padding:12px; border:none; border-radius:10px; background:#22c55e; color:#052e16; font-weight:700; cursor:pointer; }
+    .link { margin-top:16px; text-align:center; color:#94a3b8; font-size:14px; }
+    .brand { display:flex; justify-content:center; margin-bottom:18px; }
+    .brand-logo { height:48px; width:auto; display:block; }
+    .link a { color:#22c55e; font-weight:700; text-decoration:none; }.logout-top{position:fixed;top:18px;right:18px;border:1px solid #334155;border-radius:999px;padding:10px 14px;color:#e5e7eb;text-decoration:none;font-weight:800;background:#111827;}
   </style>
 </head>
 <body>
+  {% if request.user.is_authenticated %}<a class="logout-top" href="/logout/">Déconnexion</a>{% endif %}
   <div class="card">
+    <a class="brand" href="/"><img class="brand-logo" src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
     <h1>Connexion commerçant</h1>
     <form method="post">
       {% csrf_token %}
@@ -22,6 +29,8 @@
       {{ form.password }}
       <button type="submit">Se connecter</button>
     </form>
+    <div class="link">Pas encore de compte ? <a href="/signup/">Créer un compte</a></div>
+    <div class="link"><a href="/">← Retour accueil</a></div>
   </div>
 </body>
 </html>

@@ -26,6 +26,9 @@ services:
       DJANGO_DEBUG: 1
       DJANGO_SECRET_KEY: growlee-dev-secret
       APP_BASE_URL: http://192.168.1.27:8000
+      GROWLEE_PAYMENT_LINK_STARTER: ${GROWLEE_PAYMENT_LINK_STARTER:-}
+      GROWLEE_PAYMENT_LINK_PRO: ${GROWLEE_PAYMENT_LINK_PRO:-}
+      GROWLEE_PAYMENT_LINK_PREMIUM: ${GROWLEE_PAYMENT_LINK_PREMIUM:-}
     depends_on:
       db:
         condition: service_healthy

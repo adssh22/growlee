@@ -94,7 +94,7 @@
           {% empty %}
           <div class="mini" style="margin-bottom:8px;">Aucun segment configuré.</div>
           {% endfor %}
-          <a class="btn secondary" href="/admin/rewards/" style="width:100%; margin-top:8px;">+ Ajouter une récompense</a>
+          <a class="btn secondary" href="#recompenses" style="width:100%; margin-top:8px;">+ Ajouter une récompense</a>
         </div>
 
         <div id="advanced-quiz-panel" style="display:none;">
@@ -128,13 +128,50 @@
           {% empty %}
           <div class="mini" style="margin-bottom:8px;">Aucun gain configuré.</div>
           {% endfor %}
-          <a class="btn secondary" href="/admin/rewards/" style="width:100%; margin-top:8px;">+ Ajouter une récompense</a>
+          <a class="btn secondary" href="#recompenses" style="width:100%; margin-top:8px;">+ Ajouter une récompense</a>
         </div>
       </div>
     </div>
 
     <button class="btn" type="submit" style="margin-top:16px;">Enregistrer le jeu</button>
   </form>
+</div>
+
+<style>
+  .reward-mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.reward-field.full{grid-column:1/-1}.reward-card{display:flex;gap:12px;align-items:flex-start;padding:14px;background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);border-radius:18px;margin-bottom:10px}.reward-ico{width:42px;height:42px;border-radius:15px;background:var(--color-brand-soft);display:grid;place-items:center;font-size:21px;flex-shrink:0}.reward-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.reward-pill{font-size:11px;background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:999px;padding:5px 8px;color:var(--color-text-secondary)}@media(max-width:980px){.reward-mini-grid{grid-template-columns:1fr}}
+</style>
+<div class="card" id="recompenses" style="margin-top:12px; scroll-margin-top:24px;">
+  <div class="topbar" style="margin-bottom:14px;">
+    <div><div class="section-title">Récompenses du jeu</div><div class="section-sub">Gérez ici les gains distribués par le module jeu. Plus besoin d’une page séparée.</div></div>
+    <div class="badge">{{ rewards|length }} configurée{% if rewards|length > 1 %}s{% endif %}</div>
+  </div>
+  <div class="grid">
+    <div class="span-5">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="form_action" value="reward" />
+        <div class="reward-mini-grid">
+          <div class="reward-field full">{{ reward_form.name.label_tag }}{{ reward_form.name }}</div>
+          <div>{{ reward_form.reward_type.label_tag }}{{ reward_form.reward_type }}</div>
+          <div>{{ reward_form.expires_in_hours.label_tag }}{{ reward_form.expires_in_hours }}</div>
+          <div class="reward-field full">{{ reward_form.description.label_tag }}{{ reward_form.description }}</div>
+          <div>{{ reward_form.probability_weight.label_tag }}{{ reward_form.probability_weight }}</div>
+          <div>{{ reward_form.daily_quota.label_tag }}{{ reward_form.daily_quota }}</div>
+          <div class="reward-field full" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:16px;background:var(--color-background-secondary);"><span>{{ reward_form.active.label_tag }}</span>{{ reward_form.active }}</div>
+        </div>
+        <button class="btn" type="submit" style="width:100%;margin-top:16px;">Ajouter la récompense</button>
+      </form>
+    </div>
+    <div class="span-7">
+      {% for reward in rewards %}
+      <div class="reward-card">
+        <div class="reward-ico">{% if reward.reward_type == 'discount' %}🏷️{% elif reward.reward_type == 'gift' %}🎁{% elif reward.reward_type == 'free_item' %}🍰{% else %}✨{% endif %}</div>
+        <div style="flex:1;min-width:0;"><div style="font-weight:800;">{{ reward.name }}</div><div class="mini" style="margin-top:3px;">{{ reward.description }}</div><div class="reward-meta"><span class="reward-pill">{{ reward.get_reward_type_display }}</span><span class="reward-pill">Probabilité {{ reward.probability_weight }}</span><span class="reward-pill">Quota {{ reward.daily_quota }}/jour</span><span class="reward-pill">{% if reward.active %}Active{% else %}Inactive{% endif %}</span></div></div>
+        <form method="post" action="/admin/rewards/{{ reward.id }}/delete/" onsubmit="return confirm('Supprimer cette récompense ?');">{% csrf_token %}<button class="btn secondary" type="submit" style="color:#b42318;">Supprimer</button></form>
+      </div>
+      {% empty %}<div class="mini">Aucune récompense configurée.</div>{% endfor %}
+    </div>
+  </div>
 </div>
 
 <div class="card" style="margin-top:12px;">
