@@ -8,26 +8,27 @@ Growlee est une plateforme SaaS multi-tenant de croissance client pour commerces
 - Base de données: PostgreSQL
 - Conteneurisation: Docker Compose
 
-## Ce socle contient
+## Fonctionnalités couvertes
 
 - multi-tenant simple par `Merchant`
 - espace commerçant avec login Django
-- dashboard commerçant MVP
-- mode employé cloisonné avec scan QR/carte et validation de gains
-- sortie du mode employé par ré-authentification propriétaire/manager
+- dashboard commerçant MVP avec nombre de gains gagnés
+- mode employé cloisonné avec scan QR/carte, photo QR fallback et validation de gains
+- sortie du mode employé par PIN employeur ou ré-authentification propriétaire/manager
 - page de configuration commerce / campagne / reward / point d'entrée
-- flow client public `/play/<slug>/` réaligné sur un parcours en étapes
+- accès démo apporteur d'affaires via Growlee Control
+- flow client public `/play/<slug>/` mobile-first
 - landing brandée avec exemple QR façade
 - étape jeu MVP
 - collecte contact avec consentement RGPD
-- email de gain avec lien unique temporaire
-- page gain activable pendant 15 minutes avec code + QR de validation
+- email HTML de gain avec lien unique temporaire
+- SMS transactionnel configurable: console, Twilio ou Brevo
+- page gain activable pendant 15 minutes avec code + QR de validation employé
 - page avis optionnelle
-- étape wallet placeholder Apple Wallet / Google Wallet
-- création de `Customer` et `GameSession` depuis le flow public
+- étape wallet Apple Wallet / Google Wallet avec badges et statut de configuration
+- création de `Customer`, `GameSession` et `WalletPass` depuis le flow public
 - preview QR SVG par point d'entrée
 - admin Django natif via `/django-admin/`
-- modèles initiaux Merchant, Campaign, EntryPoint, Reward, Customer, GameSession, MerchantMembership
 
 ## Lancement
 
@@ -49,6 +50,7 @@ docker compose up --build
 - Analytics: http://localhost:8000/admin/analytics/
 - Relances automatiques: http://localhost:8000/admin/automations/
 - Flow client demo: http://localhost:8000/play/demo-bistro/
+- Growlee Control: http://localhost:8000/growlee-control/merchants/
 - Admin Django: http://localhost:8000/django-admin/
 
 ## Compte de démo
@@ -56,10 +58,68 @@ docker compose up --build
 - login: `demo`
 - password: `demo1234`
 
-## Étapes suivantes recommandées
+## Configuration production
 
-1. brancher un provider SMS réel
-2. configurer HTTPS en prod pour le scan caméra live
-3. finaliser certificats Apple Wallet et issuer Google Wallet
-4. ajouter écrans CRUD dédiés pour campagnes et entry points multiples
-5. ajouter statuts d'expiration / reporting avancé des gains
+Copier `.env.example`, puis renseigner les variables utiles.
+
+### Email
+
+En dev, les emails sortent en console. En prod, configurer un backend SMTP Django:
+
+```env
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+DEFAULT_FROM_EMAIL=Growlee <hello@votre-domaine.fr>
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=...
+EMAIL_HOST_PASSWORD=...
+EMAIL_USE_TLS=1
+```
+
+### SMS
+
+Providers supportés:
+
+```env
+SMS_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_FROM_NUMBER=+33...
+```
+
+ou:
+
+```env
+SMS_PROVIDER=brevo
+BREVO_API_KEY=...
+BREVO_SMS_SENDER=Growlee
+```
+
+### Apple Wallet / Google Wallet
+
+Les boutons et la préparation technique sont intégrés. Les licences/comptes restent à créer côté Apple/Google:
+
+- Apple Developer Program actif
+- Pass Type ID
+- Team ID
+- certificat PassKit + clé privée + WWDR
+- Google Wallet API activée
+- Issuer ID Google Wallet
+- service account JSON
+
+Variables:
+
+```env
+APPLE_WALLET_PASS_TYPE_ID=
+APPLE_WALLET_TEAM_ID=
+APPLE_WALLET_CERT_PATH=
+APPLE_WALLET_KEY_PATH=
+APPLE_WALLET_WWDR_CERT_PATH=
+GOOGLE_WALLET_ISSUER_ID=
+GOOGLE_WALLET_SERVICE_ACCOUNT_PATH=
+```
+
+## Notes importantes
+
+- Le scan caméra live nécessite HTTPS en prod. En HTTP local/réseau, certains navigateurs bloquent la caméra; Growlee propose alors la photo QR ou la saisie manuelle.
+- Les vrais `.pkpass` Apple et save URLs Google sont préparés côté modèle/service, mais nécessitent les certificats et comptes officiels ci-dessus.

@@ -1,15 +1,28 @@
 {% extends 'admin/base.html' %}
 {% block title %}Connexion employeur · Growlee{% endblock %}
 {% block content %}
-<div class="topbar"><div><div class="eyebrow">Sécurité</div><div class="title">Connexion employeur</div><div class="subtitle">Pour quitter le mode employé, reconnectez-vous avec un vrai compte propriétaire ou manager du commerce.</div></div></div>
-<div class="card" style="max-width:520px;">
-  <form method="post">{% csrf_token %}
-    <label>Identifiant employeur</label>
-    <input type="text" name="username" autofocus autocomplete="username" placeholder="Identifiant" />
-    <label>Mot de passe</label>
-    <input type="password" name="password" autocomplete="current-password" placeholder="Mot de passe" />
-    <button class="btn" style="width:100%;margin-top:16px;" type="submit">Déverrouiller l’espace employeur</button>
-    <a class="btn secondary" style="width:100%;margin-top:10px;" href="/admin/employee/">Retour mode employé</a>
-  </form>
+<div class="topbar"><div><div class="eyebrow">Sécurité</div><div class="title">Connexion employeur</div><div class="subtitle">Pour quitter le mode employé, utilisez le PIN employeur du commerce ou reconnectez-vous avec un compte propriétaire/manager.</div></div></div>
+<div class="grid">
+  <div class="card span-6">
+    <div class="section-title">Déverrouillage rapide par PIN</div>
+    <div class="section-sub">Pratique sur tablette/caisse. Le PIN se configure dans la personnalisation commerce.</div>
+    <form method="post">{% csrf_token %}
+      <label>PIN employeur</label>
+      <input type="password" name="unlock_pin" inputmode="numeric" autocomplete="one-time-code" autofocus placeholder="PIN employeur" />
+      <button class="btn" style="width:100%;margin-top:16px;" type="submit">Déverrouiller par PIN</button>
+    </form>
+  </div>
+  <div class="card span-6">
+    <div class="section-title">Connexion compte employeur</div>
+    <div class="section-sub">Réservé aux comptes propriétaire ou manager rattachés au commerce.</div>
+    <form method="post">{% csrf_token %}
+      <label>Identifiant employeur</label>
+      <input type="text" name="username" autocomplete="username" placeholder="Identifiant" />
+      <label>Mot de passe</label>
+      <input type="password" name="password" autocomplete="current-password" placeholder="Mot de passe" />
+      <button class="btn" style="width:100%;margin-top:16px;" type="submit">Déverrouiller par compte</button>
+    </form>
+  </div>
 </div>
+<a class="btn secondary" style="margin-top:10px;" href="/admin/employee/">Retour mode employé</a>
 {% endblock %}

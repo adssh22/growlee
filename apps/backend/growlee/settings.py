@@ -13,6 +13,12 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Growlee <noreply@growlee.l
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 SMS_BACKEND = os.getenv('SMS_BACKEND', 'console')
 SMS_FROM = os.getenv('SMS_FROM', 'Growlee')
+SMS_PROVIDER = os.getenv('SMS_PROVIDER', SMS_BACKEND).strip().lower()
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '').strip()
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '').strip()
+TWILIO_FROM_NUMBER = os.getenv('TWILIO_FROM_NUMBER', SMS_FROM).strip()
+BREVO_API_KEY = os.getenv('BREVO_API_KEY', '').strip()
+BREVO_SMS_SENDER = os.getenv('BREVO_SMS_SENDER', SMS_FROM).strip()[:11]
 
 INSTALLED_APPS = [
     'django.contrib.admin',

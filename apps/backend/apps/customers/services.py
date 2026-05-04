@@ -2,6 +2,7 @@ import random
 import secrets
 from datetime import timedelta
 
+import requests
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse
@@ -78,6 +79,46 @@ def reward_claim_url(session):
     return f"{settings.APP_BASE_URL}{reverse('reward-claim-page', kwargs={'token': session.claim_token})}"
 
 
+def send_sms(to_phone: str, body: str) -> bool:
+    provider = getattr(settings, 'SMS_PROVIDER', 'console') or 'console'
+    provider = provider.lower()
+    if not to_phone:
+        return False
+    if provider in {'console', 'debug'}:
+        print(f"[Growlee SMS] À {to_phone}: {body}")
+        return True
+    if provider == 'twilio':
+        if not (settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_FROM_NUMBER):
+            print('[Growlee SMS] Twilio non configuré: SID/TOKEN/FROM manquant')
+            return False
+        response = requests.post(
+            f'https://api.twilio.com/2010-04-01/Accounts/{settings.TWILIO_ACCOUNT_SID}/Messages.json',
+            data={'From': settings.TWILIO_FROM_NUMBER, 'To': to_phone, 'Body': body},
+            auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN),
+            timeout=10,
+        )
+        if response.status_code >= 300:
+            print(f'[Growlee SMS] Twilio erreur {response.status_code}: {response.text[:300]}')
+            return False
+        return True
+    if provider == 'brevo':
+        if not settings.BREVO_API_KEY:
+            print('[Growlee SMS] Brevo non configuré: BREVO_API_KEY manquant')
+            return False
+        response = requests.post(
+            'https://api.brevo.com/v3/transactionalSMS/sms',
+            headers={'api-key': settings.BREVO_API_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json'},
+            json={'sender': settings.BREVO_SMS_SENDER, 'recipient': to_phone, 'content': body},
+            timeout=10,
+        )
+        if response.status_code >= 300:
+            print(f'[Growlee SMS] Brevo erreur {response.status_code}: {response.text[:300]}')
+            return False
+        return True
+    print(f'[Growlee SMS] Provider inconnu: {provider}')
+    return False
+
+
 def send_reward_notifications(session):
     """Envoie le lien unique du gain par email et prépare le canal SMS.
 
@@ -111,5 +152,5 @@ def send_reward_notifications(session):
         msg = EmailMultiAlternatives(subject, text, settings.DEFAULT_FROM_EMAIL, [customer.email])
         msg.attach_alternative(html, 'text/html')
         msg.send(fail_silently=True)
-    if settings.SMS_BACKEND == 'console' and customer.phone:
-        print(f"[Growlee SMS] À {customer.phone}: Votre gain {session.reward_label} chez {merchant.name}: {url}")
+    if customer.phone:
+        send_sms(customer.phone, f"Votre gain {session.reward_label} chez {merchant.name}: {url} - activez-le seulement au point de vente (15 min).")
