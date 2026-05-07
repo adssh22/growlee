@@ -50,6 +50,7 @@ def contact_page(request):
     return render(request, 'public/contact.html', {
         'title': 'Contact',
         'description': 'Contactez Growlee pour une démo, un lancement commerce, un partenariat ou une offre multi-sites.',
+        'sent': request.method == 'POST',
     })
 
 
