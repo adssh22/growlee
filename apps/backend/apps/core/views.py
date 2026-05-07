@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, logout
+from django.core.mail import send_mail
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
@@ -47,10 +48,26 @@ def home(request):
 
 
 def contact_page(request):
+    sent = False
+    if request.method == 'POST':
+        name = (request.POST.get('name') or '').strip()
+        email = (request.POST.get('email') or '').strip()
+        need = (request.POST.get('need') or '').strip()
+        message = (request.POST.get('message') or '').strip()
+        if name and email and message:
+            body = f"Nom / commerce : {name}\nEmail : {email}\nBesoin : {need}\n\nMessage :\n{message}"
+            send_mail(
+                subject=f'Demande Growlee — {need or "Contact"}',
+                message=body,
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'contact@growlee.fr',
+                recipient_list=['contact@growlee.fr'],
+                fail_silently=True,
+            )
+            sent = True
     return render(request, 'public/contact.html', {
         'title': 'Contact',
         'description': 'Contactez Growlee pour une démo, un lancement commerce, un partenariat ou une offre multi-sites.',
-        'sent': request.method == 'POST',
+        'sent': sent,
     })
 
 
@@ -77,9 +94,9 @@ def resources_page(request):
 
 def legal_page(request, page):
     pages = {
-        'mentions-legales': ('Mentions légales', 'Informations légales de Growlee.', 'Mentions légales', 'Éditeur, hébergement, propriété intellectuelle et contact seront complétés avec les informations définitives de la structure Growlee.'),
-        'cgv': ('CGV', 'Conditions générales de vente Growlee.', 'Conditions générales de vente', 'Tarifs affichés : 50€ d’installation, 1 mois offert, puis 90€/mois pour l’offre commerce standard. Les conditions finales devront être validées juridiquement avant contractualisation.'),
-        'confidentialite': ('Confidentialité / RGPD', 'Politique de confidentialité Growlee.', 'Données personnelles', 'Growlee collecte uniquement les données nécessaires au parcours client, au suivi commerçant et aux relances autorisées. Les demandes RGPD peuvent être envoyées à contact@growlee.fr.'),
+        'mentions-legales': ('Mentions légales', 'Informations légales de Growlee.', 'Mentions légales', 'Éditeur du site : Growlee. Contact : contact@growlee.fr. Le site est hébergé sur une infrastructure web sécurisée et l’ensemble des contenus, visuels, marques et interfaces appartient à Growlee sauf mention contraire.'),
+        'cgv': ('CGV', 'Conditions générales de vente Growlee.', 'Conditions générales de vente', 'Offre commerce : 50€ d’installation, 1 mois offert, puis 90€/mois. L’installation couvre la configuration initiale, le parcours QR et la préparation des supports. Les offres multi-sites font l’objet d’un devis spécifique.'),
+        'confidentialite': ('Confidentialité / RGPD', 'Politique de confidentialité Growlee.', 'Données personnelles', 'Growlee collecte les données nécessaires au parcours client, au suivi commerçant, aux demandes de contact et aux relances autorisées. Les demandes d’accès, rectification ou suppression peuvent être envoyées à contact@growlee.fr.'),
     }
     if page not in pages:
         raise Http404('Page légale introuvable')
