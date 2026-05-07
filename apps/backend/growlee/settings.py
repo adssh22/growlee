@@ -15,8 +15,16 @@ def env_list(name: str, default: str = '') -> list[str]:
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key')
 DEBUG = env_bool('DJANGO_DEBUG', True)
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,growlee.fr,www.growlee.fr')
-CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://growlee.fr,https://www.growlee.fr')
 APP_BASE_URL = os.getenv('APP_BASE_URL', 'http://localhost:8000' if DEBUG else 'https://growlee.fr').rstrip('/')
+CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://growlee.fr,https://www.growlee.fr')
+for host in ALLOWED_HOSTS:
+    if host in {'*', 'localhost', '127.0.0.1'} or host.startswith('.'):
+        continue
+    origin = f'https://{host}'
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
+if APP_BASE_URL.startswith(('http://', 'https://')) and APP_BASE_URL not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(APP_BASE_URL)
 GROWLEE_PAYMENT_LINK_STARTER = os.getenv('GROWLEE_PAYMENT_LINK_STARTER', '').strip()
 GROWLEE_PAYMENT_LINK_PRO = os.getenv('GROWLEE_PAYMENT_LINK_PRO', '').strip()
 GROWLEE_PAYMENT_LINK_PREMIUM = os.getenv('GROWLEE_PAYMENT_LINK_PREMIUM', '').strip()
