@@ -1,0 +1,29 @@
+{
+  email {$LETSENCRYPT_EMAIL}
+}
+
+growlee.fr, www.growlee.fr {
+  encode zstd gzip
+
+  @www host www.growlee.fr
+  redir @www https://growlee.fr{uri} permanent
+
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options SAMEORIGIN
+    Referrer-Policy strict-origin-when-cross-origin
+    -Server
+  }
+
+  handle_path /media/* {
+    root * /srv/media
+    file_server
+  }
+
+  reverse_proxy web:8000 {
+    header_up Host {host}
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+}

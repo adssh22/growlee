@@ -2,15 +2,32 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    return os.getenv(name, '1' if default else '0').strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def env_list(name: str, default: str = '') -> list[str]:
+    return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
+
+
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key')
-DEBUG = os.getenv('DJANGO_DEBUG', '1') == '1'
-ALLOWED_HOSTS = ['*']
-APP_BASE_URL = os.getenv('APP_BASE_URL', 'http://192.168.1.27:8000').rstrip('/')
+DEBUG = env_bool('DJANGO_DEBUG', True)
+ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,growlee.fr,www.growlee.fr')
+CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://growlee.fr,https://www.growlee.fr')
+APP_BASE_URL = os.getenv('APP_BASE_URL', 'http://localhost:8000' if DEBUG else 'https://growlee.fr').rstrip('/')
 GROWLEE_PAYMENT_LINK_STARTER = os.getenv('GROWLEE_PAYMENT_LINK_STARTER', '').strip()
 GROWLEE_PAYMENT_LINK_PRO = os.getenv('GROWLEE_PAYMENT_LINK_PRO', '').strip()
 GROWLEE_PAYMENT_LINK_PREMIUM = os.getenv('GROWLEE_PAYMENT_LINK_PREMIUM', '').strip()
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Growlee <noreply@growlee.local>')
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587') or 587)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+EMAIL_USE_SSL = env_bool('EMAIL_USE_SSL', False)
 SMS_BACKEND = os.getenv('SMS_BACKEND', 'console')
 SMS_FROM = os.getenv('SMS_FROM', 'Growlee')
 SMS_PROVIDER = os.getenv('SMS_PROVIDER', SMS_BACKEND).strip().lower()
@@ -84,6 +101,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = '/login/'
@@ -102,3 +123,19 @@ GOOGLE_WALLET_SERVICE_ACCOUNT_PATH = os.getenv('GOOGLE_WALLET_SERVICE_ACCOUNT_PA
 
 # Autorise les previews intégrées dans l'admin Growlee (même origine uniquement).
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+SILENCED_SYSTEM_CHECKS = env_list(
+    'DJANGO_SILENCED_SYSTEM_CHECKS',
+    '' if DEBUG else 'security.W019,security.W021',
+)
+
+# Production / reverse proxy HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', not DEBUG)
+SESSION_COOKIE_SECURE = env_bool('DJANGO_SESSION_COOKIE_SECURE', not DEBUG)
+CSRF_COOKIE_SECURE = env_bool('DJANGO_CSRF_COOKIE_SECURE', not DEBUG)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+SECURE_HSTS_SECONDS = int(os.getenv('DJANGO_SECURE_HSTS_SECONDS', '31536000' if not DEBUG else '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', not DEBUG)
+SECURE_HSTS_PRELOAD = env_bool('DJANGO_SECURE_HSTS_PRELOAD', False)

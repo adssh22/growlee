@@ -1,0 +1,57 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    env_file: .env.prod
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - media_data:/srv/media:ro
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-growlee}
+      POSTGRES_USER: ${POSTGRES_USER:-growlee}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-growlee} -d ${POSTGRES_DB:-growlee}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: ./apps/backend
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      DJANGO_DEBUG: "0"
+      APP_BASE_URL: https://growlee.fr
+      DJANGO_ALLOWED_HOSTS: growlee.fr,www.growlee.fr
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://growlee.fr,https://www.growlee.fr
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+    volumes:
+      - media_data:/app/media
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+  media_data:

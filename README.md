@@ -18,7 +18,7 @@ Growlee est une plateforme SaaS multi-tenant de croissance client pour commerces
 - page de configuration commerce / campagne / reward / point d'entrée
 - accès démo apporteur d'affaires via Growlee Control
 - flow client public `/play/<slug>/` mobile-first
-- landing brandée avec exemple QR façade
+- landing brandée
 - étape jeu MVP
 - collecte contact avec consentement RGPD
 - email HTML de gain avec lien unique temporaire

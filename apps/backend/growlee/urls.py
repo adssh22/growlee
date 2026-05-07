@@ -73,4 +73,7 @@ urlpatterns = [
     path('play/<slug:slug>/', play_page, name='play-page'),
     path('play/<slug:slug>/wallet/apple/', apple_wallet_pass, name='apple-wallet-pass'),
     path('play/<slug:slug>/wallet/google/', google_wallet_pass, name='google-wallet-pass'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

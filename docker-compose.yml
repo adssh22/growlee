@@ -17,6 +17,7 @@ services:
 
   web:
     build: ./apps/backend
+    command: sh -c "python manage.py migrate && python manage.py seed_demo && python manage.py runserver 0.0.0.0:8000"
     environment:
       POSTGRES_DB: growlee
       POSTGRES_USER: growlee
