@@ -614,12 +614,13 @@ def merchant_onboarding(request):
 
     if request.method == 'POST' and request.POST.get('form_action') == 'merchant_identity' and merchant_form.is_valid():
         merchant = merchant_form.save(commit=False)
+        if merchant.billing_payment_type and not merchant.payment_method:
+            merchant.payment_method = 'Carte bancaire' if merchant.billing_payment_type == 'cb' else 'IBAN / prélèvement'
         required = {
             'Nom': merchant.name,
             'Adresse': merchant.address,
             'Secteur d’activité': merchant.business_sector,
             'Email de contact': merchant.contact_email,
-            'Moyen de paiement': merchant.payment_method,
             'Type de paiement': merchant.billing_payment_type,
             'Référence paiement': merchant.billing_payment_reference,
             'Style de flyer': merchant.flyer_style,
