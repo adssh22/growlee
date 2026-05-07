@@ -10,7 +10,7 @@ from apps.rewards.models import Reward
 class MerchantForm(forms.ModelForm):
     class Meta:
         model = Merchant
-        fields = ['name', 'address', 'business_sector', 'tagline', 'short_bio', 'payment_method', 'logo', 'primary_color', 'accent_color', 'surface_color', 'text_color', 'heading_font', 'body_font', 'google_review_url', 'employee_pin']
+        fields = ['name', 'address', 'business_sector', 'tagline', 'short_bio', 'payment_method', 'flyer_style', 'logo', 'primary_color', 'accent_color', 'surface_color', 'text_color', 'heading_font', 'body_font', 'google_review_url', 'employee_pin']
         labels = {
             'name': 'Nom du commerce',
             'address': 'Adresse',
@@ -18,6 +18,7 @@ class MerchantForm(forms.ModelForm):
             'tagline': 'Slogan',
             'short_bio': 'Petite biographie',
             'payment_method': 'Moyen de paiement',
+            'flyer_style': 'Style de flyer',
             'logo': 'Téléverser le logo',
             'primary_color': 'Couleur principale',
             'accent_color': 'Couleur accent',

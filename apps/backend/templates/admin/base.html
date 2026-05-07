@@ -7,10 +7,10 @@
   <title>{% block title %}Growlee Admin{% endblock %}</title>
   <style>
     :root {
-      --color-brand: #534ab7;
-      --color-brand-soft: #eeedfe;
-      --color-brand-soft-2: #afa9ec;
-      --color-success: #1d9e75;
+      --color-brand: {{ merchant.primary_color|default:'#534ab7' }};
+      --color-brand-soft: color-mix(in srgb, {{ merchant.primary_color|default:'#534ab7' }} 13%, #ffffff);
+      --color-brand-soft-2: color-mix(in srgb, {{ merchant.primary_color|default:'#534ab7' }} 44%, #ffffff);
+      --color-success: {{ merchant.accent_color|default:'#1d9e75' }};
       --color-success-soft: #e1f5ee;
       --border-radius-md: 12px;
       --border-radius-lg: 18px;
@@ -27,7 +27,7 @@
       --color-text-tertiary: #98a0b3;
       --shadow-soft: 0 18px 40px rgba(31,36,48,0.08);
       --shadow-card: 0 16px 32px rgba(83,74,183,0.08);
-      --shell-grad: radial-gradient(circle at top left, rgba(83,74,183,0.10), transparent 28%), radial-gradient(circle at top right, rgba(29,158,117,0.08), transparent 22%), linear-gradient(180deg, #f8f9fd 0%, #edf1f8 100%);
+      --shell-grad: radial-gradient(circle at top left, color-mix(in srgb, var(--color-brand) 16%, transparent), transparent 28%), radial-gradient(circle at top right, color-mix(in srgb, var(--color-success) 12%, transparent), transparent 22%), linear-gradient(180deg, {{ merchant.surface_color|default:'#f8f9fd' }} 0%, #edf1f8 100%);
     }
     html[data-theme="dark"] {
       --color-background-primary: rgba(12,16,29,0.86);
@@ -40,11 +40,12 @@
       --color-text-tertiary: #7d88a6;
       --shadow-soft: 0 24px 50px rgba(0,0,0,0.28);
       --shadow-card: 0 18px 34px rgba(0,0,0,0.24);
-      --shell-grad: radial-gradient(circle at top left, rgba(83,74,183,0.18), transparent 30%), radial-gradient(circle at top right, rgba(29,158,117,0.10), transparent 22%), linear-gradient(180deg, #0b1020 0%, #060913 100%);
+      --shell-grad: radial-gradient(circle at top left, color-mix(in srgb, var(--color-brand) 24%, transparent), transparent 30%), radial-gradient(circle at top right, color-mix(in srgb, var(--color-success) 16%, transparent), transparent 22%), linear-gradient(180deg, #0b1020 0%, #060913 100%);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     body { font-family: var(--font-sans); background: var(--shell-grad); color: var(--color-text-primary); min-height: 100vh; transition: background .25s ease, color .25s ease; }
+    {% if merchant.heading_font == 'poppins' or merchant.body_font == 'poppins' %}body{font-family:Poppins,Inter,ui-sans-serif,system-ui,sans-serif}{% elif merchant.heading_font == 'manrope' or merchant.body_font == 'manrope' %}body{font-family:Manrope,Inter,ui-sans-serif,system-ui,sans-serif}{% elif merchant.heading_font == 'dm-sans' or merchant.body_font == 'dm-sans' %}body{font-family:"DM Sans",Inter,ui-sans-serif,system-ui,sans-serif}{% endif %}
     .shell { padding: 18px; }
     .app { display:flex; min-height:calc(100vh - 36px); background:rgba(255,255,255,0.02); border-radius:24px; overflow:hidden; border:0.5px solid var(--color-border-tertiary); backdrop-filter: blur(16px); box-shadow: var(--shadow-soft); }
     .sidebar { width:220px; background:var(--color-background-primary); border-right:0.5px solid var(--color-border-tertiary); display:flex; flex-direction:column; padding:22px 0; flex-shrink:0; backdrop-filter: blur(18px); }
@@ -133,10 +134,10 @@
 
         <div class="sidebar-bot" style="display:block;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <a class="av" href="/admin/onboarding/" title="Onboarding commerce" style="text-decoration:none;">{{ merchant.name|default:'G'|slice:':2' }}</a>
+            <a class="av" href="/admin/account/" title="Compte commerce" style="text-decoration:none;">{{ merchant.name|default:'G'|slice:':2' }}</a>
             <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
           </div>
-          <a class="logout-link" href="/admin/onboarding/">{{ merchant.name|default:'Configurer le commerce' }}</a>
+          <a class="logout-link" href="/admin/account/">{{ merchant.name|default:'Compte commerce' }}</a>
           <a class="logout-link" href="/logout/">Déconnexion</a>
         </div>
       </aside>

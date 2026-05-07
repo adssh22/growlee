@@ -121,12 +121,17 @@ def _admin_access_block_response(request, merchant=None):
     if not _merchant_is_unlocked(merchant):
         return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
     onboarding_allowed = {
+        '/admin/account/',
         '/admin/onboarding/',
         '/logout/',
     }
-    if not merchant.onboarding_completed and request.path not in onboarding_allowed:
-        messages.info(request, 'Complétez l’onboarding commerçant pour personnaliser votre interface Growlee.')
-        return redirect('merchant-onboarding')
+    if request.path not in onboarding_allowed:
+        if not merchant.onboarding_completed:
+            messages.info(request, 'Complétez l’onboarding commerçant pour personnaliser votre interface Growlee.')
+            return redirect('merchant-account')
+        if not merchant.flyer_style or not merchant.flyer_visual_approved or not merchant.onboarding_fee_paid:
+            messages.info(request, 'Validez votre flyer et le paiement onboarding pour débloquer toute l’application.')
+            return redirect('merchant-account')
     return None
 
 
@@ -566,6 +571,16 @@ def merchant_onboarding(request):
         instance=merchant,
         prefix='merchant',
     )
+    if request.method == 'POST' and request.POST.get('form_action') == 'flyer_approve':
+        if not merchant.onboarding_completed or not merchant.flyer_style:
+            messages.error(request, 'Complétez d’abord les informations commerce et choisissez un style de flyer.')
+            return redirect('merchant-account')
+        merchant.flyer_visual_approved = True
+        merchant.flyer_order_status = 'visual_approved_waiting_payment'
+        merchant.save(update_fields=['flyer_visual_approved', 'flyer_order_status'])
+        messages.success(request, 'Visuel flyer validé. Il reste le paiement onboarding de 80€ pour débloquer l’application et lancer la commande.')
+        return redirect('merchant-account')
+
     if request.method == 'POST' and request.POST.get('form_action') == 'merchant_identity' and merchant_form.is_valid():
         merchant = merchant_form.save(commit=False)
         required = {
@@ -573,17 +588,18 @@ def merchant_onboarding(request):
             'Adresse': merchant.address,
             'Secteur d’activité': merchant.business_sector,
             'Moyen de paiement': merchant.payment_method,
+            'Style de flyer': merchant.flyer_style,
         }
         missing = [label for label, value in required.items() if not (value or '').strip()]
         if missing:
             messages.error(request, 'Champs obligatoires manquants : ' + ', '.join(missing) + '.')
-            return redirect('merchant-onboarding')
+            return redirect('merchant-account')
         merchant.onboarding_completed = True
         merchant.save()
         merchant_form.save_m2m()
         campaign, entry_point, reward = _ensure_default_growlee_setup(merchant)
         messages.success(request, 'Onboarding enregistré. Votre interface, votre parcours et votre QR reprennent maintenant votre identité.')
-        return redirect('merchant-onboarding')
+        return redirect('merchant-account')
 
     context = _merchant_context_for_user(request.user)
     latest_campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
@@ -608,7 +624,7 @@ def merchant_onboarding(request):
         if request.method == 'POST' and request.POST.get('form_action') == 'entry_point' and entry_form.is_valid():
             entry_form.save()
             messages.success(request, 'Redirection QR/NFC mise à jour.')
-            return redirect('merchant-onboarding')
+            return redirect('merchant-account')
         if qr_entry:
             logo_url = _merchant_logo_for_svg(merchant)
             qr_svg = build_qr_svg(
@@ -621,6 +637,9 @@ def merchant_onboarding(request):
             )
     context.update({'merchant_form': merchant_form, 'campaign': latest_campaign, 'qr_entry_code': qr_entry.code if qr_entry else '', 'nfc_entry_code': nfc_entry.code if nfc_entry else '', 'entry_form': entry_form, 'qr_svg': qr_svg})
     return render(request, 'admin/onboarding.html', context)
+
+
+merchant_account = merchant_onboarding
 
 
 @login_required

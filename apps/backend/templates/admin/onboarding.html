@@ -27,6 +27,7 @@
           <div><label>Adresse</label>{{ merchant_form.address }}</div>
           <div><label>Secteur d’activité</label>{{ merchant_form.business_sector }}</div>
           <div><label>Moyen de paiement</label>{{ merchant_form.payment_method }}</div>
+          <div><label>Style flyer souhaité</label>{{ merchant_form.flyer_style }}</div>
         </div>
         <label>Slogan facultatif</label>{{ merchant_form.tagline }}
         <label>Petite biographie facultative</label>{{ merchant_form.short_bio }}
@@ -76,8 +77,37 @@
     </div>
 
     <div class="card">
+      <div class="section-title">Flyer automatique</div>
+      <div class="section-sub">Aperçus basiques générés depuis l’onboarding. Après validation + paiement onboarding, la commande partira à l’adresse du commerce.</div>
+      <div class="responsive-2">
+        <div style="border-radius:22px;padding:18px;background:linear-gradient(145deg,{{ merchant.primary_color|default:'#534AB7' }},#111827);color:#fff;min-height:180px;display:flex;flex-direction:column;justify-content:space-between;">
+          <strong>{{ merchant.name }}</strong><span>{{ merchant.tagline|default:'Scannez · Jouez · Gagnez' }}</span><small>{{ merchant.address|default:'Adresse du commerce' }}</small>
+        </div>
+        <div style="border-radius:22px;padding:18px;background:#fff;border:1px solid var(--color-border-tertiary);min-height:180px;display:flex;flex-direction:column;justify-content:space-between;color:var(--color-text-primary);">
+          <strong style="color:{{ merchant.primary_color|default:'#534AB7' }}">{{ merchant.name }}</strong><span>{{ merchant.business_sector|default:'Commerce local' }}</span><small>QR brandé inclus</small>
+        </div>
+      </div>
+      <form method="post" style="margin-top:14px;">
+        {% csrf_token %}<input type="hidden" name="form_action" value="flyer_approve" />
+        <button class="btn" type="submit" style="width:100%;" {% if not merchant.onboarding_completed or not merchant.flyer_style %}disabled{% endif %}>{% if merchant.flyer_visual_approved %}Visuel validé{% else %}Valider ce visuel flyer{% endif %}</button>
+      </form>
+      <div class="mini" style="margin-top:10px;">Statut commande : {{ merchant.flyer_order_status|default:'pending' }} · Paiement onboarding : {% if merchant.onboarding_fee_paid %}payé{% else %}80€ à régler{% endif %}</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Compte / Billing</div>
+      <div class="section-sub">Suivi des dépenses et facture du mois.</div>
+      <div class="status-row"><span>Onboarding flyer</span><strong>{% if merchant.onboarding_fee_paid %}Payé{% else %}80€ à régler{% endif %}</strong></div>
+      <div class="status-row"><span>Abonnement mensuel</span><strong>90€ / mois</strong></div>
+      <div class="status-row"><span>Facture du mois</span><span>{% if merchant.onboarding_fee_paid %}Disponible prochainement{% else %}En attente validation onboarding{% endif %}</span></div>
+      {% if merchant.flyer_visual_approved and not merchant.onboarding_fee_paid %}
+        <a class="btn" style="width:100%;margin-top:14px;" href="mailto:contact@growlee.fr?subject=Paiement%20onboarding%2080%E2%82%AC%20-%20{{ merchant.name|urlencode }}">Régler / demander validation</a>
+      {% endif %}
+    </div>
+
+    <div class="card">
       <div class="section-title">Modules</div>
-      <div class="section-sub">Les boutons configurer ouvrent maintenant directement le bon écran.</div>
+      <div class="section-sub">Débloqués après onboarding, validation flyer et paiement onboarding.</div>
       <div class="list-row"><span>Jeu</span><span><a class="btn secondary" href="/admin/game/">Configurer</a></span></div>
       <div class="list-row"><span>Avis</span><span><a class="btn secondary" href="/admin/game/review/">Configurer</a></span></div>
       <div class="list-row"><span>Wallet</span><span><a class="btn secondary" href="/admin/game/wallet/">Configurer</a></span></div>

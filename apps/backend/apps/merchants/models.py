@@ -8,6 +8,11 @@ class Merchant(models.Model):
         ('manrope', 'Manrope'),
         ('dm-sans', 'DM Sans'),
     ]
+    FLYER_STYLE_CHOICES = [
+        ('basic', 'Basique'),
+        ('premium', 'Premium'),
+        ('bold', 'Impact'),
+    ]
 
     name = models.CharField(max_length=120)
     slug = models.SlugField(unique=True)
@@ -16,6 +21,10 @@ class Merchant(models.Model):
     tagline = models.CharField(max_length=180, blank=True, default='')
     short_bio = models.TextField(blank=True, default='')
     payment_method = models.CharField(max_length=80, blank=True, default='')
+    flyer_style = models.CharField(max_length=40, choices=FLYER_STYLE_CHOICES, blank=True, default='')
+    flyer_visual_approved = models.BooleanField(default=False)
+    flyer_order_status = models.CharField(max_length=40, blank=True, default='pending')
+    onboarding_fee_paid = models.BooleanField(default=False)
     logo = models.ImageField(upload_to='merchants/logos/', blank=True, null=True)
     logo_url = models.URLField(blank=True, null=True)
     primary_color = models.CharField(max_length=20, default='#111827')
