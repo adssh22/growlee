@@ -120,25 +120,45 @@
       <aside class="sidebar">
         <div class="logo"><img class="admin-brand-logo" src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></div>
 
-        <div class="nav-section">Principal</div>
-        <a class="ni {% if request.path == '/admin/' %}active{% endif %}" href="/admin/">Tableau de bord</a>
-        <a class="ni {% if request.path == '/admin/customers/' or '/admin/customers/' in request.path %}active{% endif %}" href="/admin/customers/">Clients</a>
-        <a class="ni {% if request.path == '/admin/employee/' or '/admin/employee/' in request.path %}active{% endif %}" href="/admin/employee/">Mode employé</a>
-        <a class="ni {% if request.path == '/admin/onboarding/' or request.path == '/admin/game/' or request.path == '/admin/game/review/' or request.path == '/admin/game/wallet/' %}active{% endif %}" href="/admin/onboarding/">Configuration</a>
-        <div class="submenu-group">
-          <a class="ni sub {% if request.path == '/admin/game/' %}active{% endif %}" href="/admin/game/">Jeu</a>
-          <a class="ni sub {% if request.path == '/admin/game/review/' %}active{% endif %}" href="/admin/game/review/">Avis</a>
-          <a class="ni sub {% if request.path == '/admin/game/wallet/' %}active{% endif %}" href="/admin/game/wallet/">Wallet</a>
-        </div>
-        <a class="ni {% if request.path == '/admin/automations/' %}active{% endif %}" href="/admin/automations/">Campagnes</a>
+        {% if request.session.growlee_employee_mode %}
+          <div class="nav-section">Mode employé</div>
+          <a class="ni active" href="/admin/employee/">Scanner les gains</a>
+          <a class="ni" href="/admin/employee/exit/">Mode employeur</a>
+        {% else %}
+          <div class="nav-section">Principal</div>
+          {% if merchant and not merchant.onboarding_completed %}
+            <a class="ni active" href="/admin/account/">Onboarding</a>
+          {% else %}
+            <a class="ni {% if request.path == '/admin/' %}active{% endif %}" href="/admin/">Tableau de bord</a>
+            <a class="ni {% if request.path == '/admin/customers/' or '/admin/customers/' in request.path %}active{% endif %}" href="/admin/customers/">Clients</a>
+            <a class="ni {% if request.path == '/admin/onboarding/' or request.path == '/admin/account/' or request.path == '/admin/game/' or request.path == '/admin/game/review/' or request.path == '/admin/game/wallet/' %}active{% endif %}" href="/admin/onboarding/">Configuration</a>
+            {% if request.path == '/admin/onboarding/' or request.path == '/admin/account/' or request.path == '/admin/game/' or request.path == '/admin/game/review/' or request.path == '/admin/game/wallet/' %}
+            <div class="submenu-group">
+              <a class="ni sub {% if request.path == '/admin/game/' %}active{% endif %}" href="/admin/game/">Jeu</a>
+              <a class="ni sub {% if request.path == '/admin/game/review/' %}active{% endif %}" href="/admin/game/review/">Avis</a>
+              <a class="ni sub {% if request.path == '/admin/game/wallet/' %}active{% endif %}" href="/admin/game/wallet/">Wallet</a>
+            </div>
+            {% endif %}
+            <a class="ni {% if request.path == '/admin/automations/' %}active{% endif %}" href="/admin/automations/">Campagnes</a>
+            <div class="nav-section">Point de vente</div>
+            <a class="ni employee-switch {% if request.path == '/admin/employee/' %}active{% endif %}" href="/admin/employee/">
+              <span>Mode employé</span>
+              <span style="margin-left:auto;font-size:11px;padding:4px 8px;border-radius:999px;background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);">OFF</span>
+            </a>
+          {% endif %}
+        {% endif %}
 
         <div class="sidebar-bot" style="display:block;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <a class="av" href="/admin/account/" title="Compte commerce" style="text-decoration:none;">{{ merchant.name|default:'G'|slice:':2' }}</a>
-            <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
-          </div>
-          <a class="logout-link" href="/admin/account/">{{ merchant.name|default:'Compte commerce' }}</a>
-          <a class="logout-link" href="/logout/">Déconnexion</a>
+          {% if request.session.growlee_employee_mode %}
+            <a class="btn secondary" href="/admin/employee/exit/" style="width:100%;justify-content:center;">Mode employeur</a>
+          {% else %}
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+              <a class="av" href="/admin/account/" title="Compte commerce" style="text-decoration:none;">{{ merchant.name|default:'G'|slice:':2' }}</a>
+              <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+            </div>
+            <a class="logout-link" href="/admin/account/">{{ merchant.name|default:'Compte commerce' }}</a>
+            <a class="logout-link" href="/logout/">Déconnexion</a>
+          {% endif %}
         </div>
       </aside>
 

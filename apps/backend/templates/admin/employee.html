@@ -3,11 +3,11 @@
 {% block content %}
 <div class="topbar">
   <div>
-    <div class="eyebrow">Point de vente</div>
+    <div class="eyebrow">Point de vente · mode isolé</div>
     <div class="title">Mode employé</div>
-    <div class="subtitle">Écran cloisonné pour scanner un QR gain/carte via l’appareil photo ou vérifier un code manuellement. Le retour employeur demande une vraie reconnexion propriétaire/manager.</div>
+    <div class="subtitle">Interface volontairement cloisonnée : scan et validation uniquement. Le reste de l’admin est masqué.</div>
   </div>
-  <a class="btn secondary" href="/admin/employee/exit/">Mode employeur</a>
+  <a class="btn" href="/admin/employee/exit/">Mode employeur</a>
 </div>
 
 <style>
@@ -44,7 +44,7 @@
       <button id="startScan" class="btn" type="button">Ouvrir la caméra</button>
       <button id="photoScan" class="btn secondary" type="button">Photo du QR</button>
       <button id="stopScan" class="btn secondary" type="button">Fermer</button>
-+      <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none">
+      <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none">
     </div>
     <div id="scanStatus" class="scan-status">Scanner prêt.</div>
   </div>

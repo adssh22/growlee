@@ -588,6 +588,8 @@ def merchant_onboarding(request):
             'Adresse': merchant.address,
             'Secteur d’activité': merchant.business_sector,
             'Moyen de paiement': merchant.payment_method,
+            'Type de paiement': merchant.billing_payment_type,
+            'Référence paiement': merchant.billing_payment_reference,
             'Style de flyer': merchant.flyer_style,
         }
         missing = [label for label, value in required.items() if not (value or '').strip()]

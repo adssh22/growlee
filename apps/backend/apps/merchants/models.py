@@ -21,6 +21,8 @@ class Merchant(models.Model):
     tagline = models.CharField(max_length=180, blank=True, default='')
     short_bio = models.TextField(blank=True, default='')
     payment_method = models.CharField(max_length=80, blank=True, default='')
+    billing_payment_type = models.CharField(max_length=20, blank=True, default='')
+    billing_payment_reference = models.CharField(max_length=120, blank=True, default='')
     flyer_style = models.CharField(max_length=40, choices=FLYER_STYLE_CHOICES, blank=True, default='')
     flyer_visual_approved = models.BooleanField(default=False)
     flyer_order_status = models.CharField(max_length=40, blank=True, default='pending')
