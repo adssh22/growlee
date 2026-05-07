@@ -46,6 +46,52 @@ def home(request):
     return render(request, 'public/home.html', {'seo_base_url': settings.APP_BASE_URL})
 
 
+def contact_page(request):
+    return render(request, 'public/contact.html', {
+        'title': 'Contact',
+        'description': 'Contactez Growlee pour une démo, un lancement commerce, un partenariat ou une offre multi-sites.',
+    })
+
+
+def partners_page(request):
+    return render(request, 'public/partners.html', {
+        'title': 'Apporteurs d’affaires',
+        'description': 'Growlee accompagne les partenaires terrain qui veulent proposer une solution simple de fidélisation aux commerces locaux.',
+    })
+
+
+def demo_page(request):
+    return render(request, 'public/demo.html', {
+        'title': 'Démo Growlee',
+        'description': 'Découvrez le parcours client Growlee : scan QR, jeu cadeau, avis, wallet et retour client.',
+    })
+
+
+def resources_page(request):
+    return render(request, 'public/resources.html', {
+        'title': 'Ressources',
+        'description': 'Guides Growlee pour lancer un QR en boutique, collecter plus d’avis et fidéliser les clients.',
+    })
+
+
+def legal_page(request, page):
+    pages = {
+        'mentions-legales': ('Mentions légales', 'Informations légales de Growlee.', 'Mentions légales', 'Éditeur, hébergement, propriété intellectuelle et contact seront complétés avec les informations définitives de la structure Growlee.'),
+        'cgv': ('CGV', 'Conditions générales de vente Growlee.', 'Conditions générales de vente', 'Tarifs affichés : 50€ d’installation, 1 mois offert, puis 90€/mois pour l’offre commerce standard. Les conditions finales devront être validées juridiquement avant contractualisation.'),
+        'confidentialite': ('Confidentialité / RGPD', 'Politique de confidentialité Growlee.', 'Données personnelles', 'Growlee collecte uniquement les données nécessaires au parcours client, au suivi commerçant et aux relances autorisées. Les demandes RGPD peuvent être envoyées à contact@growlee.fr.'),
+    }
+    if page not in pages:
+        raise Http404('Page légale introuvable')
+    title, description, heading, body = pages[page]
+    return render(request, 'public/legal.html', {
+        'title': title,
+        'description': description,
+        'legal_heading': heading,
+        'legal_body': body,
+        'noindex': False,
+    })
+
+
 def robots_txt(request):
     lines = [
         'User-agent: *',
@@ -65,13 +111,23 @@ def robots_txt(request):
 
 
 def sitemap_xml(request):
+    public_paths = [
+        ('/', '1.0'),
+        ('/demo/', '0.8'),
+        ('/partenaires/', '0.8'),
+        ('/ressources/', '0.6'),
+        ('/contact/', '0.7'),
+        ('/mentions-legales/', '0.3'),
+        ('/cgv/', '0.3'),
+        ('/confidentialite/', '0.3'),
+    ]
+    urls = '\n'.join(
+        f'  <url>\n    <loc>{settings.APP_BASE_URL}{path}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>{priority}</priority>\n  </url>'
+        for path, priority in public_paths
+    )
     xml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>{settings.APP_BASE_URL}/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
+{urls}
 </urlset>
 '''
     return HttpResponse(xml, content_type='application/xml; charset=utf-8')

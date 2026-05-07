@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }} · Growlee</title>
+  <meta name="description" content="{{ description }}" />
+  <meta name="robots" content="{% if noindex %}noindex,nofollow{% else %}index,follow{% endif %}" />
+  <style>
+    :root{--purple:#534ab7;--green:#1d9e75;--ink:#17152b;--muted:#69647f;--line:#eceaf7;--paper:#fbfbff}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(circle at 12% 0,rgba(175,169,236,.38),transparent 30%),linear-gradient(180deg,#fff,var(--paper));min-height:100vh}.wrap{width:min(940px,calc(100% - 34px));margin:0 auto;padding:24px 0 70px}.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:42px}.nav img{height:46px}.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:12px 16px;background:linear-gradient(135deg,var(--purple),#766cf0);color:#fff;text-decoration:none;font-weight:900}.card{background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.95);border-radius:34px;padding:34px;box-shadow:0 28px 80px rgba(39,32,91,.12)}h1{font-size:clamp(38px,6vw,64px);line-height:.94;letter-spacing:-.075em;margin:0 0 16px}.lead{font-size:18px;color:var(--muted);line-height:1.65;margin:0 0 28px}h2{font-size:25px;letter-spacing:-.04em;margin:28px 0 10px}p,li{color:#5f5a76;line-height:1.65}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}.mini{padding:18px;border-radius:22px;background:#fff;border:1px solid var(--line)}@media(max-width:720px){.grid{grid-template-columns:1fr}.card{padding:24px;border-radius:28px}.nav{align-items:flex-start}.nav img{height:38px}}
+  </style>
+</head>
+<body><main class="wrap"><div class="nav"><a href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a><a class="btn" href="/">Retour accueil</a></div><article class="card"><h1>{{ title }}</h1><p class="lead">{{ description }}</p>{% block body %}{% endblock %}</article></main></body></html>
