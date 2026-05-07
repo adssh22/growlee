@@ -1,186 +1,167 @@
 {% extends 'admin/base.html' %}
 {% block title %}{% if request.path == '/admin/account/' %}Compte commerce{% else %}Onboarding commerce{% endif %} · Growlee{% endblock %}
 {% block content %}
-<div class="topbar">
-  <div>
-    <div class="eyebrow">{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Compte commerce{% else %}Onboarding commerçant{% endif %}</div>
-    <div class="title">{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Toutes les infos de {{ merchant.name }}{% else %}Personnaliser l’interface de {{ merchant.name }}{% endif %}</div>
-    <div class="subtitle">{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Identité, paiement, flyers, billing et points d’entrée issus de l’onboarding.{% else %}Première étape après activation : ces informations alimentent le dashboard, le parcours mobile, les QR codes et les flyers.{% endif %}</div>
+<style>
+  .onboarding-hero{position:relative;overflow:hidden;border-radius:32px;padding:24px;background:linear-gradient(135deg,var(--color-brand),var(--color-accent));color:#fff;box-shadow:0 28px 80px rgba(83,74,183,.24);margin-bottom:18px}.onboarding-hero:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-80px;top:-100px;background:rgba(255,255,255,.16)}.onboarding-hero>*{position:relative}.onboarding-hero .title{color:#fff}.onboarding-hero .subtitle{color:rgba(255,255,255,.78);max-width:760px}.progress-track{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:20px}.progress-pill{border-radius:999px;background:rgba(255,255,255,.18);padding:9px 10px;font-size:12px;font-weight:900;text-align:center}.progress-pill.done{background:#fff;color:var(--color-brand)}.wizard{display:grid;gap:12px}.step-card{border:1px solid var(--color-border-tertiary);border-radius:26px;background:var(--color-surface);box-shadow:0 18px 50px rgba(31,36,48,.08);overflow:hidden}.step-card summary{list-style:none;cursor:pointer;padding:18px 20px;display:flex;align-items:center;gap:14px}.step-card summary::-webkit-details-marker{display:none}.step-num{display:grid;place-items:center;width:42px;height:42px;border-radius:16px;background:var(--color-background-secondary);color:var(--color-brand);font-weight:950;flex:0 0 auto}.step-meta{flex:1}.step-meta strong{display:block;color:var(--color-text-primary);font-size:17px;letter-spacing:-.03em}.step-meta span{display:block;color:var(--color-text-secondary);font-size:13px;margin-top:3px;line-height:1.4}.step-arrow{color:var(--color-text-tertiary);font-weight:900}.step-card[open] .step-arrow{transform:rotate(90deg)}.step-body{padding:0 20px 20px}.play-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.choice-preview{border-radius:22px;padding:16px;background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary)}.identity-phone{border-radius:28px;padding:16px;background:#10111f;color:#fff;box-shadow:0 24px 60px rgba(16,17,31,.22)}.identity-screen{border-radius:22px;padding:18px;background:radial-gradient(circle at 50% 0,color-mix(in srgb,{{ merchant.accent_color|default:'#1D9E75' }} 30%,transparent),transparent 42%),linear-gradient(145deg,{{ merchant.primary_color|default:'#534AB7' }},#161328);min-height:300px;display:flex;flex-direction:column;justify-content:space-between}.flyer-preview{border-radius:28px;overflow:hidden;border:1px solid var(--color-border-tertiary);background:#fff;color:#111827;box-shadow:0 20px 50px rgba(31,36,48,.10)}.flyer-head{padding:18px;background:linear-gradient(135deg,{{ merchant.primary_color|default:'#534AB7' }},{{ merchant.accent_color|default:'#1D9E75' }});color:#fff}.fake-qr{width:104px;height:104px;border-radius:18px;background:repeating-linear-gradient(45deg,#111 0 6px,#fff 6px 12px);border:8px solid #fff;box-shadow:0 12px 28px rgba(17,24,39,.18)}.account-snapshot{display:grid;gap:10px}.final-cta{position:sticky;bottom:14px;z-index:5;margin-top:14px;background:rgba(255,255,255,.86);backdrop-filter:blur(18px);border:1px solid var(--color-border-tertiary);border-radius:24px;padding:12px;box-shadow:0 18px 50px rgba(31,36,48,.12)}[data-theme="dark"] .final-cta{background:rgba(15,23,42,.86)}@media(max-width:980px){.progress-track{grid-template-columns:1fr 1fr}.play-grid{grid-template-columns:1fr}.step-card summary{padding:16px}.step-body{padding:0 16px 16px}.onboarding-hero{border-radius:26px;padding:20px}.identity-screen{min-height:240px}}
+</style>
+
+<div class="onboarding-hero">
+  <div class="eyebrow" style="color:rgba(255,255,255,.82);">{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Compte commerce{% else %}Onboarding guidé{% endif %}</div>
+  <div class="title">{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Votre compte {{ merchant.name }}{% else %}Construisons votre expérience Growlee{% endif %}</div>
+  <div class="subtitle">{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Toutes les infos de votre onboarding sont regroupées ici : identité, paiement, flyers, billing et QR.{% else %}Avancez étape par étape. On garde l’écran léger, ludique, et chaque section se déroule seulement quand vous en avez besoin.{% endif %}</div>
+  <div class="progress-track">
+    <div class="progress-pill done">1 · Commerce</div>
+    <div class="progress-pill {% if merchant.logo or merchant.primary_color %}done{% endif %}">2 · Identité</div>
+    <div class="progress-pill {% if merchant.flyer_style %}done{% endif %}">3 · Flyer</div>
+    <div class="progress-pill {% if merchant.billing_payment_type %}done{% endif %}">4 · Paiement</div>
+    <div class="progress-pill {% if merchant.onboarding_completed %}done{% endif %}">5 · Validation</div>
   </div>
-  <div class="badge {% if merchant.onboarding_completed %}neutral{% endif %}">{% if merchant.onboarding_completed %}Profil complété{% else %}À compléter{% endif %}</div>
 </div>
 
 {% if messages %}
   {% for message in messages %}<div class="card" style="border-color:{% if message.tags == 'error' %}#fee4e2{% else %}var(--color-border-tertiary){% endif %};color:{% if message.tags == 'error' %}#b42318{% else %}var(--color-text-primary){% endif %};">{{ message }}</div>{% endfor %}
 {% endif %}
 
+{% if merchant.onboarding_completed %}
+<div class="card">
+  <div class="section-title">Résumé du compte</div>
+  <div class="section-sub">Ce que le commerçant retrouve en cliquant sur son icône de compte.</div>
+  <div class="responsive-2">
+    <div class="status-row"><span>Commerce</span><strong>{{ merchant.name }}</strong></div>
+    <div class="status-row"><span>Adresse</span><span>{{ merchant.address|default:'-' }}</span></div>
+    <div class="status-row"><span>Secteur</span><span>{{ merchant.business_sector|default:'-' }}</span></div>
+    <div class="status-row"><span>Slogan</span><span>{{ merchant.tagline|default:'-' }}</span></div>
+    <div class="status-row"><span>Paiement</span><span>{{ merchant.billing_payment_type|default:'-' }} · {{ merchant.billing_payment_reference|default:'-' }}</span></div>
+    <div class="status-row"><span>Flyer</span><span>{{ merchant.flyer_style|default:'-' }} · {% if merchant.flyer_visual_approved %}visuel validé{% else %}à valider{% endif %}</span></div>
+  </div>
+</div>
+{% endif %}
+
 <div class="grid">
-  <div class="span-8">
-    <div class="card">
-      <div class="section-title">{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Compte commerce{% else %}Informations du commerce{% endif %}</div>
-      <div class="section-sub">Nom, adresse, paiement et direction artistique restent modifiables ici. Ce sont les informations utilisées dans l’app, les flyers et la facturation.</div>
-      {% if merchant.onboarding_completed %}
-      <div class="card" style="margin:0 0 18px;background:var(--color-background-secondary);box-shadow:none;">
-        <div class="responsive-2">
-          <div class="status-row"><span>Commerce</span><strong>{{ merchant.name }}</strong></div>
-          <div class="status-row"><span>Adresse</span><span>{{ merchant.address|default:'-' }}</span></div>
-          <div class="status-row"><span>Secteur</span><span>{{ merchant.business_sector|default:'-' }}</span></div>
-          <div class="status-row"><span>Slogan</span><span>{{ merchant.tagline|default:'-' }}</span></div>
-          <div class="status-row"><span>Paiement</span><span>{{ merchant.billing_payment_type|default:'-' }} · {{ merchant.billing_payment_reference|default:'-' }}</span></div>
-          <div class="status-row"><span>Flyer</span><span>{{ merchant.flyer_style|default:'-' }} · {% if merchant.flyer_visual_approved %}visuel validé{% else %}à valider{% endif %}</span></div>
-        </div>
+  <div class="span-7">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="form_action" value="merchant_identity" />
+      <div class="wizard">
+        <details class="step-card" open>
+          <summary><div class="step-num">1</div><div class="step-meta"><strong>Votre commerce</strong><span>Les infos de base pour générer les textes et préparer l’envoi des flyers.</span></div><div class="step-arrow">›</div></summary>
+          <div class="step-body">
+            <div class="responsive-2">
+              <div><label>Nom du commerce</label>{{ merchant_form.name }}</div>
+              <div><label>Adresse d’envoi des flyers</label>{{ merchant_form.address }}</div>
+              <div><label>Secteur d’activité</label>{{ merchant_form.business_sector }}</div>
+              <div><label>Moyen de paiement préféré</label>{{ merchant_form.payment_method }}</div>
+            </div>
+            <label>Slogan facultatif</label>{{ merchant_form.tagline }}
+            <label>Petite bio facultative</label>{{ merchant_form.short_bio }}
+          </div>
+        </details>
+
+        <details class="step-card">
+          <summary><div class="step-num">2</div><div class="step-meta"><strong>Identité visuelle</strong><span>Logo, couleurs et typographies pour personnaliser l’interface client.</span></div><div class="step-arrow">›</div></summary>
+          <div class="step-body">
+            <div class="responsive-4">
+              <div><label>Couleur principale</label>{{ merchant_form.primary_color }}</div>
+              <div><label>Couleur accent</label>{{ merchant_form.accent_color }}</div>
+              <div><label>Fond parcours</label>{{ merchant_form.surface_color }}</div>
+              <div><label>Texte parcours</label>{{ merchant_form.text_color }}</div>
+            </div>
+            <div class="responsive-2" style="margin-top:12px;">
+              <div><label>Typo titres</label>{{ merchant_form.heading_font }}</div>
+              <div><label>Typo textes</label>{{ merchant_form.body_font }}</div>
+            </div>
+            <label>Logo</label>{{ merchant_form.logo }}
+            {% if merchant.logo %}<div class="mini" style="margin-top:8px;">Logo actuel : {{ merchant.logo.name }}</div>{% endif %}
+          </div>
+        </details>
+
+        <details class="step-card">
+          <summary><div class="step-num">3</div><div class="step-meta"><strong>Flyer automatique</strong><span>Choisissez le style qui servira à générer les propositions de visuels.</span></div><div class="step-arrow">›</div></summary>
+          <div class="step-body">
+            <div class="play-grid">
+              <div><label>Style flyer souhaité</label>{{ merchant_form.flyer_style }}</div>
+              <div class="choice-preview"><strong>Lot de X flyers</strong><div class="mini" style="margin-top:6px;line-height:1.45;">Ils seront envoyés à l’adresse du commerce pour déployer Growlee en salle, au comptoir ou sur les tables.</div></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="step-card">
+          <summary><div class="step-num">4</div><div class="step-meta"><strong>Moyen de paiement</strong><span>CB ou IBAN enregistré pour régler les factures Growlee.</span></div><div class="step-arrow">›</div></summary>
+          <div class="step-body">
+            <div class="responsive-2">
+              <div><label>CB ou IBAN</label>{{ merchant_form.billing_payment_type }}</div>
+              <div><label>Référence paiement</label>{{ merchant_form.billing_payment_reference }}</div>
+            </div>
+            <div class="card" style="margin-top:14px;background:var(--color-background-secondary);box-shadow:none;">
+              <div class="section-title">Premier règlement</div>
+              <div class="status-row"><span>Installation / onboarding</span><strong>80€</strong></div>
+              <div class="status-row"><span>Premier mois Growlee</span><strong>Offert</strong></div>
+              <div class="status-row"><span>Ensuite</span><strong>90€ / mois automatique</strong></div>
+              <div class="mini" style="margin-top:8px;">Ne stockez pas le numéro complet : “CB finissant par 1234” ou “IBAN finissant par FR76”.</div>
+            </div>
+          </div>
+        </details>
+
+        <details class="step-card">
+          <summary><div class="step-num">5</div><div class="step-meta"><strong>Réglages utiles</strong><span>Avis Google et PIN pour revenir du mode employé au mode employeur.</span></div><div class="step-arrow">›</div></summary>
+          <div class="step-body">
+            <div class="responsive-2">
+              <div><label>Lien Google Reviews</label>{{ merchant_form.google_review_url }}</div>
+              <div><label>PIN mode employé</label>{{ merchant_form.employee_pin }}</div>
+            </div>
+          </div>
+        </details>
       </div>
-      {% endif %}
-      <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="hidden" name="form_action" value="merchant_identity" />
-        <div class="responsive-2">
-          <div><label>Nom</label>{{ merchant_form.name }}</div>
-          <div><label>Adresse</label>{{ merchant_form.address }}</div>
-          <div><label>Secteur d’activité</label>{{ merchant_form.business_sector }}</div>
-          <div><label>Moyen de paiement</label>{{ merchant_form.payment_method }}</div>
-          <div><label>Style flyer souhaité</label>{{ merchant_form.flyer_style }}</div>
-        </div>
-        <label>Slogan facultatif</label>{{ merchant_form.tagline }}
-        <label>Petite biographie facultative</label>{{ merchant_form.short_bio }}
-
-        <div class="card" style="margin:18px 0 0;background:var(--color-background-secondary);box-shadow:none;">
-          <div class="section-title">Couleurs / direction artistique</div>
-          <div class="section-sub">Appliqué au parcours mobile, aux boutons, aux QR brandés et aux écrans de gain.</div>
-          <div class="responsive-4">
-            <div><label>Couleur principale</label>{{ merchant_form.primary_color }}</div>
-            <div><label>Couleur accent</label>{{ merchant_form.accent_color }}</div>
-            <div><label>Fond parcours</label>{{ merchant_form.surface_color }}</div>
-            <div><label>Texte parcours</label>{{ merchant_form.text_color }}</div>
-          </div>
-          <div class="responsive-2" style="margin-top:12px;">
-            <div><label>Typo titres</label>{{ merchant_form.heading_font }}</div>
-            <div><label>Typo textes</label>{{ merchant_form.body_font }}</div>
-          </div>
-          <label>Logo</label>{{ merchant_form.logo }}
-          {% if merchant.logo %}<div class="mini" style="margin-top:8px;">Logo actuel : {{ merchant.logo.name }}</div>{% endif %}
-        </div>
-
-        <div class="card" style="margin:18px 0 0;background:var(--color-background-secondary);box-shadow:none;">
-          <div class="section-title">Moyen de paiement</div>
-          <div class="section-sub">Utilisé pour régler les factures Growlee après validation. Ne saisissez pas un numéro complet : uniquement une référence exploitable côté suivi.</div>
-          <div class="responsive-2">
-            <div><label>CB ou IBAN</label>{{ merchant_form.billing_payment_type }}</div>
-            <div><label>Référence</label>{{ merchant_form.billing_payment_reference }}</div>
-          </div>
-          <div class="mini" style="margin-top:8px;">Exemples : “CB finissant par 1234” ou “IBAN finissant par FR76”.</div>
-        </div>
-
-        <div class="card" style="margin:18px 0 0;background:var(--color-background-secondary);box-shadow:none;">
-          <div class="section-title">Réglages complémentaires</div>
-          <div class="responsive-2">
-            <div><label>Lien Google Reviews</label>{{ merchant_form.google_review_url }}</div>
-            <div><label>PIN mode employé</label>{{ merchant_form.employee_pin }}</div>
-          </div>
-        </div>
-
-        <button class="btn" type="submit" style="margin-top:18px;width:100%;">Enregistrer l’onboarding</button>
-      </form>
-    </div>
+      <div class="final-cta"><button class="btn" type="submit" style="width:100%;">Enregistrer et continuer →</button></div>
+    </form>
   </div>
 
-  <div class="span-4">
+  <div class="span-5">
     <div class="card">
       <div class="section-title">Aperçu identité</div>
-      <div class="section-sub">Exemple d’interface client générée depuis l’onboarding.</div>
-      <div style="border-radius:28px;padding:16px;background:#10111f;color:#fff;box-shadow:0 24px 60px rgba(16,17,31,.22);">
-        <div style="border-radius:22px;padding:18px;background:radial-gradient(circle at 50% 0,color-mix(in srgb,{{ merchant.accent_color|default:'#1D9E75' }} 30%,transparent),transparent 42%),linear-gradient(145deg,{{ merchant.primary_color|default:'#534AB7' }},#161328);min-height:300px;display:flex;flex-direction:column;justify-content:space-between;">
-          <div>{% if merchant.logo %}<img src="{{ merchant.logo.url }}" alt="{{ merchant.name }}" style="max-height:58px;max-width:170px;background:#fff;border-radius:15px;padding:7px;margin-bottom:16px;">{% endif %}<div style="font-size:30px;font-weight:900;letter-spacing:-.06em;">{{ merchant.name }}</div><div style="color:rgba(255,255,255,.75);margin-top:6px;line-height:1.35;">{{ merchant.tagline|default:merchant.business_sector|default:'Votre slogan apparaîtra ici' }}</div></div>
-          <div style="display:grid;gap:10px;"><div style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:12px;">🎁 Jeu cadeau instantané</div><div style="background:{{ merchant.accent_color|default:'#1D9E75' }};color:#07111f;border-radius:999px;padding:13px 16px;text-align:center;font-weight:950;">Scanner · Jouer · Revenir</div></div>
-        </div>
-      </div>
+      <div class="section-sub">Un aperçu ludique du rendu client.</div>
+      <div class="identity-phone"><div class="identity-screen">
+        <div>{% if merchant.logo %}<img src="{{ merchant.logo.url }}" alt="{{ merchant.name }}" style="max-height:58px;max-width:170px;background:#fff;border-radius:15px;padding:7px;margin-bottom:16px;">{% endif %}<div style="font-size:30px;font-weight:900;letter-spacing:-.06em;">{{ merchant.name }}</div><div style="color:rgba(255,255,255,.75);margin-top:6px;line-height:1.35;">{{ merchant.tagline|default:merchant.business_sector|default:'Votre slogan apparaîtra ici' }}</div></div>
+        <div style="display:grid;gap:10px;"><div style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:12px;">🎁 Jeu cadeau instantané</div><div style="background:{{ merchant.accent_color|default:'#1D9E75' }};color:#07111f;border-radius:999px;padding:13px 16px;text-align:center;font-weight:950;">Scanner · Jouer · Revenir</div></div>
+      </div></div>
     </div>
 
     <div class="card">
-      <div class="section-title">Flyer automatique</div>
-      <div class="section-sub">Lots de X flyers : ils seront envoyés à l’adresse de votre compte pour déployer Growlee au sein de votre commerce.</div>
-      <div style="border-radius:28px;overflow:hidden;border:1px solid var(--color-border-tertiary);background:#fff;color:#111827;box-shadow:0 20px 50px rgba(31,36,48,.10);">
-        <div style="padding:18px;background:linear-gradient(135deg,{{ merchant.primary_color|default:'#534AB7' }},{{ merchant.accent_color|default:'#1D9E75' }});color:#fff;">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:900;opacity:.82;">Flyer Growlee · lot de X exemplaires</div>
-          <div style="font-size:28px;font-weight:950;letter-spacing:-.06em;line-height:1;margin-top:8px;">{{ merchant.name }}</div>
-          <div style="margin-top:8px;opacity:.9;">{{ merchant.tagline|default:'Scannez · Jouez · Gagnez' }}</div>
-        </div>
-        <div style="padding:18px;display:grid;grid-template-columns:1fr 104px;gap:14px;align-items:center;">
-          <div>
-            <strong style="display:block;font-size:18px;line-height:1.1;">Un cadeau vous attend en caisse</strong>
-            <small style="display:block;margin-top:8px;color:#667085;line-height:1.45;">Scannez le QR, jouez en 30 secondes et revenez récupérer votre gain chez {{ merchant.name }}.</small>
-            <small style="display:block;margin-top:10px;color:#667085;">Envoi prévu : {{ merchant.address|default:'adresse du commerce' }}</small>
-          </div>
-          <div style="width:104px;height:104px;border-radius:18px;background:repeating-linear-gradient(45deg,#111 0 6px,#fff 6px 12px);border:8px solid #fff;box-shadow:0 12px 28px rgba(17,24,39,.18);"></div>
-        </div>
+      <div class="section-title">Exemple de flyer</div>
+      <div class="section-sub">Aperçu automatique, pas besoin de tout configurer d’un coup.</div>
+      <div class="flyer-preview">
+        <div class="flyer-head"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:900;opacity:.82;">Flyer Growlee · lot de X exemplaires</div><div style="font-size:28px;font-weight:950;letter-spacing:-.06em;line-height:1;margin-top:8px;">{{ merchant.name }}</div><div style="margin-top:8px;opacity:.9;">{{ merchant.tagline|default:'Scannez · Jouez · Gagnez' }}</div></div>
+        <div style="padding:18px;display:grid;grid-template-columns:1fr 104px;gap:14px;align-items:center;"><div><strong style="display:block;font-size:18px;line-height:1.1;">Un cadeau vous attend en caisse</strong><small style="display:block;margin-top:8px;color:#667085;line-height:1.45;">Scannez le QR, jouez en 30 secondes et revenez récupérer votre gain.</small><small style="display:block;margin-top:10px;color:#667085;">Envoi prévu : {{ merchant.address|default:'adresse du commerce' }}</small></div><div class="fake-qr"></div></div>
       </div>
       <form method="post" style="margin-top:14px;">
         {% csrf_token %}<input type="hidden" name="form_action" value="flyer_approve" />
         <button class="btn" type="submit" style="width:100%;" {% if not merchant.onboarding_completed or not merchant.flyer_style %}disabled{% endif %}>{% if merchant.flyer_visual_approved %}Visuel validé{% else %}Valider ce visuel flyer{% endif %}</button>
       </form>
-      <div class="mini" style="margin-top:10px;">Statut commande : {{ merchant.flyer_order_status|default:'pending' }} · Premier paiement : 80€ d’installation, avec <strong>un mois gratuit Growlee</strong>. Ensuite l’abonnement sera automatique.</div>
+      <div class="mini" style="margin-top:10px;">80€ d’installation seulement au premier paiement. <strong>Un mois gratuit Growlee</strong>, puis abonnement automatique.</div>
     </div>
 
     <div class="card">
       <div class="section-title">Compte / Billing</div>
-      <div class="section-sub">Suivi des dépenses et facture du mois.</div>
-      <div class="status-row"><span>Onboarding flyer</span><strong>{% if merchant.onboarding_fee_paid %}Payé{% else %}80€ à régler{% endif %}</strong></div>
-      <div class="status-row"><span>Premier mois Growlee</span><strong>Offert</strong></div>
-      <div class="status-row"><span>Abonnement ensuite</span><strong>90€ / mois</strong></div>
-      <div class="status-row"><span>Paiement enregistré</span><span>{{ merchant.billing_payment_type|default:'À compléter' }} · {{ merchant.billing_payment_reference|default:'-' }}</span></div>
-      <div class="status-row"><span>Facture du mois</span><span>{% if merchant.onboarding_fee_paid %}Disponible prochainement{% else %}En attente validation onboarding{% endif %}</span></div>
-      {% if merchant.flyer_visual_approved and not merchant.onboarding_fee_paid %}
-        <a class="btn" style="width:100%;margin-top:14px;" href="mailto:contact@growlee.fr?subject=Paiement%20onboarding%2080%E2%82%AC%20-%20{{ merchant.name|urlencode }}">Régler / demander validation</a>
-      {% endif %}
+      <div class="account-snapshot">
+        <div class="status-row"><span>Onboarding flyer</span><strong>{% if merchant.onboarding_fee_paid %}Payé{% else %}80€ à régler{% endif %}</strong></div>
+        <div class="status-row"><span>Premier mois</span><strong>Offert</strong></div>
+        <div class="status-row"><span>Paiement</span><span>{{ merchant.billing_payment_type|default:'À compléter' }} · {{ merchant.billing_payment_reference|default:'-' }}</span></div>
+      </div>
+      {% if merchant.flyer_visual_approved and not merchant.onboarding_fee_paid %}<a class="btn" style="width:100%;margin-top:14px;" href="mailto:contact@growlee.fr?subject=Paiement%20onboarding%2080%E2%82%AC%20-%20{{ merchant.name|urlencode }}">Régler / demander validation</a>{% endif %}
     </div>
-
-    {% if merchant.onboarding_completed and merchant.flyer_visual_approved and merchant.onboarding_fee_paid %}
-    <div class="card">
-      <div class="section-title">Configuration</div>
-      <div class="section-sub">Sous-catégories disponibles dans Configuration.</div>
-      <div class="list-row"><span>Jeu</span><span><a class="btn secondary" href="/admin/game/">Configurer</a></span></div>
-      <div class="list-row"><span>Avis</span><span><a class="btn secondary" href="/admin/game/review/">Configurer</a></span></div>
-      <div class="list-row"><span>Wallet</span><span><a class="btn secondary" href="/admin/game/wallet/">Configurer</a></span></div>
-    </div>
-    {% endif %}
   </div>
 </div>
 
+{% if merchant.onboarding_completed and qr_entry_code %}
 <div class="card">
   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:16px;">
-    <div>
-      <div class="eyebrow">Points d’entrée</div>
-      <div style="font-size:18px; font-weight:800; color:var(--color-text-primary);">QR code & carte NFC brandés</div>
-      <div class="mini" style="margin-top:4px; max-width:680px; line-height:1.5;">Le QR reprend les couleurs et le logo du commerce. Le SVG est autonome : le logo uploadé est intégré directement dedans.</div>
-    </div>
-    {% if qr_entry_code %}
-    <div class="split-actions">
-      <a class="btn" href="/admin/qr/{{ qr_entry_code }}.svg" target="_blank">Ouvrir le QR</a>
-      <a class="btn secondary" href="/go/{{ qr_entry_code }}/" target="_blank">Tester redirection</a>
-    </div>
-    {% endif %}
+    <div><div class="eyebrow">Points d’entrée</div><div style="font-size:18px; font-weight:800; color:var(--color-text-primary);">QR code & carte NFC brandés</div><div class="mini" style="margin-top:4px; max-width:680px; line-height:1.5;">Le QR reprend les couleurs et le logo du commerce.</div></div>
+    <div class="split-actions"><a class="btn" href="/admin/qr/{{ qr_entry_code }}.svg" target="_blank">Ouvrir le QR</a><a class="btn secondary" href="/go/{{ qr_entry_code }}/" target="_blank">Tester redirection</a></div>
   </div>
-  {% if qr_entry_code %}
   <div class="grid">
     <div class="span-5"><div style="background:#fff;border:1px solid var(--color-border-tertiary);border-radius:28px;overflow:hidden;display:grid;place-items:center;padding:18px;box-shadow:0 18px 40px rgba(31,36,48,.08);"><div style="width:min(100%,420px);line-height:0;">{{ qr_svg|safe }}</div></div></div>
-    <div class="span-7">
-      <div class="card" style="margin:0;background:var(--color-background-secondary);box-shadow:none;">
-        <div class="status-row"><span>QR code</span><span>{{ qr_entry_code }}</span></div>
-        <div class="status-row"><span>Carte NFC</span><span>{{ nfc_entry_code }}</span></div>
-        <div class="status-row"><span>Lien public</span><span>/go/{{ qr_entry_code }}/</span></div>
-        <div class="status-row"><span>Cible actuelle</span><span>{% if entry_form.instance.redirect_url %}{{ entry_form.instance.redirect_url }}{% else %}/play/{{ merchant.slug }}/{% endif %}</span></div>
-        <form method="post" style="margin-top:14px;">
-          {% csrf_token %}
-          <input type="hidden" name="form_action" value="entry_point" />
-          {{ entry_form.name.as_hidden }}{{ entry_form.code.as_hidden }}{{ entry_form.channel.as_hidden }}{{ entry_form.placement.as_hidden }}
-          <label style="margin-top:0;">Lien de redirection QR/NFC</label>
-          {{ entry_form.redirect_url }}
-          <div class="mini" style="margin-top:8px;line-height:1.45;">Laissez vide pour rediriger vers le parcours Growlee du commerce.</div>
-          <button class="btn" type="submit" style="margin-top:12px;width:100%;">Enregistrer la redirection</button>
-        </form>
-      </div>
-    </div>
+    <div class="span-7"><div class="card" style="margin:0;background:var(--color-background-secondary);box-shadow:none;"><div class="status-row"><span>QR code</span><span>{{ qr_entry_code }}</span></div><div class="status-row"><span>Carte NFC</span><span>{{ nfc_entry_code }}</span></div><div class="status-row"><span>Lien public</span><span>/go/{{ qr_entry_code }}/</span></div><form method="post" style="margin-top:14px;">{% csrf_token %}<input type="hidden" name="form_action" value="entry_point" />{{ entry_form.name.as_hidden }}{{ entry_form.code.as_hidden }}{{ entry_form.channel.as_hidden }}{{ entry_form.placement.as_hidden }}<label style="margin-top:0;">Lien de redirection QR/NFC</label>{{ entry_form.redirect_url }}<button class="btn" type="submit" style="margin-top:12px;width:100%;">Enregistrer la redirection</button></form></div></div>
   </div>
-  {% endif %}
 </div>
+{% endif %}
 {% endblock %}
