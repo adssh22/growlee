@@ -1,136 +1,96 @@
 {% extends 'admin/base.html' %}
-{% block title %}Configuration · Growlee{% endblock %}
+{% block title %}Onboarding commerce · Growlee{% endblock %}
 {% block content %}
 <div class="topbar">
   <div>
-    <div class="eyebrow">Parcours client</div>
-    <div class="title">Configuration</div>
-    <div class="subtitle">Structure les trois modules comme dans la référence Growly : cartes homogènes, actions rapides, bascules compactes et branding global centralisé.</div>
+    <div class="eyebrow">Onboarding commerçant</div>
+    <div class="title">Personnaliser l’interface de {{ merchant.name }}</div>
+    <div class="subtitle">Ces informations alimentent le dashboard, le parcours mobile, les QR codes et le ton global de l’expérience client.</div>
   </div>
-  <div class="badge">{{ active_modules_count }} modules actifs</div>
+  <div class="badge {% if merchant.onboarding_completed %}neutral{% endif %}">{% if merchant.onboarding_completed %}Profil complété{% else %}À compléter{% endif %}</div>
 </div>
 
-<div class="card" style="cursor:pointer;" onclick="location.href='/admin/game/'">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-    <div>
-      <div style="font-size:15px; font-weight:600;">Jeu</div>
-      <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{{ campaign.get_game_type_display|default:'Roue' }} · {{ rewards|length }} récompense{% if rewards|length > 1 %}s{% endif %} configurée{% if rewards|length > 1 %}s{% endif %}</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:12px;" onclick="event.stopPropagation();">
-      <form method="post" action="/admin/campaign/toggle/">
+{% if messages %}
+  {% for message in messages %}<div class="card" style="border-color:{% if message.tags == 'error' %}#fee4e2{% else %}var(--color-border-tertiary){% endif %};color:{% if message.tags == 'error' %}#b42318{% else %}var(--color-text-primary){% endif %};">{{ message }}</div>{% endfor %}
+{% endif %}
+
+<div class="grid">
+  <div class="span-8">
+    <div class="card">
+      <div class="section-title">Informations du commerce</div>
+      <div class="section-sub">Nom, adresse et secteur servent à personnaliser les textes, l’espace admin et les futurs modules.</div>
+      <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
-        <input type="hidden" name="flag" value="is_active" />
-        <input type="hidden" name="value" value="{% if campaign and campaign.is_active %}0{% else %}1{% endif %}" />
-        <input type="hidden" name="next" value="/admin/onboarding/" />
-        <button type="submit" style="width:36px; height:20px; background:{% if campaign and campaign.is_active %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.is_active %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button>
+        <input type="hidden" name="form_action" value="merchant_identity" />
+        <div class="responsive-2">
+          <div><label>Nom</label>{{ merchant_form.name }}</div>
+          <div><label>Adresse</label>{{ merchant_form.address }}</div>
+          <div><label>Secteur d’activité</label>{{ merchant_form.business_sector }}</div>
+          <div><label>Moyen de paiement</label>{{ merchant_form.payment_method }}</div>
+        </div>
+        <label>Slogan facultatif</label>{{ merchant_form.tagline }}
+        <label>Petite biographie facultative</label>{{ merchant_form.short_bio }}
+
+        <div class="card" style="margin:18px 0 0;background:var(--color-background-secondary);box-shadow:none;">
+          <div class="section-title">Couleurs / direction artistique</div>
+          <div class="section-sub">Appliqué au parcours mobile, aux boutons, aux QR brandés et aux écrans de gain.</div>
+          <div class="responsive-4">
+            <div><label>Couleur principale</label>{{ merchant_form.primary_color }}</div>
+            <div><label>Couleur accent</label>{{ merchant_form.accent_color }}</div>
+            <div><label>Fond parcours</label>{{ merchant_form.surface_color }}</div>
+            <div><label>Texte parcours</label>{{ merchant_form.text_color }}</div>
+          </div>
+          <div class="responsive-2" style="margin-top:12px;">
+            <div><label>Typo titres</label>{{ merchant_form.heading_font }}</div>
+            <div><label>Typo textes</label>{{ merchant_form.body_font }}</div>
+          </div>
+          <label>Logo</label>{{ merchant_form.logo }}
+          {% if merchant.logo %}<div class="mini" style="margin-top:8px;">Logo actuel : {{ merchant.logo.name }}</div>{% endif %}
+        </div>
+
+        <div class="card" style="margin:18px 0 0;background:var(--color-background-secondary);box-shadow:none;">
+          <div class="section-title">Réglages complémentaires</div>
+          <div class="responsive-2">
+            <div><label>Lien Google Reviews</label>{{ merchant_form.google_review_url }}</div>
+            <div><label>PIN mode employé</label>{{ merchant_form.employee_pin }}</div>
+          </div>
+        </div>
+
+        <button class="btn" type="submit" style="margin-top:18px;width:100%;">Enregistrer l’onboarding</button>
       </form>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=landing" target="_blank">Voir parcours</a>
-        <span style="font-size:12px; color:var(--color-brand); font-weight:600;">Configurer →</span>
+    </div>
+  </div>
+
+  <div class="span-4">
+    <div class="card">
+      <div class="section-title">Aperçu identité</div>
+      <div class="section-sub">Ce rendu suivra les couleurs enregistrées.</div>
+      <div style="border-radius:24px;padding:22px;background:linear-gradient(145deg,{{ merchant.primary_color|default:'#534AB7' }},#111827);color:#fff;min-height:220px;display:flex;flex-direction:column;justify-content:space-between;">
+        <div>
+          {% if merchant.logo %}<img src="{{ merchant.logo.url }}" alt="{{ merchant.name }}" style="max-height:64px;max-width:180px;background:#fff;border-radius:16px;padding:8px;margin-bottom:18px;">{% endif %}
+          <div style="font-size:28px;font-weight:800;letter-spacing:-.05em;">{{ merchant.name }}</div>
+          <div style="color:rgba(255,255,255,.72);margin-top:6px;">{{ merchant.tagline|default:'Votre slogan apparaîtra ici' }}</div>
+        </div>
+        <div style="background:{{ merchant.accent_color|default:'#1D9E75' }};color:#07111f;border-radius:999px;padding:12px 16px;text-align:center;font-weight:900;">Scanner · Jouer · Revenir</div>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Modules</div>
+      <div class="section-sub">Les boutons configurer ouvrent maintenant directement le bon écran.</div>
+      <div class="list-row"><span>Jeu</span><span><a class="btn secondary" href="/admin/game/">Configurer</a></span></div>
+      <div class="list-row"><span>Avis</span><span><a class="btn secondary" href="/admin/game/review/">Configurer</a></span></div>
+      <div class="list-row"><span>Wallet</span><span><a class="btn secondary" href="/admin/game/wallet/">Configurer</a></span></div>
     </div>
   </div>
 </div>
 
-<div class="card" style="cursor:pointer;" onclick="location.href='/admin/game/review/'">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-    <div>
-      <div style="font-size:15px; font-weight:600;">Avis</div>
-      <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">Redirection Google · Question personnalisée</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:12px;" onclick="event.stopPropagation();">
-      <form method="post" action="/admin/campaign/toggle/">
-        {% csrf_token %}
-        <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
-        <input type="hidden" name="flag" value="review_enabled" />
-        <input type="hidden" name="value" value="{% if campaign and campaign.review_enabled %}0{% else %}1{% endif %}" />
-        <input type="hidden" name="next" value="/admin/onboarding/" />
-        <button type="submit" style="width:36px; height:20px; background:{% if campaign and campaign.review_enabled %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.review_enabled %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button>
-      </form>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=review" target="_blank">Voir parcours</a>
-        <span style="font-size:12px; color:var(--color-brand); font-weight:600;">Configurer →</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card" style="cursor:pointer;" onclick="location.href='/admin/game/wallet/'">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-    <div>
-      <div style="font-size:15px; font-weight:600;">Wallet</div>
-      <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">Carte fidélité · 5e visite = café offert</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:12px;" onclick="event.stopPropagation();">
-      <form method="post" action="/admin/campaign/toggle/">
-        {% csrf_token %}
-        <input type="hidden" name="campaign_id" value="{{ campaign.id }}" />
-        <input type="hidden" name="flag" value="wallet_enabled" />
-        <input type="hidden" name="value" value="{% if campaign and campaign.wallet_enabled %}0{% else %}1{% endif %}" />
-        <input type="hidden" name="next" value="/admin/onboarding/" />
-        <button type="submit" style="width:36px; height:20px; background:{% if campaign and campaign.wallet_enabled %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.wallet_enabled %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button>
-      </form>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=wallet" target="_blank">Voir parcours</a>
-        <span style="font-size:12px; color:var(--color-brand); font-weight:600;">Configurer →</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card" style="background:var(--color-background-secondary); border:none; margin-top:8px;">
-  <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--color-text-primary);">Identité globale</div>
-  <div class="section-sub" style="margin-bottom:14px;">Appliquée à tout le parcours admin et mobile pour garder un rendu cohérent, plus premium et plus lisible.</div>
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <div style="font-size:11px; color:var(--color-text-tertiary);">Couleur principale</div>
-        {{ merchant_form.primary_color }}
-      </div>
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <div style="font-size:11px; color:var(--color-text-tertiary);">Couleur secondaire</div>
-        {{ merchant_form.accent_color }}
-      </div>
-      <div style="flex:1; min-width:180px;">
-        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:4px;">Typo titres</div>
-        {{ merchant_form.heading_font }}
-      </div>
-      <div style="flex:1; min-width:180px;">
-        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:4px;">Typo textes</div>
-        {{ merchant_form.body_font }}
-      </div>
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <div style="font-size:11px; color:var(--color-text-tertiary);">Fond parcours</div>
-        {{ merchant_form.surface_color }}
-      </div>
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <div style="font-size:11px; color:var(--color-text-tertiary);">Texte parcours</div>
-        {{ merchant_form.text_color }}
-      </div>
-      <div style="min-width:220px;">
-        <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:4px;">Logo</div>
-        {{ merchant_form.logo }}
-        {% if merchant.logo %}
-          <div style="font-size:11px; color:var(--color-text-secondary); margin-top:6px;">Actuellement: {{ merchant.logo.name }}</div>
-        {% endif %}
-        <div style="font-size:11px; color:var(--color-text-tertiary); margin-top:4px;">Laissez vide pour conserver le logo actuel.</div>
-      </div>
-    </div>
-    <div style="margin-top:10px;">
-      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:4px;">Nom</div>
-      {{ merchant_form.name }}
-    </div>
-    <button class="btn" type="submit" style="margin-top:12px;">Appliquer à tous les modules</button>
-  </form>
-</div>
-<div class="card" style="margin-top:12px;">
+<div class="card">
   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:16px;">
     <div>
       <div class="eyebrow">Points d’entrée</div>
-      <div style="font-size:18px; font-weight:800; color:var(--color-text-primary);">QR code & carte NFC</div>
-      <div style="font-size:12px; color:var(--color-text-secondary); margin-top:4px; max-width:680px; line-height:1.5;">Le QR et la carte NFC redirigent vers un lien unique. Par défaut : parcours Growlee mobile. Vous pouvez aussi mettre un lien personnalisé.</div>
+      <div style="font-size:18px; font-weight:800; color:var(--color-text-primary);">QR code & carte NFC brandés</div>
+      <div class="mini" style="margin-top:4px; max-width:680px; line-height:1.5;">Le QR reprend les couleurs et le logo du commerce. Le SVG est autonome : le logo uploadé est intégré directement dedans.</div>
     </div>
     {% if qr_entry_code %}
     <div class="split-actions">
@@ -141,16 +101,12 @@
   </div>
   {% if qr_entry_code %}
   <div class="grid">
-    <div class="span-5">
-      <div style="background:#fff;border:1px solid var(--color-border-tertiary);border-radius:28px;overflow:hidden;display:grid;place-items:center;padding:18px;box-shadow:0 18px 40px rgba(31,36,48,.08);">
-        <div style="width:min(100%,420px);height:auto;line-height:0;">{{ qr_svg|safe }}</div>
-      </div>
-    </div>
+    <div class="span-5"><div style="background:#fff;border:1px solid var(--color-border-tertiary);border-radius:28px;overflow:hidden;display:grid;place-items:center;padding:18px;box-shadow:0 18px 40px rgba(31,36,48,.08);"><div style="width:min(100%,420px);line-height:0;">{{ qr_svg|safe }}</div></div></div>
     <div class="span-7">
       <div class="card" style="margin:0;background:var(--color-background-secondary);box-shadow:none;">
         <div class="status-row"><span>QR code</span><span>{{ qr_entry_code }}</span></div>
         <div class="status-row"><span>Carte NFC</span><span>{{ nfc_entry_code }}</span></div>
-        <div class="status-row"><span>Lien par défaut</span><span>/go/{{ qr_entry_code }}/</span></div>
+        <div class="status-row"><span>Lien public</span><span>/go/{{ qr_entry_code }}/</span></div>
         <div class="status-row"><span>Cible actuelle</span><span>{% if entry_form.instance.redirect_url %}{{ entry_form.instance.redirect_url }}{% else %}/play/{{ merchant.slug }}/{% endif %}</span></div>
         <form method="post" style="margin-top:14px;">
           {% csrf_token %}
@@ -158,7 +114,7 @@
           {{ entry_form.name.as_hidden }}{{ entry_form.code.as_hidden }}{{ entry_form.channel.as_hidden }}{{ entry_form.placement.as_hidden }}
           <label style="margin-top:0;">Lien de redirection QR/NFC</label>
           {{ entry_form.redirect_url }}
-          <div class="mini" style="margin-top:8px;line-height:1.45;">Laissez vide pour rediriger vers le parcours Growlee du commerce. Pour une carte NFC, programmez l’URL : <strong>/go/{{ qr_entry_code }}/</strong></div>
+          <div class="mini" style="margin-top:8px;line-height:1.45;">Laissez vide pour rediriger vers le parcours Growlee du commerce.</div>
           <button class="btn" type="submit" style="margin-top:12px;width:100%;">Enregistrer la redirection</button>
         </form>
       </div>
@@ -166,5 +122,4 @@
   </div>
   {% endif %}
 </div>
-
 {% endblock %}

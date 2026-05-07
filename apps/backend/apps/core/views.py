@@ -1,5 +1,7 @@
 import csv
 import io
+import base64
+import mimetypes
 from datetime import datetime, timedelta
 
 from django.contrib import messages
@@ -53,6 +55,26 @@ def _merchant_is_unlocked(merchant):
     return bool(merchant and merchant.is_active)
 
 
+def _merchant_logo_for_svg(merchant):
+    """Return an embeddable logo URI for QR SVGs.
+
+    Browsers/printers often block nested external images when an SVG is opened
+    directly or downloaded. Embedding uploaded logos as data URIs makes the QR
+    self-contained and keeps the branding visible everywhere.
+    """
+    if not merchant:
+        return None
+    if merchant.logo and merchant.logo.name:
+        try:
+            with merchant.logo.open('rb') as logo_file:
+                raw = logo_file.read()
+            content_type = mimetypes.guess_type(merchant.logo.name)[0] or 'image/png'
+            return f"data:{content_type};base64,{base64.b64encode(raw).decode('ascii')}"
+        except Exception:
+            return merchant.logo.url
+    return merchant.logo_url or None
+
+
 def _pricing_plans():
     return [
         {
@@ -98,6 +120,13 @@ def _admin_access_block_response(request, merchant=None):
         return redirect('logout')
     if not _merchant_is_unlocked(merchant):
         return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
+    onboarding_allowed = {
+        '/admin/onboarding/',
+        '/logout/',
+    }
+    if not merchant.onboarding_completed and request.path not in onboarding_allowed:
+        messages.info(request, 'Complétez l’onboarding commerçant pour personnaliser votre interface Growlee.')
+        return redirect('merchant-onboarding')
     return None
 
 
@@ -531,11 +560,29 @@ def merchant_onboarding(request):
         messages.error(request, 'Aucun commerce lié à ce compte.')
         return redirect('admin-dashboard')
 
-    merchant_form = MerchantForm(request.POST or None, request.FILES or None, instance=merchant, prefix='merchant')
-    if request.method == 'POST' and merchant_form.is_valid():
-        merchant = merchant_form.save()
+    merchant_form = MerchantForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=merchant,
+        prefix='merchant',
+    )
+    if request.method == 'POST' and request.POST.get('form_action') == 'merchant_identity' and merchant_form.is_valid():
+        merchant = merchant_form.save(commit=False)
+        required = {
+            'Nom': merchant.name,
+            'Adresse': merchant.address,
+            'Secteur d’activité': merchant.business_sector,
+            'Moyen de paiement': merchant.payment_method,
+        }
+        missing = [label for label, value in required.items() if not (value or '').strip()]
+        if missing:
+            messages.error(request, 'Champs obligatoires manquants : ' + ', '.join(missing) + '.')
+            return redirect('merchant-onboarding')
+        merchant.onboarding_completed = True
+        merchant.save()
+        merchant_form.save_m2m()
         campaign, entry_point, reward = _ensure_default_growlee_setup(merchant)
-        messages.success(request, 'Identité enregistrée. Votre campagne, votre reward et votre QR principal sont prêts.')
+        messages.success(request, 'Onboarding enregistré. Votre interface, votre parcours et votre QR reprennent maintenant votre identité.')
         return redirect('merchant-onboarding')
 
     context = _merchant_context_for_user(request.user)
@@ -563,7 +610,7 @@ def merchant_onboarding(request):
             messages.success(request, 'Redirection QR/NFC mise à jour.')
             return redirect('merchant-onboarding')
         if qr_entry:
-            logo_url = merchant.logo.url if merchant.logo else merchant.logo_url
+            logo_url = _merchant_logo_for_svg(merchant)
             qr_svg = build_qr_svg(
                 data=f"{settings.APP_BASE_URL}/go/{qr_entry.code}/",
                 merchant_name=merchant.name,
@@ -756,7 +803,7 @@ def merchant_setup(request):
 def qr_preview(request, code):
     entry_point = get_object_or_404(EntryPoint, code=code)
     url = f"{settings.APP_BASE_URL}/go/{entry_point.code}/"
-    logo_url = entry_point.merchant.logo.url if entry_point.merchant.logo else entry_point.merchant.logo_url
+    logo_url = _merchant_logo_for_svg(entry_point.merchant)
     svg = build_qr_svg(
         data=url,
         merchant_name=entry_point.merchant.name,

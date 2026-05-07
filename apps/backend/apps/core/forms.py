@@ -10,9 +10,14 @@ from apps.rewards.models import Reward
 class MerchantForm(forms.ModelForm):
     class Meta:
         model = Merchant
-        fields = ['name', 'logo', 'primary_color', 'accent_color', 'surface_color', 'text_color', 'heading_font', 'body_font', 'google_review_url', 'employee_pin']
+        fields = ['name', 'address', 'business_sector', 'tagline', 'short_bio', 'payment_method', 'logo', 'primary_color', 'accent_color', 'surface_color', 'text_color', 'heading_font', 'body_font', 'google_review_url', 'employee_pin']
         labels = {
             'name': 'Nom du commerce',
+            'address': 'Adresse',
+            'business_sector': 'Secteur d’activité',
+            'tagline': 'Slogan',
+            'short_bio': 'Petite biographie',
+            'payment_method': 'Moyen de paiement',
             'logo': 'Téléverser le logo',
             'primary_color': 'Couleur principale',
             'accent_color': 'Couleur accent',
@@ -24,10 +29,14 @@ class MerchantForm(forms.ModelForm):
             'employee_pin': 'PIN retour mode employeur',
         }
         help_texts = {
+            'tagline': 'Facultatif. Exemple : “Le coffee shop qui donne le sourire.”',
+            'short_bio': 'Facultatif. Quelques lignes pour personnaliser le ton du parcours client.',
+            'payment_method': 'Exemple : CB, Stripe, virement, mandat, ou “à définir”.',
             'google_review_url': 'Exemple : lien Google Maps / Google Reviews de votre établissement.',
             'employee_pin': 'Utilisé pour quitter le mode employé sur tablette / caisse.',
         }
         widgets = {
+            'short_bio': forms.Textarea(attrs={'rows': 4}),
             'logo': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
             'primary_color': forms.TextInput(attrs={'type': 'color'}),
             'accent_color': forms.TextInput(attrs={'type': 'color'}),

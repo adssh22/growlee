@@ -133,9 +133,10 @@
 
         <div class="sidebar-bot" style="display:block;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <div class="av">{{ merchant.name|default:'G'|slice:':2' }}</div>
+            <a class="av" href="/admin/onboarding/" title="Onboarding commerce" style="text-decoration:none;">{{ merchant.name|default:'G'|slice:':2' }}</a>
             <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
           </div>
+          <a class="logout-link" href="/admin/onboarding/">{{ merchant.name|default:'Configurer le commerce' }}</a>
           <a class="logout-link" href="/logout/">Déconnexion</a>
         </div>
       </aside>
