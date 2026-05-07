@@ -13,22 +13,32 @@ class Merchant(models.Model):
         ('premium', 'Premium'),
         ('bold', 'Impact'),
     ]
+    FLYER_OFFER_CHOICES = [
+        ('1000_80', '1000 flyers · 80€'),
+        ('5000_290', '5000 flyers · 290€'),
+        ('custom', 'Volume personnalisé'),
+    ]
 
     name = models.CharField(max_length=120)
     slug = models.SlugField(unique=True)
     address = models.CharField(max_length=255, blank=True, default='')
     business_sector = models.CharField(max_length=120, blank=True, default='')
+    contact_email = models.EmailField(blank=True, default='')
+    contact_phone = models.CharField(max_length=40, blank=True, default='')
     tagline = models.CharField(max_length=180, blank=True, default='')
     short_bio = models.TextField(blank=True, default='')
     payment_method = models.CharField(max_length=80, blank=True, default='')
     billing_payment_type = models.CharField(max_length=20, blank=True, default='')
     billing_payment_reference = models.CharField(max_length=120, blank=True, default='')
     flyer_style = models.CharField(max_length=40, choices=FLYER_STYLE_CHOICES, blank=True, default='')
+    flyer_offer = models.CharField(max_length=40, choices=FLYER_OFFER_CHOICES, blank=True, default='1000_80')
     flyer_visual_approved = models.BooleanField(default=False)
     flyer_order_status = models.CharField(max_length=40, blank=True, default='pending')
     onboarding_fee_paid = models.BooleanField(default=False)
     logo = models.ImageField(upload_to='merchants/logos/', blank=True, null=True)
+    inspiration_image = models.ImageField(upload_to='merchants/inspiration/', blank=True, null=True)
     logo_url = models.URLField(blank=True, null=True)
+    design_theme = models.CharField(max_length=120, blank=True, default='')
     primary_color = models.CharField(max_length=20, default='#111827')
     accent_color = models.CharField(max_length=20, default='#22c55e')
     surface_color = models.CharField(max_length=20, default='#ffffff')

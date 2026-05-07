@@ -618,10 +618,12 @@ def merchant_onboarding(request):
             'Nom': merchant.name,
             'Adresse': merchant.address,
             'Secteur d’activité': merchant.business_sector,
+            'Email de contact': merchant.contact_email,
             'Moyen de paiement': merchant.payment_method,
             'Type de paiement': merchant.billing_payment_type,
             'Référence paiement': merchant.billing_payment_reference,
             'Style de flyer': merchant.flyer_style,
+            'Offre flyers': merchant.flyer_offer,
         }
         missing = [label for label, value in required.items() if not (value or '').strip()]
         if missing:

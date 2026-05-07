@@ -10,18 +10,23 @@ from apps.rewards.models import Reward
 class MerchantForm(forms.ModelForm):
     class Meta:
         model = Merchant
-        fields = ['name', 'address', 'business_sector', 'tagline', 'short_bio', 'payment_method', 'billing_payment_type', 'billing_payment_reference', 'flyer_style', 'logo', 'primary_color', 'accent_color', 'surface_color', 'text_color', 'heading_font', 'body_font', 'google_review_url', 'employee_pin']
+        fields = ['name', 'address', 'business_sector', 'contact_email', 'contact_phone', 'tagline', 'short_bio', 'payment_method', 'billing_payment_type', 'billing_payment_reference', 'flyer_style', 'flyer_offer', 'logo', 'inspiration_image', 'design_theme', 'primary_color', 'accent_color', 'surface_color', 'text_color', 'heading_font', 'body_font', 'google_review_url', 'employee_pin']
         labels = {
             'name': 'Nom du commerce',
             'address': 'Adresse',
             'business_sector': 'Secteur d’activité',
+            'contact_email': 'Email de contact',
+            'contact_phone': 'Téléphone de contact',
             'tagline': 'Slogan',
             'short_bio': 'Petite biographie',
             'payment_method': 'Moyen de paiement',
             'billing_payment_type': 'Type de paiement',
             'billing_payment_reference': 'Référence paiement',
             'flyer_style': 'Style de flyer',
+            'flyer_offer': 'Offre flyers',
             'logo': 'Téléverser le logo',
+            'inspiration_image': 'Image d’inspiration',
+            'design_theme': 'Direction artistique',
             'primary_color': 'Couleur principale',
             'accent_color': 'Couleur accent',
             'surface_color': 'Couleur de fond parcours',
@@ -35,6 +40,7 @@ class MerchantForm(forms.ModelForm):
             'tagline': 'Facultatif. Exemple : “Le coffee shop qui donne le sourire.”',
             'short_bio': 'Facultatif. Quelques lignes pour personnaliser le ton du parcours client.',
             'payment_method': 'Exemple : CB, Stripe, virement, mandat, ou “à définir”.',
+            'design_theme': 'Exemple : premium sombre, coffee shop chaleureux, street-food coloré, minimal chic…',
             'billing_payment_reference': 'Ne stockez pas le numéro complet : indiquez “CB finissant par 1234” ou “IBAN finissant par FR76”.',
             'google_review_url': 'Exemple : lien Google Maps / Google Reviews de votre établissement.',
             'employee_pin': 'Utilisé pour quitter le mode employé sur tablette / caisse.',
@@ -43,6 +49,7 @@ class MerchantForm(forms.ModelForm):
             'short_bio': forms.Textarea(attrs={'rows': 4}),
             'billing_payment_type': forms.Select(choices=[('', 'Choisir'), ('cb', 'Carte bancaire'), ('iban', 'IBAN / prélèvement')]),
             'logo': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
+            'inspiration_image': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
             'primary_color': forms.TextInput(attrs={'type': 'color'}),
             'accent_color': forms.TextInput(attrs={'type': 'color'}),
             'surface_color': forms.TextInput(attrs={'type': 'color'}),
