@@ -42,7 +42,38 @@ def _current_merchant(request):
 
 
 def home(request):
-    return render(request, 'public/home.html')
+    return render(request, 'public/home.html', {'seo_base_url': settings.APP_BASE_URL})
+
+
+def robots_txt(request):
+    lines = [
+        'User-agent: *',
+        'Allow: /$',
+        'Disallow: /admin/',
+        'Disallow: /django-admin/',
+        'Disallow: /growlee-control/',
+        'Disallow: /_growlee-control/',
+        'Disallow: /login/',
+        'Disallow: /signup/',
+        'Disallow: /logout/',
+        'Disallow: /gain/',
+        f'Sitemap: {settings.APP_BASE_URL}/sitemap.xml',
+        '',
+    ]
+    return HttpResponse('\n'.join(lines), content_type='text/plain; charset=utf-8')
+
+
+def sitemap_xml(request):
+    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{settings.APP_BASE_URL}/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
+'''
+    return HttpResponse(xml, content_type='application/xml; charset=utf-8')
 
 
 def _first_membership(user):

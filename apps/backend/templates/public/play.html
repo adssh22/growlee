@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>{{ merchant.name }} · Growlee</title>
+  <title>{{ merchant.name }} · Expérience Growlee</title>
+  <meta name="description" content="Parcours client mobile de {{ merchant.name }} : jeu cadeau, avis, wallet fidélité et avantage à récupérer en commerce." />
+  <link rel="canonical" href="https://growlee.fr{{ request.path }}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="{{ merchant.name }} · Expérience Growlee" />
+  <meta property="og:description" content="Scannez, jouez et récupérez votre avantage chez {{ merchant.name }}." />
+  <meta property="og:url" content="https://growlee.fr{{ request.path }}" />
+  <meta name="twitter:card" content="summary" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800;900&display=swap');
     :root{
