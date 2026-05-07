@@ -17,7 +17,7 @@
     <input type="hidden" name="flag" value="is_active" />
     <input type="hidden" name="value" value="{% if campaign and campaign.is_active %}0{% else %}1{% endif %}" />
     <input type="hidden" name="next" value="/admin/game/" />
-    <button type="submit" style="width:36px; height:20px; background:{% if campaign and campaign.is_active %}#534AB7{% else %}var(--color-border-secondary){% endif %}; border:none; border-radius:10px; position:relative; cursor:pointer;"><span style="width:16px; height:16px; background:#fff; border-radius:50%; position:absolute; {% if campaign and campaign.is_active %}right:2px;{% else %}left:2px;{% endif %} top:2px;"></span></button>
+    <button type="submit" class="module-switch {% if campaign and campaign.is_active %}is-on{% endif %}"><span class="switch-track"><span class="switch-knob"></span></span><strong>{% if campaign and campaign.is_active %}Activé{% else %}Désactivé{% endif %}</strong></button>
   </form>
 </div>
 

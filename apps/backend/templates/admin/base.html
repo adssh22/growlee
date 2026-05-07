@@ -62,7 +62,18 @@
     .submenu-group { display:flex; flex-direction:column; margin-top:-2px; margin-bottom:4px; }
     .sidebar-bot { margin-top:auto; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .av { width:34px; height:34px; border-radius:50%; background:var(--color-brand-soft); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:var(--color-brand); }
-    .theme-toggle { border:none; background:var(--color-background-secondary); color:var(--color-text-primary); border-radius:999px; padding:8px 12px; cursor:pointer; font-size:12px; }
+    .theme-toggle { border:0.5px solid var(--color-border-secondary); background:var(--color-background-secondary); color:var(--color-text-primary); border-radius:999px; padding:5px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:inset 0 1px 0 rgba(255,255,255,.35); }
+    .switch-track { position:relative; width:48px; height:27px; border-radius:999px; background:linear-gradient(135deg,var(--color-background-tertiary),var(--color-background-secondary)); box-shadow:inset 0 0 0 1px var(--color-border-secondary); display:inline-block; }
+    .switch-knob { position:absolute; top:3px; left:3px; width:21px; height:21px; border-radius:999px; background:#fff; box-shadow:0 8px 18px rgba(31,36,48,.18); transition:.22s cubic-bezier(.2,.8,.2,1); }
+    .switch-knob:before { content:""; position:absolute; inset:6px; border-radius:50%; background:var(--color-brand); box-shadow:6px -4px 0 -4px var(--color-success); }
+    html[data-theme="dark"] .switch-track { background:linear-gradient(135deg,#141b31,var(--color-brand)); }
+    html[data-theme="dark"] .switch-knob { left:24px; background:linear-gradient(135deg,#fff,var(--color-success-soft)); }
+    .module-switch { border:0; background:transparent; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:10px; color:var(--color-text-secondary); font-size:12px; font-weight:800; }
+    .module-switch .switch-track { width:56px; height:31px; background:var(--color-border-secondary); }
+    .module-switch .switch-knob { width:25px; height:25px; }
+    .module-switch.is-on .switch-track { background:linear-gradient(135deg,var(--color-brand),var(--color-success)); box-shadow:0 12px 26px color-mix(in srgb,var(--color-brand) 24%, transparent); }
+    .module-switch.is-on .switch-knob { left:28px; }
+    .module-switch strong { color:var(--color-text-primary); }
     .logout-link { margin-top:10px; display:flex; align-items:center; justify-content:center; width:100%; padding:9px 12px; border-radius:999px; background:var(--color-background-secondary); border:0.5px solid var(--color-border-secondary); color:var(--color-text-primary); text-decoration:none; font-size:12px; font-weight:700; }
     .main { flex:1; overflow-y:auto; padding:28px; min-width:0; }
     .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; gap:12px; }
@@ -155,7 +166,7 @@
           {% else %}
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
               <a class="av" href="/admin/account/" title="Compte commerce" style="text-decoration:none;">{{ merchant.name|default:'G'|slice:':2' }}</a>
-              <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+              <button id="themeToggle" class="theme-toggle" type="button" aria-label="Changer de thème"><span class="switch-track"><span class="switch-knob"></span></span></button>
             </div>
             <a class="logout-link" href="/admin/account/">{{ merchant.name|default:'Compte commerce' }}</a>
             <a class="logout-link" href="/logout/">Déconnexion</a>
@@ -176,7 +187,7 @@
     const initialTheme = savedTheme || (preferredDark ? 'dark' : 'light');
     function applyTheme(theme) {
       root.setAttribute('data-theme', theme);
-      if (toggle) toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+      if (toggle) { toggle.setAttribute('aria-label', theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'); toggle.innerHTML = '<span class="switch-track"><span class="switch-knob"></span></span>'; }
     }
     applyTheme(initialTheme);
     if (toggle) {
