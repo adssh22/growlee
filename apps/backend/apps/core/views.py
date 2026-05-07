@@ -630,10 +630,12 @@ def merchant_onboarding(request):
             messages.error(request, 'Champs obligatoires manquants : ' + ', '.join(missing) + '.')
             return redirect('merchant-account')
         merchant.onboarding_completed = True
+        merchant.flyer_visual_approved = True
+        merchant.flyer_order_status = 'visual_approved_waiting_payment'
         merchant.save()
         merchant_form.save_m2m()
         campaign, entry_point, reward = _ensure_default_growlee_setup(merchant)
-        messages.success(request, 'Onboarding enregistré. Votre interface, votre parcours et votre QR reprennent maintenant votre identité.')
+        messages.success(request, 'Onboarding enregistré et visuel flyer validé. Il reste le paiement de l’offre flyers pour lancer la commande et débloquer toute l’application.')
         return redirect('merchant-account')
 
     context = _merchant_context_for_user(request.user)

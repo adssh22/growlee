@@ -114,8 +114,13 @@
             <div class="info-box recap">
               <div class="recap-row"><span>Commerce</span><strong>{{ merchant.name|default:'À renseigner' }}</strong></div>
               <div class="recap-row"><span>Livraison</span><strong>{{ merchant.address|default:'Adresse à compléter' }}</strong></div>
+              <div class="recap-row"><span>Offre flyers</span><strong>{{ merchant.get_flyer_offer_display|default:'1000 flyers · 80€' }}</strong></div>
               <div class="recap-row"><span>Premier paiement</span><strong>Flyers sélectionnés · 1 mois Growlee offert</strong></div>
               <div class="recap-row"><span>Après le mois offert</span><strong>Abonnement automatique</strong></div>
+              <div class="recap-row"><span>Statut commande</span><strong>{% if merchant.flyer_visual_approved %}Visuel validé · paiement attendu{% else %}À valider en enregistrant{% endif %}</strong></div>
+              {% if merchant.flyer_visual_approved and not merchant.onboarding_fee_paid %}
+                <a class="ob-btn primary" style="width:100%;margin-top:16px;" href="mailto:contact@growlee.fr?subject=Paiement%20flyers%20Growlee%20-%20{{ merchant.name|urlencode }}">Procéder au paiement / validation</a>
+              {% endif %}
             </div>
           </section>
         </div>
