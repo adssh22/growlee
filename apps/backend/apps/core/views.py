@@ -201,16 +201,13 @@ def _staff_mfa_qr_context(user, mfa=None):
 @superuser_required
 def staff_control_mfa_setup(request):
     mfa = _staff_mfa_for_user(request.user)
+    if mfa.enabled:
+        messages.info(request, 'Ta 2FA est déjà activée. La réinitialisation doit être faite par un autre super utilisateur.')
+        return redirect('staff-merchants' if _control_access_granted(request) else 'staff-control-verify')
+
     error = None
 
     if request.method == 'POST':
-        if request.POST.get('action') == 'reset':
-            mfa.secret = generate_secret()
-            mfa.enabled = False
-            mfa.save(update_fields=['secret', 'enabled', 'updated_at'])
-            request.session.pop('growlee_control_2fa_ok', None)
-            messages.success(request, '2FA réinitialisée. Scanne le nouveau QR code.')
-            return redirect('staff-control-mfa-setup')
         if verify_totp(mfa.secret, request.POST.get('totp_code')):
             mfa.enabled = True
             mfa.save(update_fields=['enabled', 'updated_at'])
@@ -339,12 +336,16 @@ def staff_merchants(request):
     mfa_error = None
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'mfa_reset':
-            mfa.secret = generate_secret()
-            mfa.enabled = False
-            mfa.save(update_fields=['secret', 'enabled', 'updated_at'])
-            request.session.pop('growlee_control_2fa_ok', None)
-            messages.success(request, '2FA réinitialisée. Scanne le nouveau QR dans le panel.')
+        if action == 'reset_staff_mfa':
+            target_user = get_object_or_404(User, id=request.POST.get('user_id'), is_active=True, is_superuser=True)
+            if target_user.id == request.user.id:
+                messages.error(request, 'Impossible de réinitialiser ta propre 2FA. Demande à un autre super utilisateur.')
+                return redirect('staff-merchants')
+            target_mfa = _staff_mfa_for_user(target_user)
+            target_mfa.secret = generate_secret()
+            target_mfa.enabled = False
+            target_mfa.save(update_fields=['secret', 'enabled', 'updated_at'])
+            messages.success(request, f'2FA réinitialisée pour {target_user.username}. Il devra scanner un nouveau QR au prochain accès.')
             return redirect('staff-merchants')
         if action == 'mfa_enable':
             if verify_totp(mfa.secret, request.POST.get('totp_code')):
@@ -439,9 +440,11 @@ def staff_merchants(request):
             'active_campaign': campaigns.order_by('-created_at', '-id').first(),
         })
     mfa_context = _staff_mfa_qr_context(request.user, mfa)
+    staff_mfa_users = User.objects.filter(is_active=True, is_superuser=True).order_by('username')
     return render(request, 'admin/staff_merchants.html', {
         'form': form,
         'rows': rows,
+        'staff_mfa_users': staff_mfa_users,
         'total_merchants': merchants.count(),
         'active_merchants': merchants.filter(is_active=True).count(),
         'total_users': User.objects.count(),

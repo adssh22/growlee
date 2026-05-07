@@ -36,7 +36,7 @@
         {% elif plan.payment_link %}
           <a class="btn" href="{{ plan.payment_link }}" target="_blank" rel="noopener">{{ plan.cta|default:'Acheter maintenant' }}</a>
         {% else %}
-          <span class="btn disabled">Lien paiement à configurer</span>
+          <a class="btn" href="mailto:contact@growlee.fr?subject=Activation%20Growlee%20-%20{{ merchant.name|urlencode }}&body=Bonjour%2C%0A%0AJe%20viens%20de%20cr%C3%A9er%20mon%20compte%20Growlee%20pour%20{{ merchant.name|urlencode }}%20et%20je%20souhaite%20activer%20mon%20acc%C3%A8s.%0A">Contactez-nous</a>
         {% endif %}
       </article>
       {% endfor %}

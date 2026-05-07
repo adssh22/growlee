@@ -40,8 +40,8 @@
           <h2 style="margin:0 0 6px;letter-spacing:-.04em">Sécurité 2FA téléphone</h2>
           {% if mfa.enabled %}
             <p><span class="badge on">Activée</span></p>
-            <p class="muted">Le control panel demandera maintenant un code téléphone à chaque nouvelle session sensible.</p>
-            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="mfa_reset"><button class="btn warn" type="submit" style="width:100%">Réinitialiser la 2FA</button></form>
+            <p class="muted">Le control panel demandera un code téléphone à chaque nouvelle session sensible.</p>
+            <p class="small">Ta propre 2FA ne peut pas être réinitialisée ici. Seul un autre super utilisateur peut le faire.</p>
           {% else %}
             <p><span class="badge warn">À configurer</span></p>
             <p class="muted">Scanne ce QR avec Google Authenticator, Authy, Microsoft Authenticator ou l’app mots de passe de ton téléphone.</p>
@@ -55,6 +55,23 @@
               <button class="btn" type="submit" style="width:100%;margin-top:14px">Activer la 2FA</button>
             </form>
           {% endif %}
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 6px;letter-spacing:-.04em">Réinitialiser une 2FA staff</h2>
+          <p class="muted" style="margin-top:0">Chaque super utilisateur peut réinitialiser la 2FA d’un autre super utilisateur, jamais la sienne.</p>
+          {% for staff_user in staff_mfa_users %}
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)">
+              <div><strong>{{ staff_user.username }}</strong><div class="small">{% if staff_user.staff_mfa.enabled %}2FA activée{% else %}2FA à configurer{% endif %}</div></div>
+              {% if staff_user.id == request.user.id %}
+                <span class="badge off">toi</span>
+              {% else %}
+                <form method="post" class="inline">{% csrf_token %}<input type="hidden" name="action" value="reset_staff_mfa"><input type="hidden" name="user_id" value="{{ staff_user.id }}"><button class="btn warn" type="submit">Reset 2FA</button></form>
+              {% endif %}
+            </div>
+          {% empty %}
+            <p class="small">Aucun autre super utilisateur.</p>
+          {% endfor %}
         </div>
 
         <div class="card">

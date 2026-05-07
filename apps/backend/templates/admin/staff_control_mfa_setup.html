@@ -31,12 +31,6 @@
           <input id="totp_code" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus required>
           <button type="submit">Activer et entrer</button>
         </form>
-        {% if mfa.enabled %}
-        <form method="post" style="margin-top:10px;">
-          {% csrf_token %}<input type="hidden" name="action" value="reset">
-          <button class="secondary" type="submit">Réinitialiser la 2FA</button>
-        </form>
-        {% endif %}
       </div>
     </div>
     <div class="link"><a href="/growlee-control/merchants/">Retour control panel</a></div>
