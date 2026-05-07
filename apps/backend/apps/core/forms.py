@@ -49,6 +49,7 @@ class MerchantForm(forms.ModelForm):
         widgets = {
             'short_bio': forms.Textarea(attrs={'rows': 4}),
             'billing_payment_type': forms.Select(choices=[('', 'Choisir'), ('cb', 'Carte bancaire'), ('iban', 'IBAN / prélèvement')]),
+            'billing_payment_reference': forms.TextInput(attrs={'placeholder': 'CB •••• 1234 ou IBAN •••• FR76'}),
             'logo': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
             'inspiration_image': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
             'primary_color': forms.TextInput(attrs={'type': 'color'}),
@@ -62,6 +63,12 @@ class MerchantForm(forms.ModelForm):
         digits = re.sub(r'\D', '', reference)
         if len(digits) >= 13:
             raise forms.ValidationError('Ne saisissez jamais un numéro complet de carte ou d’IBAN. Indiquez seulement une référence courte, ex. “CB •••• 1234”.')
+        payment_type = self.cleaned_data.get('billing_payment_type')
+        if payment_type == 'cb' and len(digits) >= 4:
+            return f'CB •••• {digits[-4:]}'
+        if payment_type == 'iban' and reference:
+            tail = reference[-4:].upper()
+            return f'IBAN •••• {tail}'
         return reference
 
     def clean_logo(self):
