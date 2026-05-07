@@ -1,139 +1,155 @@
 {% extends 'admin/base.html' %}
+{% load static %}
 {% block title %}{% if request.path == '/admin/account/' %}Compte commerce{% else %}Onboarding commerce{% endif %} · Growlee{% endblock %}
 {% block content %}
 <style>
-  html[data-theme="light"]{color-scheme:light}html[data-theme="dark"]{color-scheme:dark}body{background:radial-gradient(circle at 15% 0,color-mix(in srgb,var(--color-brand) 18%,transparent),transparent 32%),linear-gradient(180deg,var(--color-background),var(--color-background-secondary));color:var(--color-text-primary)}.shell{width:100%;padding:0}.app{display:block;background:transparent;box-shadow:none;border:0}.sidebar{display:none!important}.main{width:100%;min-height:100vh;padding:0;background:transparent}.onboard-shell{min-height:100vh;width:min(1180px,calc(100% - 32px));margin:0 auto;padding:28px 0 34px}.wizard-top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.brand-mini{display:flex;align-items:center;gap:12px}.brand-mini img{height:42px}.exit-link{color:var(--color-text-secondary);font-size:13px;font-weight:850}.wizard-card{position:relative;overflow:hidden;border-radius:38px;background:var(--color-surface);color:var(--color-text-primary);border:1px solid var(--color-border-tertiary);box-shadow:0 34px 110px rgba(31,36,48,.13)}.wizard-head{position:relative;padding:28px 30px;background:linear-gradient(135deg,var(--color-brand),var(--color-accent));color:#fff}.wizard-head:after{content:"";position:absolute;width:300px;height:300px;right:-95px;top:-135px;border-radius:50%;background:rgba(255,255,255,.16)}.wizard-head>*{position:relative}.wizard-head h1{margin:6px 0 8px;font-size:clamp(34px,4vw,58px);line-height:.98;letter-spacing:-.075em;color:#fff}.wizard-head p{margin:0;color:rgba(255,255,255,.78);max-width:760px;line-height:1.55}.progress{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:24px}.progress-step{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.13);border-radius:20px;padding:12px;color:rgba(255,255,255,.72);cursor:pointer}.progress-step.active{background:#fff;color:var(--color-brand)}.progress-step b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em}.progress-step span{display:block;font-size:13px;margin-top:4px;font-weight:900}.wizard-body{padding:26px;display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:22px;align-items:start}.step-panel{display:none}.step-panel.active{display:block;animation:fadeUp .28s ease both}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}.step-kicker{color:var(--color-brand);font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px}.step-title{font-size:32px;line-height:1.02;letter-spacing:-.06em;font-weight:950;color:var(--color-text-primary);margin-bottom:8px}.step-sub{color:var(--color-text-secondary);line-height:1.55;margin-bottom:20px}.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field-full{grid-column:1/-1}.soft-box{border-radius:26px;background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);padding:18px;margin-top:16px}.offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.offer{border-radius:24px;border:1px solid var(--color-border-tertiary);background:var(--color-surface);padding:18px;min-height:150px}.offer strong{display:block;font-size:22px;letter-spacing:-.05em;color:var(--color-text-primary)}.offer span{display:block;color:var(--color-text-secondary);font-size:13px;margin-top:7px;line-height:1.45}.preview-stack{display:grid;gap:16px}.phone-preview{border-radius:30px;padding:15px;background:#10111f;color:#fff;box-shadow:0 24px 60px rgba(16,17,31,.22)}.phone-screen{border-radius:23px;padding:18px;min-height:310px;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(circle at 50% 0,color-mix(in srgb,{{ merchant.accent_color|default:'#1D9E75' }} 30%,transparent),transparent 42%),linear-gradient(145deg,{{ merchant.primary_color|default:'#534AB7' }},#161328)}.flyer{overflow:hidden;border-radius:30px;background:#fff;color:#111827;border:1px solid var(--color-border-tertiary);box-shadow:0 22px 56px rgba(31,36,48,.10)}.flyer *{color:inherit}.flyer small{color:#667085!important}.flyer-top{padding:18px;background:linear-gradient(135deg,{{ merchant.primary_color|default:'#534AB7' }},{{ merchant.accent_color|default:'#1D9E75' }});color:#fff}.fake-qr{width:100px;height:100px;border-radius:18px;background:repeating-linear-gradient(45deg,#111 0 6px,#fff 6px 12px);border:8px solid #fff;box-shadow:0 12px 28px rgba(17,24,39,.18)}.recap{display:grid;gap:10px}.recap-row{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--color-border-tertiary);font-size:13px}.recap-row span{color:var(--color-text-secondary)}.recap-row strong{text-align:right;color:var(--color-text-primary)}.wizard-actions{display:flex;justify-content:space-between;gap:12px;padding:0 26px 26px}.wizard-actions .btn{min-width:160px}.hidden{display:none!important}select,input,textarea{background:var(--color-background-secondary)!important;color:var(--color-text-primary)!important;border:1px solid var(--color-border-tertiary)!important}.btn.secondary{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-tertiary)}@media(max-width:980px){.onboard-shell{width:min(100% - 20px,1180px);padding:12px 0}.wizard-top{padding:0 4px}.wizard-body{grid-template-columns:1fr;padding:18px}.preview-stack{order:-1}.progress{grid-template-columns:1fr}.field-grid,.offer-grid{grid-template-columns:1fr}.wizard-head{padding:22px}.wizard-actions{padding:0 18px 18px}.wizard-actions .btn{min-width:0;flex:1}.step-title{font-size:28px}.phone-screen{min-height:240px}}
+  :root{--gw-purple:#534ab7;--gw-purple-2:#766cf0;--gw-green:#1d9e75;--gw-mint:#72e0bc;--gw-ink:#17152b;--gw-muted:#69647f;--gw-line:#eceaf7;--gw-paper:#fbfbff;--gw-white:#fff;--merchant-primary:{{ merchant.primary_color|default:'#534AB7' }};--merchant-accent:{{ merchant.accent_color|default:'#1D9E75' }}}
+  .shell{padding:0!important;width:100%!important}.app{display:block!important;min-height:100vh!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;backdrop-filter:none!important}.sidebar{display:none!important}.main{padding:0!important;width:100%!important;min-height:100vh!important;overflow:visible!important;background:transparent!important}
+  body{background:radial-gradient(circle at 8% 0,rgba(175,169,236,.36),transparent 30%),radial-gradient(circle at 92% 8%,rgba(29,158,117,.16),transparent 28%),linear-gradient(180deg,#fff 0%,#f7f6ff 52%,#fff 100%)!important;color:var(--gw-ink)!important}
+  html[data-theme="dark"] body{background:radial-gradient(circle at 9% 0,rgba(118,108,240,.30),transparent 31%),radial-gradient(circle at 86% 10%,rgba(114,224,188,.12),transparent 30%),linear-gradient(180deg,#0b1020 0%,#111827 58%,#0b1020 100%)!important;color:#f8fafc!important}
+  .onboarding-page{min-height:100vh;position:relative;overflow:hidden;padding:24px}.onboarding-page:before{content:"";position:fixed;inset:0;z-index:-2;background-image:linear-gradient(rgba(83,74,183,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(83,74,183,.045) 1px,transparent 1px);background-size:54px 54px;mask-image:linear-gradient(180deg,#000 0%,transparent 78%)}.onboarding-page:after{content:"";position:fixed;width:520px;height:520px;border-radius:90px;right:-170px;top:120px;z-index:-1;background:linear-gradient(145deg,var(--gw-purple),#30257f 58%,var(--gw-green));transform:rotate(-11deg);opacity:.16;filter:blur(.2px)}
+  .ob-wrap{width:min(1200px,100%);margin:0 auto}.ob-top{height:68px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}.ob-logo img{height:52px;display:block;filter:drop-shadow(0 14px 24px rgba(83,74,183,.13))}.ob-top-actions{display:flex;gap:10px;align-items:center}.ob-link{border:1px solid rgba(83,74,183,.13);background:rgba(255,255,255,.72);color:var(--gw-ink);border-radius:999px;padding:10px 14px;font-size:13px;font-weight:900;text-decoration:none;backdrop-filter:blur(14px)}html[data-theme="dark"] .ob-link{background:rgba(15,23,42,.78);border-color:rgba(255,255,255,.10);color:#f8fafc}
+  .ob-card{overflow:hidden;border-radius:38px;background:rgba(255,255,255,.90);border:1px solid rgba(255,255,255,.92);box-shadow:0 38px 110px rgba(39,32,91,.16);backdrop-filter:blur(22px)}html[data-theme="dark"] .ob-card{background:rgba(15,23,42,.88);border-color:rgba(255,255,255,.10);box-shadow:0 42px 120px rgba(0,0,0,.36)}
+  .ob-hero{position:relative;padding:30px 32px;background:radial-gradient(circle at 86% 10%,rgba(114,224,188,.30),transparent 28%),linear-gradient(135deg,var(--gw-purple),#30257f 58%,var(--gw-green));color:#fff}.ob-hero:after{content:"";position:absolute;right:-70px;top:-120px;width:310px;height:310px;border-radius:50%;background:rgba(255,255,255,.14)}.ob-hero>*{position:relative}.ob-eyebrow{display:inline-flex;gap:8px;align-items:center;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.10em;color:rgba(255,255,255,.82)}.ob-eyebrow:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gw-mint)}.ob-title{font-size:clamp(38px,5vw,68px);line-height:.94;letter-spacing:-.08em;font-weight:950;margin:16px 0 12px;color:#fff}.ob-sub{max-width:800px;font-size:16px;line-height:1.6;color:rgba(255,255,255,.78);margin:0}.ob-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:26px}.ob-progress button{border:1px solid rgba(255,255,255,.18);border-radius:22px;padding:13px;text-align:left;background:rgba(255,255,255,.10);color:rgba(255,255,255,.72);cursor:pointer}.ob-progress button.active{background:#fff;color:var(--gw-purple);box-shadow:0 18px 42px rgba(0,0,0,.12)}.ob-progress b{display:block;font-size:11px;letter-spacing:.10em;text-transform:uppercase}.ob-progress span{display:block;font-size:15px;font-weight:950;margin-top:4px;letter-spacing:-.03em}
+  .ob-body{display:grid;grid-template-columns:minmax(0,1fr) 405px;gap:24px;padding:28px}.ob-step{display:none}.ob-step.active{display:block;animation:obIn .28s ease both}@keyframes obIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}.step-tag{color:var(--gw-purple);font-size:12px;font-weight:950;letter-spacing:.10em;text-transform:uppercase;margin-bottom:8px}.step-title{font-size:34px;line-height:1.03;letter-spacing:-.065em;font-weight:950;color:var(--gw-ink);margin-bottom:8px}html[data-theme="dark"] .step-title{color:#fff}.step-sub{font-size:15px;line-height:1.6;color:var(--gw-muted);margin:0 0 22px}html[data-theme="dark"] .step-sub{color:#cbd5e1}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}.ob-field label{display:block!important;margin:0 0 8px!important;font-size:11px!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:#7c7595!important;font-weight:950!important}html[data-theme="dark"] .ob-field label{color:#94a3b8!important}.ob-field input,.ob-field select,.ob-field textarea{width:100%!important;border:1px solid var(--gw-line)!important;background:#fff!important;color:var(--gw-ink)!important;border-radius:18px!important;padding:14px 15px!important;font-size:15px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.8)!important}html[data-theme="dark"] .ob-field input,html[data-theme="dark"] .ob-field select,html[data-theme="dark"] .ob-field textarea{background:#101827!important;border-color:rgba(255,255,255,.10)!important;color:#f8fafc!important}.ob-field input:focus,.ob-field select:focus,.ob-field textarea:focus{outline:none!important;border-color:var(--gw-purple)!important;box-shadow:0 0 0 4px rgba(83,74,183,.13)!important}.ob-field input[type="color"]{padding:5px!important;height:50px!important}.hint{font-size:12px;color:var(--gw-muted);line-height:1.45;margin-top:7px}html[data-theme="dark"] .hint{color:#94a3b8}
+  .info-box{margin-top:18px;border-radius:24px;padding:18px;background:#f7f6ff;border:1px solid var(--gw-line);color:var(--gw-ink)}html[data-theme="dark"] .info-box{background:rgba(83,74,183,.13);border-color:rgba(255,255,255,.09);color:#f8fafc}.info-box strong{display:block;margin-bottom:6px}.offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.offer-card{border:1px solid var(--gw-line);border-radius:24px;background:#fff;padding:18px;color:var(--gw-ink);min-height:152px}html[data-theme="dark"] .offer-card{background:#101827;border-color:rgba(255,255,255,.10);color:#f8fafc}.offer-card strong{display:block;font-size:28px;letter-spacing:-.06em}.offer-card span{display:block;margin-top:8px;color:var(--gw-muted);font-size:13px;line-height:1.45}html[data-theme="dark"] .offer-card span{color:#cbd5e1}.recap{display:grid;gap:0}.recap-row{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--gw-line);font-size:13px}.recap-row span{color:var(--gw-muted)}.recap-row strong{text-align:right;color:var(--gw-ink)}html[data-theme="dark"] .recap-row{border-color:rgba(255,255,255,.10)}html[data-theme="dark"] .recap-row span{color:#94a3b8}html[data-theme="dark"] .recap-row strong{color:#f8fafc}
+  .preview-col{display:grid;gap:16px;align-content:start}.preview-card{border-radius:30px;padding:16px;background:rgba(255,255,255,.78);border:1px solid rgba(255,255,255,.95);box-shadow:0 20px 54px rgba(39,32,91,.10)}html[data-theme="dark"] .preview-card{background:rgba(15,23,42,.74);border-color:rgba(255,255,255,.10)}.phone{padding:13px;border-radius:34px;background:#10111f;color:#fff;box-shadow:0 28px 70px rgba(16,17,31,.28)}.phone-screen{min-height:330px;border-radius:25px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(circle at 50% 0,color-mix(in srgb,var(--merchant-accent) 32%,transparent),transparent 42%),linear-gradient(145deg,var(--merchant-primary),#161328)}.phone-title{font-size:30px;font-weight:950;letter-spacing:-.065em;line-height:1}.phone-sub{margin-top:7px;color:rgba(255,255,255,.74);line-height:1.35}.phone-action{background:var(--merchant-accent);color:#07111f;border-radius:999px;padding:13px 16px;text-align:center;font-weight:950}.flyer{overflow:hidden;border-radius:30px;background:#fff;color:#111827;border:1px solid var(--gw-line);box-shadow:0 20px 54px rgba(39,32,91,.10)}.flyer-head{padding:19px;background:linear-gradient(135deg,var(--merchant-primary),var(--merchant-accent));color:#fff}.flyer-k{font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:950;opacity:.84}.flyer-name{font-size:29px;font-weight:950;letter-spacing:-.06em;line-height:1;margin-top:8px}.flyer-body{padding:18px;display:grid;grid-template-columns:1fr 100px;gap:14px;align-items:center}.flyer-body strong{display:block;font-size:18px;line-height:1.1}.flyer-body small{display:block;margin-top:8px;color:#667085;line-height:1.45}.fake-qr{width:100px;height:100px;border-radius:18px;background:repeating-linear-gradient(45deg,#111 0 6px,#fff 6px 12px);border:8px solid #fff;box-shadow:0 12px 28px rgba(17,24,39,.18)}
+  .ob-actions{display:flex;justify-content:space-between;gap:12px;padding:0 28px 28px}.ob-btn{border:0;border-radius:999px;padding:14px 22px;font-size:14px;font-weight:950;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;min-width:150px}.ob-btn.primary{background:linear-gradient(135deg,var(--gw-purple),var(--gw-purple-2));color:#fff;box-shadow:0 18px 42px rgba(83,74,183,.27)}.ob-btn.secondary{background:#fff;border:1px solid var(--gw-line);color:var(--gw-ink)}html[data-theme="dark"] .ob-btn.secondary{background:#101827;border-color:rgba(255,255,255,.10);color:#f8fafc}.is-hidden{display:none!important}
+  @media(max-width:980px){.onboarding-page{padding:12px}.ob-top{height:auto}.ob-logo img{height:44px}.ob-hero{padding:22px}.ob-progress{grid-template-columns:1fr}.ob-body{grid-template-columns:1fr;padding:18px}.preview-col{order:-1}.form-grid,.offer-grid{grid-template-columns:1fr}.ob-actions{padding:0 18px 18px}.ob-btn{min-width:0;flex:1}.step-title{font-size:29px}.phone-screen{min-height:240px}.flyer-body{grid-template-columns:1fr}.fake-qr{width:88px;height:88px}.ob-card{border-radius:30px}}
 </style>
 
-<div class="onboard-shell">
-  <div class="wizard-top">
-    <a class="brand-mini" href="/"><img src="/static/brand/growlee-logo-full.png" alt="Growlee"></a>
-    {% if merchant.onboarding_completed %}<a class="exit-link" href="/admin/">Retour dashboard</a>{% endif %}
-  </div>
-
-  {% if messages %}{% for message in messages %}<div class="card" style="margin-bottom:14px;border-color:{% if message.tags == 'error' %}#fee4e2{% else %}var(--color-border-tertiary){% endif %};color:{% if message.tags == 'error' %}#b42318{% else %}var(--color-text-primary){% endif %};">{{ message }}</div>{% endfor %}{% endif %}
-
-  <form method="post" enctype="multipart/form-data" class="wizard-card" id="onboardingWizard">
-    {% csrf_token %}
-    <input type="hidden" name="form_action" value="merchant_identity" />
-    <div class="wizard-head">
-      <div class="eyebrow" style="color:rgba(255,255,255,.82);">Première configuration</div>
-      <h1>{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Compte Growlee{% else %}Onboarding commerçant{% endif %}</h1>
-      <p>Un parcours plein écran, rapide et guidé pour rendre le commerce opérationnel dès les premières heures : compte, direction artistique, flyers et paiement.</p>
-      <div class="progress">
-        <div class="progress-step active" data-progress="0"><b>Étape 1</b><span>Compte</span></div>
-        <div class="progress-step" data-progress="1"><b>Étape 2</b><span>Direction artistique</span></div>
-        <div class="progress-step" data-progress="2"><b>Étape 3</b><span>Récap & paiement</span></div>
+<div class="onboarding-page">
+  <div class="ob-wrap">
+    <div class="ob-top">
+      <a class="ob-logo" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
+      <div class="ob-top-actions">
+        {% if merchant.onboarding_completed %}<a class="ob-link" href="/admin/">Retour dashboard</a>{% endif %}
       </div>
     </div>
 
-    <div class="wizard-body">
-      <div>
-        <section class="step-panel active" data-step="0">
-          <div class="step-kicker">Compte</div>
-          <div class="step-title">Les informations essentielles du commerce.</div>
-          <div class="step-sub">Elles seront reprises dans l’onglet Compte, les factures, les supports flyers et la fiche interne Growlee.</div>
-          <div class="field-grid">
-            <div><label>Nom du restaurant / commerce</label>{{ merchant_form.name }}</div>
-            <div><label>Secteur d’activité</label>{{ merchant_form.business_sector }}</div>
-            <div class="field-full"><label>Adresse d’envoi des flyers</label>{{ merchant_form.address }}</div>
-            <div><label>Email de contact</label>{{ merchant_form.contact_email }}</div>
-            <div><label>Téléphone</label>{{ merchant_form.contact_phone }}</div>
+    {% if messages %}{% for message in messages %}<div class="info-box" style="margin-bottom:14px;border-color:{% if message.tags == 'error' %}#fee4e2{% else %}var(--gw-line){% endif %};color:{% if message.tags == 'error' %}#b42318{% else %}inherit{% endif %};">{{ message }}</div>{% endfor %}{% endif %}
 
-          </div>
-        </section>
-
-        <section class="step-panel" data-step="1">
-          <div class="step-kicker">Configuration / Direction artistique</div>
-          <div class="step-title">Donnez une identité claire à l’expérience.</div>
-          <div class="step-sub">Growlee utilisera ces éléments pour personnaliser l’interface client, le QR brandé et les flyers générés automatiquement.</div>
-          <div class="field-grid">
-            <div><label>Couleur principale</label>{{ merchant_form.primary_color }}</div>
-            <div><label>Couleur accent</label>{{ merchant_form.accent_color }}</div>
-            <div><label>Fond parcours</label>{{ merchant_form.surface_color }}</div>
-            <div><label>Texte parcours</label>{{ merchant_form.text_color }}</div>
-            <div><label>Typo titres</label>{{ merchant_form.heading_font }}</div>
-            <div><label>Typo textes</label>{{ merchant_form.body_font }}</div>
-            <div class="field-full"><label>Direction artistique / thème visuel</label>{{ merchant_form.design_theme }}</div>
-            <div class="field-full"><label>Slogan marketing facultatif</label>{{ merchant_form.tagline }}</div>
-            <div class="field-full"><label>Biographie du commerce facultative</label>{{ merchant_form.short_bio }}</div>
-            <div><label>Logo</label>{{ merchant_form.logo }}</div>
-            <div><label>Image d’inspiration</label>{{ merchant_form.inspiration_image }}</div>
-          </div>
-          <div class="soft-box"><strong>Objectif</strong><div class="mini" style="margin-top:6px;line-height:1.5;">Récupérer assez d’éléments pour générer directement des supports cohérents, sans rendez-vous supplémentaire inutile.</div></div>
-        </section>
-
-        <section class="step-panel" data-step="2">
-          <div class="step-kicker">Récapitulatif / Paiement</div>
-          <div class="step-title">Validez les flyers et lancez l’impression.</div>
-          <div class="step-sub">Le commerçant choisit son volume, visualise le rendu, puis règle l’offre. Une fois payé, la commande flyers est lancée automatiquement.</div>
-          <div class="field-grid">
-            <div><label>Style graphique flyer</label>{{ merchant_form.flyer_style }}</div>
-            <div><label>Offre d’impression</label>{{ merchant_form.flyer_offer }}</div>
-            <div><label>Moyen de paiement préféré</label>{{ merchant_form.payment_method }}</div>
-            <div><label>CB ou IBAN</label>{{ merchant_form.billing_payment_type }}</div>
-            <div class="field-full"><label>Référence de paiement</label>{{ merchant_form.billing_payment_reference }}<div class="mini" style="margin-top:6px;">Ex : “CB finissant par 1234” ou “IBAN finissant par FR76”.</div></div>
-            <div class="field-full"><label>Lien Google Reviews</label>{{ merchant_form.google_review_url }}</div>
-            <div><label>PIN mode employé</label>{{ merchant_form.employee_pin }}</div>
-          </div>
-          <div class="soft-box">
-            <div class="section-title">Offres exemples</div>
-            <div class="offer-grid">
-              <div class="offer"><strong>80€</strong><span>1000 flyers. Idéal pour lancer Growlee rapidement dans un restaurant ou commerce de passage.</span></div>
-              <div class="offer"><strong>290€</strong><span>5000 flyers. Pour plusieurs zones, tables, sacs, comptoir ou campagne plus longue.</span></div>
-              <div class="offer"><strong>Sur mesure</strong><span>Volumes supérieurs et formats spécifiques après validation par Growlee.</span></div>
-            </div>
-          </div>
-          <div class="soft-box recap">
-            <div class="recap-row"><span>Commerce</span><strong>{{ merchant.name|default:'À renseigner' }}</strong></div>
-            <div class="recap-row"><span>Adresse livraison</span><strong>{{ merchant.address|default:'À renseigner' }}</strong></div>
-            <div class="recap-row"><span>Premier paiement</span><strong>Flyers sélectionnés · 1 mois Growlee offert</strong></div>
-            <div class="recap-row"><span>Ensuite</span><strong>Abonnement automatique</strong></div>
-          </div>
-          {% if merchant.flyer_visual_approved and not merchant.onboarding_fee_paid %}<a class="btn" style="width:100%;margin-top:14px;" href="mailto:contact@growlee.fr?subject=Paiement%20flyers%20Growlee%20-%20{{ merchant.name|urlencode }}">Procéder au paiement / validation</a>{% endif %}
-        </section>
-      </div>
-
-      <aside class="preview-stack">
-        <div class="phone-preview"><div class="phone-screen">
-          <div>{% if merchant.logo %}<img src="{{ merchant.logo.url }}" alt="{{ merchant.name }}" style="max-height:58px;max-width:170px;background:#fff;border-radius:15px;padding:7px;margin-bottom:16px;">{% endif %}<div style="font-size:30px;font-weight:900;letter-spacing:-.06em;">{{ merchant.name }}</div><div style="color:rgba(255,255,255,.75);margin-top:6px;line-height:1.35;">{{ merchant.tagline|default:merchant.business_sector|default:'Votre slogan apparaîtra ici' }}</div></div>
-          <div style="display:grid;gap:10px;"><div style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:12px;">🎁 Jeu cadeau instantané</div><div style="background:{{ merchant.accent_color|default:'#1D9E75' }};color:#07111f;border-radius:999px;padding:13px 16px;text-align:center;font-weight:950;">Scanner · Jouer · Revenir</div></div>
-        </div></div>
-        <div class="flyer">
-          <div class="flyer-top"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:900;opacity:.82;">Flyer Growlee · lot sélectionné</div><div style="font-size:28px;font-weight:950;letter-spacing:-.06em;line-height:1;margin-top:8px;">{{ merchant.name }}</div><div style="margin-top:8px;opacity:.9;">{{ merchant.tagline|default:'Scannez · Jouez · Gagnez' }}</div></div>
-          <div style="padding:18px;display:grid;grid-template-columns:1fr 100px;gap:14px;align-items:center;"><div><strong style="display:block;font-size:18px;line-height:1.1;">Un cadeau vous attend</strong><small style="display:block;margin-top:8px;color:#667085;line-height:1.45;">Lots de X flyers envoyés à l’adresse du compte pour déployer Growlee au sein du commerce.</small><small style="display:block;margin-top:10px;color:#667085;">{{ merchant.address|default:'Adresse du commerce' }}</small></div><div class="fake-qr"></div></div>
+    <form method="post" enctype="multipart/form-data" class="ob-card" id="onboardingWizard">
+      {% csrf_token %}
+      <input type="hidden" name="form_action" value="merchant_identity" />
+      <div class="ob-hero">
+        <div class="ob-eyebrow">Configuration initiale</div>
+        <div class="ob-title">{% if request.path == '/admin/account/' and merchant.onboarding_completed %}Compte Growlee{% else %}Onboarding commerçant{% endif %}</div>
+        <p class="ob-sub">Un parcours clair en 3 étapes : informations compte, direction artistique, puis récapitulatif avec choix et paiement des flyers. Le commerçant doit pouvoir comprendre, valider et être opérationnel rapidement.</p>
+        <div class="ob-progress" aria-label="Progression onboarding">
+          <button class="active" type="button" data-go="0"><b>Étape 1</b><span>Compte</span></button>
+          <button type="button" data-go="1"><b>Étape 2</b><span>Direction artistique</span></button>
+          <button type="button" data-go="2"><b>Étape 3</b><span>Récap & paiement</span></button>
         </div>
-      </aside>
-    </div>
+      </div>
 
-    <div class="wizard-actions">
-      <button class="btn secondary hidden" type="button" id="prevStep">Retour</button>
-      <button class="btn" type="button" id="nextStep">Suivant</button>
-      <button class="btn hidden" type="submit" id="submitStep">Enregistrer l’onboarding</button>
-    </div>
-  </form>
+      <div class="ob-body">
+        <div class="steps-col">
+          <section class="ob-step active" data-step="0">
+            <div class="step-tag">Compte</div>
+            <div class="step-title">Les infos indispensables du commerce.</div>
+            <p class="step-sub">Ces données alimentent l’onglet Compte, la facturation, l’adresse d’expédition des flyers et le suivi Growlee.</p>
+            <div class="form-grid">
+              <div class="ob-field"><label>Nom du restaurant / commerce</label>{{ merchant_form.name }}</div>
+              <div class="ob-field"><label>Secteur d’activité</label>{{ merchant_form.business_sector }}</div>
+              <div class="ob-field full"><label>Adresse d’envoi des flyers</label>{{ merchant_form.address }}</div>
+              <div class="ob-field"><label>Email de contact</label>{{ merchant_form.contact_email }}</div>
+              <div class="ob-field"><label>Téléphone</label>{{ merchant_form.contact_phone }}</div>
+            </div>
+            <div class="info-box"><strong>Visible ensuite dans Compte</strong><div class="hint">Le commerçant pourra retrouver et modifier ces informations depuis l’icône de compte en bas à gauche.</div></div>
+          </section>
+
+          <section class="ob-step" data-step="1">
+            <div class="step-tag">Configuration / Direction artistique</div>
+            <div class="step-title">Une identité visuelle exploitable immédiatement.</div>
+            <p class="step-sub">Les couleurs et inspirations servent à personnaliser l’interface client, les QR brandés et les propositions de flyers.</p>
+            <div class="form-grid">
+              <div class="ob-field"><label>Couleur principale</label>{{ merchant_form.primary_color }}</div>
+              <div class="ob-field"><label>Couleur accent</label>{{ merchant_form.accent_color }}</div>
+              <div class="ob-field"><label>Fond parcours</label>{{ merchant_form.surface_color }}</div>
+              <div class="ob-field"><label>Texte parcours</label>{{ merchant_form.text_color }}</div>
+              <div class="ob-field"><label>Typo titres</label>{{ merchant_form.heading_font }}</div>
+              <div class="ob-field"><label>Typo textes</label>{{ merchant_form.body_font }}</div>
+              <div class="ob-field full"><label>Direction artistique / thème visuel</label>{{ merchant_form.design_theme }}</div>
+              <div class="ob-field full"><label>Slogan marketing facultatif</label>{{ merchant_form.tagline }}</div>
+              <div class="ob-field full"><label>Biographie facultative</label>{{ merchant_form.short_bio }}</div>
+              <div class="ob-field"><label>Logo</label>{{ merchant_form.logo }}</div>
+              <div class="ob-field"><label>Image d’inspiration</label>{{ merchant_form.inspiration_image }}</div>
+            </div>
+            <div class="info-box"><strong>Visible ensuite dans Configuration</strong><div class="hint">Branding, couleurs, slogan et ressources visuelles restent modifiables dans Configuration.</div></div>
+          </section>
+
+          <section class="ob-step" data-step="2">
+            <div class="step-tag">Récapitulatif / Paiement</div>
+            <div class="step-title">Choisir l’impression et lancer la commande.</div>
+            <p class="step-sub">Le paiement est volontairement placé uniquement ici : le commerçant vérifie son rendu, choisit son volume, puis valide.</p>
+            <div class="form-grid">
+              <div class="ob-field"><label>Style graphique flyer</label>{{ merchant_form.flyer_style }}</div>
+              <div class="ob-field"><label>Offre d’impression</label>{{ merchant_form.flyer_offer }}</div>
+              <div class="ob-field"><label>Moyen de paiement</label>{{ merchant_form.payment_method }}</div>
+              <div class="ob-field"><label>CB ou IBAN</label>{{ merchant_form.billing_payment_type }}</div>
+              <div class="ob-field full"><label>Référence paiement</label>{{ merchant_form.billing_payment_reference }}<div class="hint">Ne pas stocker de numéro complet : “CB finissant par 1234” ou “IBAN finissant par FR76”.</div></div>
+              <div class="ob-field full"><label>Lien Google Reviews</label>{{ merchant_form.google_review_url }}</div>
+              <div class="ob-field"><label>PIN mode employé</label>{{ merchant_form.employee_pin }}</div>
+            </div>
+            <div class="offer-grid">
+              <div class="offer-card"><strong>80€</strong><span>1000 flyers pour lancer Growlee rapidement au comptoir, en salle ou sur table.</span></div>
+              <div class="offer-card"><strong>290€</strong><span>5000 flyers pour un déploiement plus large : sacs, tables, comptoir, campagne longue.</span></div>
+              <div class="offer-card"><strong>Sur mesure</strong><span>Volumes supérieurs ou formats spécifiques après validation par Growlee.</span></div>
+            </div>
+            <div class="info-box recap">
+              <div class="recap-row"><span>Commerce</span><strong>{{ merchant.name|default:'À renseigner' }}</strong></div>
+              <div class="recap-row"><span>Livraison</span><strong>{{ merchant.address|default:'Adresse à compléter' }}</strong></div>
+              <div class="recap-row"><span>Premier paiement</span><strong>Flyers sélectionnés · 1 mois Growlee offert</strong></div>
+              <div class="recap-row"><span>Après le mois offert</span><strong>Abonnement automatique</strong></div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="preview-col" aria-label="Aperçus générés">
+          <div class="preview-card">
+            <div class="phone"><div class="phone-screen">
+              <div>{% if merchant.logo %}<img src="{{ merchant.logo.url }}" alt="{{ merchant.name }}" style="max-height:56px;max-width:165px;background:#fff;border-radius:15px;padding:7px;margin-bottom:16px;">{% endif %}<div class="phone-title">{{ merchant.name }}</div><div class="phone-sub">{{ merchant.tagline|default:merchant.business_sector|default:'Votre slogan apparaîtra ici' }}</div></div>
+              <div style="display:grid;gap:10px;"><div style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:12px;">🎁 Jeu cadeau instantané</div><div class="phone-action">Scanner · Jouer · Revenir</div></div>
+            </div></div>
+          </div>
+          <div class="flyer">
+            <div class="flyer-head"><div class="flyer-k">Flyer Growlee · lot sélectionné</div><div class="flyer-name">{{ merchant.name }}</div><div style="margin-top:8px;opacity:.9;">{{ merchant.tagline|default:'Scannez · Jouez · Gagnez' }}</div></div>
+            <div class="flyer-body"><div><strong>Un cadeau vous attend</strong><small>Lots de X flyers envoyés à l’adresse du compte pour déployer Growlee au sein du commerce.</small><small>{{ merchant.address|default:'Adresse du commerce' }}</small></div><div class="fake-qr"></div></div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="ob-actions">
+        <button class="ob-btn secondary is-hidden" type="button" id="prevStep">Retour</button>
+        <button class="ob-btn primary" type="button" id="nextStep">Suivant</button>
+        <button class="ob-btn primary is-hidden" type="submit" id="submitStep">Enregistrer l’onboarding</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
 (() => {
-  const panels = [...document.querySelectorAll('.step-panel')];
-  const progress = [...document.querySelectorAll('.progress-step')];
+  const steps = [...document.querySelectorAll('.ob-step')];
+  const tabs = [...document.querySelectorAll('[data-go]')];
   const prev = document.getElementById('prevStep');
   const next = document.getElementById('nextStep');
   const submit = document.getElementById('submitStep');
   let current = 0;
-  function show(index){
-    current = Math.max(0, Math.min(index, panels.length - 1));
-    panels.forEach((p,i)=>p.classList.toggle('active', i===current));
-    progress.forEach((p,i)=>p.classList.toggle('active', i===current));
-    prev.classList.toggle('hidden', current===0);
-    next.classList.toggle('hidden', current===panels.length-1);
-    submit.classList.toggle('hidden', current!==panels.length-1);
+  function show(i){
+    current = Math.max(0, Math.min(i, steps.length - 1));
+    steps.forEach((el,idx)=>el.classList.toggle('active', idx === current));
+    tabs.forEach((el,idx)=>el.classList.toggle('active', idx === current));
+    prev.classList.toggle('is-hidden', current === 0);
+    next.classList.toggle('is-hidden', current === steps.length - 1);
+    submit.classList.toggle('is-hidden', current !== steps.length - 1);
     window.scrollTo({top:0,behavior:'smooth'});
   }
-  next.addEventListener('click',()=>show(current+1));
-  prev.addEventListener('click',()=>show(current-1));
-  progress.forEach((p,i)=>p.addEventListener('click',()=>show(i)));
+  next.addEventListener('click', () => show(current + 1));
+  prev.addEventListener('click', () => show(current - 1));
+  tabs.forEach((tab,idx)=>tab.addEventListener('click', () => show(idx)));
 })();
 </script>
 {% endblock %}
