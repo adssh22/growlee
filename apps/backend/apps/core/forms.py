@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+import re
 
 from apps.campaigns.models import Campaign, EntryPoint
 from apps.merchants.models import Merchant
@@ -55,6 +56,25 @@ class MerchantForm(forms.ModelForm):
             'surface_color': forms.TextInput(attrs={'type': 'color'}),
             'text_color': forms.TextInput(attrs={'type': 'color'}),
         }
+
+    def clean_billing_payment_reference(self):
+        reference = (self.cleaned_data.get('billing_payment_reference') or '').strip()
+        digits = re.sub(r'\D', '', reference)
+        if len(digits) >= 13:
+            raise forms.ValidationError('Ne saisissez jamais un numéro complet de carte ou d’IBAN. Indiquez seulement une référence courte, ex. “CB •••• 1234”.')
+        return reference
+
+    def clean_logo(self):
+        logo = self.cleaned_data.get('logo')
+        if logo and getattr(logo, 'size', 0) > 5 * 1024 * 1024:
+            raise forms.ValidationError('Logo trop lourd : maximum 5 Mo.')
+        return logo
+
+    def clean_inspiration_image(self):
+        image = self.cleaned_data.get('inspiration_image')
+        if image and getattr(image, 'size', 0) > 8 * 1024 * 1024:
+            raise forms.ValidationError('Image trop lourde : maximum 8 Mo.')
+        return image
 
 
 class MerchantReviewForm(forms.ModelForm):

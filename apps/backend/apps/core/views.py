@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, logout
 from django.utils.html import escape
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from django.db.models import Q
 from django.db import transaction
@@ -219,9 +220,12 @@ def login_view(request):
     form = AuthenticationForm(request, data=request.POST or None)
     if request.method == 'POST' and form.is_valid():
         login(request, form.get_user())
-        if form.get_user().is_superuser and (request.GET.get('next') in {None, '', '/admin/'}):
+        next_url = request.GET.get('next') or ''
+        if form.get_user().is_superuser and (next_url in {'', '/admin/'}):
             return redirect('staff-merchants')
-        return redirect(request.GET.get('next') or 'admin-dashboard')
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+            return redirect(next_url)
+        return redirect('admin-dashboard')
     return render(request, 'admin/login.html', {'form': form})
 
 
@@ -303,7 +307,10 @@ def staff_control_verify(request):
         if verify_totp(mfa.secret, request.POST.get('totp_code')):
             request.session['growlee_control_2fa_ok'] = True
             request.session.set_expiry(60 * 60 * 4)
-            return redirect(request.GET.get('next') or 'staff-merchants')
+            next_url = request.GET.get('next') or ''
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+                return redirect(next_url)
+            return redirect('staff-merchants')
         error = 'Code 2FA invalide.'
 
     return render(request, 'admin/staff_control_verify.html', {'error': error})
@@ -858,7 +865,10 @@ def merchant_setup(request):
 
 @login_required
 def qr_preview(request, code):
-    entry_point = get_object_or_404(EntryPoint, code=code)
+    entry_point = get_object_or_404(EntryPoint.objects.select_related('merchant'), code=code)
+    if not request.user.is_superuser and not MerchantMembership.objects.filter(user=request.user, merchant=entry_point.merchant).exists():
+        messages.error(request, 'Ce QR ne correspond pas à votre commerce.')
+        return redirect('admin-dashboard')
     url = f"{settings.APP_BASE_URL}/go/{entry_point.code}/"
     logo_url = _merchant_logo_for_svg(entry_point.merchant)
     svg = build_qr_svg(

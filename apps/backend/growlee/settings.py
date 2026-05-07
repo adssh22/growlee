@@ -12,8 +12,11 @@ def env_list(name: str, default: str = '') -> list[str]:
     return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
 
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key')
 DEBUG = env_bool('DJANGO_DEBUG', True)
+_SECRET_KEY_ENV = os.getenv('DJANGO_SECRET_KEY', '').strip()
+if not DEBUG and (not _SECRET_KEY_ENV or _SECRET_KEY_ENV == 'dev-secret-key'):
+    raise RuntimeError('DJANGO_SECRET_KEY must be set to a strong non-default value when DJANGO_DEBUG=0.')
+SECRET_KEY = _SECRET_KEY_ENV or 'dev-secret-key'
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,growlee.fr,www.growlee.fr')
 APP_BASE_URL = os.getenv('APP_BASE_URL', 'http://localhost:8000' if DEBUG else 'https://growlee.fr').rstrip('/')
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://growlee.fr,https://www.growlee.fr')
@@ -101,7 +104,12 @@ DATABASES = {
     }
 }
 
-AUTH_PASSWORD_VALIDATORS = []
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'UTC'
 USE_I18N = True
