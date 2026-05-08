@@ -1,4 +1,21 @@
 {% extends 'public/info_page.html' %}
+{% block hero %}
+<a href="/" class="btn secondary" style="margin-bottom:22px">← Retour à l'accueil</a>
+<h1>{{ title }}</h1>
+<p class="lead">{{ description }}</p>
+{% endblock %}
 {% block body %}
-<h2>Informations</h2><p>Ces pages constituent une base de transparence commerciale. Les informations juridiques définitives devront être complétées avec les coordonnées légales exactes de l’éditeur Growlee.</p><h2>Contact</h2><p>Email : <a href="mailto:contact@growlee.fr">contact@growlee.fr</a></p><h2>{{ legal_heading }}</h2><p>{{ legal_body }}</p>
+<style>
+  .legal-content{max-width:720px;margin:0 auto}.legal-content h2{font-size:1.35rem;line-height:1.25;margin:0 0 12px;letter-spacing:-.025em}.legal-content p{margin:0 0 12px}.legal-content ul{margin:0 0 12px;padding-left:22px}.legal-content hr{border:0;border-top:1px solid var(--line);margin:28px 0}.legal-content a{color:var(--purple);font-weight:800}
+</style>
+<div class="legal-content">
+  {% for section in legal_sections %}
+    <section>
+      <h2>{{ section.title }}</h2>
+      {% for paragraph in section.paragraphs %}<p>{{ paragraph|safe }}</p>{% endfor %}
+      {% if section.items %}<ul>{% for item in section.items %}<li>{{ item|safe }}</li>{% endfor %}</ul>{% endif %}
+    </section>
+    {% if not forloop.last %}<hr>{% endif %}
+  {% endfor %}
+</div>
 {% endblock %}

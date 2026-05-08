@@ -1,4 +1,56 @@
 {% extends 'public/info_page.html' %}
 {% block body %}
-<h2>Pour qui ?</h2><p>Freelances, agences locales, imprimeurs, consultants, réseaux commerçants, apporteurs terrain.</p><h2>Pourquoi Growlee ?</h2><ul><li>Offre simple à expliquer : QR, jeu, avis, wallet, relance.</li><li>Besoin clair chez les commerces à achats ponctuels.</li><li>Setup visible grâce aux supports physiques.</li></ul><p><a class="btn" href="mailto:contact@growlee.fr?subject=Devenir%20apporteur%20Growlee">Devenir partenaire</a></p>
+<style>
+  .partner-hero{margin-bottom:28px}.partner-hero h2{font-size:clamp(34px,5vw,56px);line-height:.96;letter-spacing:-.07em;margin:0 0 14px;color:var(--ink)}.partner-hero p{font-size:20px;line-height:1.6;color:#5f5a76}.commission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.commission-card{padding:20px;border-radius:24px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 42px rgba(39,32,91,.07)}.commission-card strong{display:block;font-size:30px;letter-spacing:-.055em;color:var(--ink)}.commission-card span{display:block;color:#69647f;margin-top:5px}.gain-table{width:100%;border-collapse:separate;border-spacing:0 10px;margin:18px 0}.gain-table th,.gain-table td{text-align:left;padding:14px 16px;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.gain-table th:first-child,.gain-table td:first-child{border-left:1px solid var(--line);border-radius:16px 0 0 16px}.gain-table th:last-child,.gain-table td:last-child{border-right:1px solid var(--line);border-radius:0 16px 16px 0}.gain-table th{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink)}.conditions{display:grid;gap:9px;margin:18px 0 0;padding:0}.conditions li{list-style:none}.conditions li:before{content:"✓";color:var(--green);font-weight:950;margin-right:8px}.steps-list{counter-reset:step;display:grid;gap:12px;padding:0}.steps-list li{list-style:none;padding:18px;border-radius:22px;background:rgba(255,255,255,.78);border:1px solid var(--line)}.steps-list li:before{counter-increment:step;content:counter(step);display:inline-grid;place-items:center;width:30px;height:30px;border-radius:11px;background:#f1efff;color:var(--purple);font-weight:950;margin-right:10px}.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}@media(max-width:720px){.commission-grid{grid-template-columns:1fr}.gain-table{font-size:13px}.gain-table th,.gain-table td{padding:10px 8px}}
+</style>
+<section>
+  <h2>Devenez partenaire Growlee. Construisez des revenus récurrents.</h2>
+  <p>Growlee s'appuie sur un réseau d'apporteurs indépendants pour déployer sa solution commerce par commerce, ville par ville. Votre rôle : identifier les bons commerçants et poser le rendez-vous. Notre rôle : closer et activer.</p>
+  <div class="commission-grid">
+    <div class="commission-card"><strong>30€ HT</strong><span>/mois par client actif apporté</span></div>
+    <div class="commission-card"><strong>12 mois</strong><span>maximum par client</span></div>
+    <div class="commission-card"><strong>360€ HT</strong><span>potentiel par client apporté</span></div>
+  </div>
+  <table class="gain-table" aria-label="Tableau des gains apporteurs">
+    <thead><tr><th>Clients apportés</th><th>Commission mensuelle</th><th>Total sur 12 mois</th></tr></thead>
+    <tbody>
+      <tr><td>1 client</td><td>30€/mois</td><td>360€</td></tr>
+      <tr><td>5 clients</td><td>150€/mois</td><td>1 800€</td></tr>
+      <tr><td>10 clients</td><td>300€/mois</td><td>3 600€</td></tr>
+      <tr><td>20 clients</td><td>600€/mois</td><td>7 200€</td></tr>
+    </tbody>
+  </table>
+  <ul class="conditions">
+    <li>Statut micro-entrepreneur ou structure permettant l'émission de factures</li>
+    <li>Aucune exclusivité — vous restez libre de vos autres activités</li>
+    <li>Commission déclenchée dès le 1er prélèvement mensuel encaissé par Growlee</li>
+    <li>Paiement mensuel sur facture dans les 15 jours après fin de mois</li>
+  </ul>
+  <div class="cta-row">
+    <a class="btn" href="mailto:contact@growlee.fr?subject=Candidature%20apporteur%20Growlee">Devenir partenaire</a>
+    <a class="btn secondary" href="/apporteurs/">Voir le contrat</a>
+  </div>
+</section>
+
+<section>
+  <h2>Votre rôle en 3 étapes :</h2>
+  <ol class="steps-list">
+    <li>Identifier et approcher des commerçants locaux</li>
+    <li>Leur présenter l'offre Growlee et poser un RDV avec l'équipe</li>
+    <li>Toucher votre commission dès le 1er prélèvement du commerçant</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Vous correspondez si :</h2>
+  <ul class="conditions">
+    <li>Vous avez le sens du contact et un réseau local — commerçants, artisans, restaurateurs</li>
+    <li>Vous êtes micro-entrepreneur ou pouvez émettre des factures</li>
+    <li>Vous cherchez des revenus complémentaires récurrents sans contrainte horaire</li>
+    <li>Aucune expérience SaaS requise — nous vous formons sur le produit</li>
+  </ul>
+  <div class="cta-row">
+    <a class="btn" href="mailto:contact@growlee.fr?subject=Candidature%20apporteur%20Growlee">Postuler maintenant</a>
+  </div>
+</section>
 {% endblock %}
