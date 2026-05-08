@@ -99,7 +99,7 @@ def api_contact(request):
 def partners_page(request):
     return render(request, 'public/partners.html', {
         'title': "Devenez apporteur d'affaires Growlee",
-        'description': "Prospectez les commerçants locaux, posez les rendez-vous. On s'occupe du reste. Vous touchez 30€ HT/mois par client actif pendant 12 mois.",
+        'description': "Prospectez les commerçants locaux, posez les rendez-vous. On s'occupe du reste. Vous touchez 30€/mois par client actif pendant 12 mois.",
         'canonical_url': 'https://growlee.fr/apporteurs/',
         'plain_hero': True,
     })
