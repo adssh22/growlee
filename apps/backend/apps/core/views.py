@@ -154,7 +154,7 @@ def legal_page(request, page):
                     'title': 'Article 2 — Offre et tarification',
                     'paragraphs': ["L'offre Growlee comprend :"],
                     'items': [
-                        "Des frais d'installation uniques de 50€ TTC, non remboursables, payables à la souscription",
+                        "Des frais d'installation uniques de 80€ TTC, non remboursables, payables à la souscription",
                         "Un premier mois d'accès gratuit (mois d'activation)",
                         'Un abonnement mensuel de 90€ TTC (75€ HT) à compter du deuxième mois, prélevé automatiquement',
                     ],
@@ -257,9 +257,9 @@ def _pricing_plans():
         {
             'key': 'all_inclusive',
             'name': 'Tout inclus',
-            'price': '90€ / mois',
+            'price': '90€ TTC / mois',
             'tagline': 'Une offre simple pour lancer Growlee dans votre restaurant.',
-            'features': ['Parcours QR mobile premium', 'Jeu cadeau', 'Avis Google + feedback privé', 'Wallet fidélité', 'Campagnes SMS & Email', 'Personnalisation logo/couleurs', 'Clients cloisonnés par commerce'],
+            'features': ['Parcours QR mobile premium', 'Jeu cadeau', 'Avis Google + feedback privé', 'Wallet fidélité', 'Notifications push Apple Wallet', 'Campagnes SMS & Email', 'Personnalisation logo/couleurs', 'Clients cloisonnés par commerce'],
             'payment_link': settings.GROWLEE_PAYMENT_LINK_PRO,
             'highlight': True,
             'cta': 'Acheter maintenant',
