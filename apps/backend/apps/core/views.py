@@ -300,6 +300,7 @@ def _admin_access_block_response(request, merchant=None):
     onboarding_allowed = {
         '/admin/account/',
         '/admin/onboarding/',
+        '/admin/checkout/',
         '/logout/',
     }
     if request.path not in onboarding_allowed:
@@ -741,6 +742,21 @@ def _ensure_spin_defaults(campaign):
 
 @login_required
 @merchant_unlocked_required
+def merchant_checkout(request):
+    membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
+    merchant = membership.merchant if membership else None
+    if merchant is None:
+        messages.error(request, 'Aucun commerce lié à ce compte.')
+        return redirect('admin-dashboard')
+    payment_link = settings.GROWLEE_PAYMENT_LINK_PRO
+    if payment_link:
+        return redirect(payment_link)
+    messages.info(request, 'Checkout Growlee prêt : configurez GROWLEE_PAYMENT_LINK_PRO pour activer le lien de paiement externe.')
+    return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
+
+
+@login_required
+@merchant_unlocked_required
 def merchant_onboarding(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -755,8 +771,8 @@ def merchant_onboarding(request):
         prefix='merchant',
     )
     if request.method == 'POST' and request.POST.get('form_action') == 'flyer_approve':
-        if not merchant.onboarding_completed or not merchant.flyer_style:
-            messages.error(request, 'Complétez d’abord les informations commerce et choisissez un style de flyer.')
+        if not merchant.onboarding_completed:
+            messages.error(request, 'Complétez d’abord les informations commerce avant de valider le flyer.')
             return redirect('merchant-account')
         merchant.flyer_visual_approved = True
         merchant.flyer_order_status = 'visual_approved_waiting_payment'
@@ -775,13 +791,14 @@ def merchant_onboarding(request):
             'Email de contact': merchant.contact_email,
             'Type de paiement': merchant.billing_payment_type,
             'Référence paiement': merchant.billing_payment_reference,
-            'Style de flyer': merchant.flyer_style,
             'Offre flyers': merchant.flyer_offer,
         }
         missing = [label for label, value in required.items() if not (value or '').strip()]
         if missing:
             messages.error(request, 'Champs obligatoires manquants : ' + ', '.join(missing) + '.')
             return redirect('merchant-account')
+        if not merchant.flyer_style:
+            merchant.flyer_style = 'premium'
         merchant.onboarding_completed = True
         merchant.flyer_visual_approved = True
         merchant.flyer_order_status = 'visual_approved_waiting_payment'
