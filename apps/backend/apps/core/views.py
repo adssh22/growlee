@@ -3,6 +3,7 @@ import io
 import base64
 import mimetypes
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -106,9 +107,56 @@ def partners_page(request):
 
 
 def demo_page(request):
-    return render(request, 'public/demo.html', {
-        'title': 'Démo Growlee',
-        'description': 'Découvrez le parcours client Growlee : scan QR, jeu cadeau, avis, wallet et retour client.',
+    step = request.GET.get('step', 'landing')
+    if step not in {'landing', 'game', 'collect', 'reward', 'review', 'wallet'}:
+        step = 'landing'
+    merchant = SimpleNamespace(
+        name='Maison Growlee',
+        slug='demo',
+        tagline='Parcours client premium',
+        business_sector='Commerce local',
+        primary_color='#0D1F18',
+        accent_color='#1ECC7A',
+        surface_color='#F5F7F5',
+        text_color='#0D1F18',
+        heading_font='inter',
+        body_font='inter',
+        logo=None,
+        logo_url='',
+        google_review_url='https://www.google.com/search?q=Growlee',
+    )
+    campaign = SimpleNamespace(
+        journey_type='premium_mobile',
+        is_active=True,
+        review_enabled=True,
+        wallet_enabled=True,
+        game_type='spin',
+        landing_headline='Scannez, jouez, revenez',
+        landing_subheadline='Une expérience mobile identique au vrai parcours Growlee : jeu, gain, avis et wallet.',
+        cta_label='Jouer maintenant',
+        quiz_question='',
+        quiz_answer_a='',
+        quiz_answer_b='',
+        quiz_answer_c='',
+        scratch_label='',
+    )
+    return render(request, 'public/play.html', {
+        'merchant': merchant,
+        'campaign': campaign,
+        'entry_point': None,
+        'form': ClaimRewardForm(),
+        'recent_sessions': [],
+        'step': step,
+        'claimed_session': None,
+        'wheel_segments': [],
+        'total_weight': 0,
+        'heading_font_stack': _font_stack('inter'),
+        'body_font_stack': _font_stack('inter'),
+        'game_step_count': 4,
+        'game_enabled': True,
+        'review_enabled': True,
+        'wallet_enabled': True,
+        'google_review_url': merchant.google_review_url,
     })
 
 
@@ -307,9 +355,13 @@ def _admin_access_block_response(request, merchant=None):
         if not merchant.onboarding_completed:
             messages.info(request, 'Complétez l’onboarding commerçant pour personnaliser votre interface Growlee.')
             return redirect('merchant-account')
-        if not merchant.flyer_style or not merchant.flyer_visual_approved or not merchant.onboarding_fee_paid:
-            messages.info(request, 'Validez votre flyer et le paiement onboarding pour débloquer toute l’application.')
+        if not merchant.flyer_style or not merchant.flyer_visual_approved:
+            messages.info(request, 'Validez votre flyer pour débloquer votre dashboard et préparer le paiement.')
             return redirect('merchant-account')
+        dashboard_preview_allowed = {'/admin/'}
+        if not merchant.onboarding_fee_paid and request.path not in dashboard_preview_allowed:
+            messages.info(request, 'Votre dashboard et votre QR sont prêts. Finalisez le paiement onboarding pour débloquer toute l’application.')
+            return redirect('admin-dashboard')
     return None
 
 
@@ -481,6 +533,7 @@ def _merchant_context_for_user(user):
     # campagne active et les toggles semblent ne pas se mettre à jour.
     campaign = campaigns.first()
     entry_points = EntryPoint.objects.filter(merchant=merchant) if merchant else []
+    primary_entry = entry_points.order_by('created_at', 'id').first() if merchant else None
     rewards = Reward.objects.filter(merchant=merchant) if merchant else []
     customers = Customer.objects.filter(merchant=merchant).order_by('-created_at')[:10] if merchant else []
     distributed = GameSession.objects.filter(campaign__merchant=merchant).count() if merchant else 0
@@ -516,6 +569,7 @@ def _merchant_context_for_user(user):
         'active_campaigns': active_campaigns[:5],
         'scheduled_campaigns': scheduled_campaigns[:5],
         'entry_points': entry_points,
+        'primary_entry': primary_entry,
         'rewards': rewards,
         'customers': customers,
         'stats': stats,
@@ -805,8 +859,8 @@ def merchant_onboarding(request):
         merchant.save()
         merchant_form.save_m2m()
         campaign, entry_point, reward = _ensure_default_growlee_setup(merchant)
-        messages.success(request, 'Onboarding enregistré et visuel flyer validé. Il reste le paiement de l’offre flyers pour lancer la commande et débloquer toute l’application.')
-        return redirect('merchant-account')
+        messages.success(request, 'Onboarding enregistré. Votre dashboard, votre QR code et votre parcours client personnalisé sont prêts.')
+        return redirect('admin-dashboard')
 
     context = _merchant_context_for_user(request.user)
     latest_campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()

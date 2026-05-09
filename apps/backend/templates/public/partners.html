@@ -2,6 +2,7 @@
 {% block body %}
 <style>
   .partner-hero{margin-bottom:28px}.partner-hero h2{font-size:clamp(34px,5vw,56px);line-height:.96;letter-spacing:-.07em;margin:0 0 14px;color:var(--ink)}.partner-hero p{font-size:20px;line-height:1.6;color:#5f5a76}.commission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.commission-card{padding:20px;border-radius:24px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 42px rgba(39,32,91,.07)}.commission-card strong{display:block;font-size:30px;letter-spacing:-.055em;color:var(--ink)}.commission-card span{display:block;color:#69647f;margin-top:5px}.gain-table{width:100%;border-collapse:separate;border-spacing:0 10px;margin:18px 0}.gain-table th,.gain-table td{text-align:left;padding:14px 16px;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.gain-table th:first-child,.gain-table td:first-child{border-left:1px solid var(--line);border-radius:16px 0 0 16px}.gain-table th:last-child,.gain-table td:last-child{border-right:1px solid var(--line);border-radius:0 16px 16px 0}.gain-table th{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink)}.conditions{display:grid;gap:9px;margin:18px 0 0;padding:0}.conditions li{list-style:none}.conditions li:before{content:"✓";color:var(--green);font-weight:950;margin-right:8px}.steps-list{counter-reset:step;display:grid;gap:12px;padding:0}.steps-list li{list-style:none;padding:18px;border-radius:22px;background:rgba(255,255,255,.78);border:1px solid var(--line)}.steps-list li:before{counter-increment:step;content:counter(step);display:inline-grid;place-items:center;width:30px;height:30px;border-radius:11px;background:#f1efff;color:var(--purple);font-weight:950;margin-right:10px}.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}@media(max-width:720px){.commission-grid{grid-template-columns:1fr}.gain-table{font-size:13px}.gain-table th,.gain-table td{padding:10px 8px}}
+.partner-form{display:grid;gap:14px;margin-top:18px;padding:24px;border-radius:18px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 42px rgba(39,32,91,.07)}.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.partner-form label{display:grid;gap:7px;font-weight:800;color:var(--ink)}.partner-form input,.partner-form textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;color:var(--ink);background:#fff}.partner-form input:focus,.partner-form textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 4px rgba(83,74,183,.10)}.success-message{display:none;padding:20px;border-radius:18px;background:#e9fff6;color:#0f6e56;font-weight:900}.success-message.visible{display:block}.form-status{display:none;padding:12px 14px;border-radius:12px;background:#fff1f0;color:#7a1a1a}@media(max-width:720px){.pf-grid{grid-template-columns:1fr}}
 </style>
 <section>
   <h2>Devenez partenaire Growlee. Construisez des revenus récurrents.</h2>
@@ -27,8 +28,8 @@
     <li>Paiement mensuel sur facture dans les 15 jours après fin de mois</li>
   </ul>
   <div class="cta-row">
-    <a class="btn" href="mailto:contact@growlee.fr?subject=Candidature%20apporteur%20Growlee">Devenir partenaire</a>
-    <a class="btn secondary" href="/apporteurs/">Voir le contrat</a>
+    <a class="btn" href="#partner-form">Devenir partenaire</a>
+    <a class="btn secondary" href="#conditions">Voir les conditions</a>
   </div>
 </section>
 
@@ -41,7 +42,7 @@
   </ol>
 </section>
 
-<section>
+<section id="conditions">
   <h2>Vous correspondez si :</h2>
   <ul class="conditions">
     <li>Vous avez le sens du contact et un réseau local — commerçants, artisans, restaurateurs</li>
@@ -49,8 +50,25 @@
     <li>Vous cherchez des revenus complémentaires récurrents sans contrainte horaire</li>
     <li>Aucune expérience SaaS requise — nous vous formons sur le produit</li>
   </ul>
-  <div class="cta-row">
-    <a class="btn" href="mailto:contact@growlee.fr?subject=Candidature%20apporteur%20Growlee">Postuler maintenant</a>
-  </div>
 </section>
+
+<section id="partner-form">
+  <h2>Postuler comme apporteur</h2>
+  <p>Laissez vos coordonnées et votre zone. On vous répond avec le cadre de collaboration et les prochaines étapes.</p>
+  <div id="partnerSuccess" class="success-message">Candidature envoyée ✓ On revient vers vous rapidement.</div>
+  <form id="partnerContactForm" class="partner-form" method="post" action="/api/contact/" novalidate>{% csrf_token %}
+    <div class="pf-grid"><label>Nom<input name="name" required placeholder="Votre nom"></label><label>Email<input name="email" type="email" required placeholder="vous@email.fr"></label></div>
+    <div class="pf-grid"><label>Téléphone<input name="phone" placeholder="06…"></label><label>Zone / ville<input name="city" required placeholder="Ex : Lyon, Nantes…"></label></div>
+    <label>Votre réseau local<textarea name="message" rows="5" required placeholder="Quels commerces connaissez-vous ? Quelle zone souhaitez-vous couvrir ?"></textarea></label>
+    <input type="hidden" name="need" value="partenaire">
+    <input type="hidden" name="rgpd" value="true">
+    <button id="partnerSubmit" class="btn" type="submit">Envoyer ma candidature</button>
+    <p id="partnerError" class="form-status error">Erreur d’envoi. Réessayez ou écrivez à contact@growlee.fr.</p>
+  </form>
+</section>
+<script>
+const pf=document.getElementById('partnerContactForm');if(pf){const ok=document.getElementById('partnerSuccess'),err=document.getElementById('partnerError'),btn=document.getElementById('partnerSubmit');pf.addEventListener('submit',async e=>{e.preventDefault();err.style.display='none';btn.disabled=true;try{const data=new FormData(pf);const city=data.get('city')||'';data.set('message',`${data.get('message')}
+
+Zone: ${city}`);const res=await fetch('/api/contact/',{method:'POST',body:data,headers:{'X-Requested-With':'XMLHttpRequest'}});if(!res.ok)throw new Error('send');pf.style.display='none';ok.classList.add('visible')}catch(_){err.style.display='block'}finally{btn.disabled=false}})}
+</script>
 {% endblock %}
