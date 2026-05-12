@@ -796,6 +796,8 @@ def merchant_onboarding(request):
     if merchant is None:
         messages.error(request, 'Aucun commerce lié à ce compte.')
         return redirect('admin-dashboard')
+    if request.method == 'GET' and merchant.is_active and merchant.onboarding_fee_paid:
+        return redirect('game-configuration')
 
     merchant_form = MerchantForm(
         request.POST or None,
