@@ -307,14 +307,16 @@ def _admin_access_block_response(request, merchant=None):
     if not _merchant_is_unlocked(merchant) and request.path not in onboarding_allowed:
         return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
     if request.path not in onboarding_allowed:
-        if not merchant.onboarding_completed:
-            messages.info(request, 'Complétez l’onboarding commerçant pour personnaliser votre interface Growlee.')
-            return redirect('merchant-account')
-        if not merchant.flyer_style or not merchant.flyer_visual_approved:
-            messages.info(request, 'Validez votre flyer pour débloquer votre dashboard et préparer le paiement.')
-            return redirect('merchant-account')
+        billing_validated = merchant.is_active and merchant.onboarding_fee_paid
+        if not billing_validated:
+            if not merchant.onboarding_completed:
+                messages.info(request, 'Complétez l’onboarding commerçant pour personnaliser votre interface Growlee.')
+                return redirect('merchant-account')
+            if not merchant.flyer_style or not merchant.flyer_visual_approved:
+                messages.info(request, 'Validez votre flyer pour débloquer votre dashboard et préparer le paiement.')
+                return redirect('merchant-account')
         dashboard_preview_allowed = {'/admin/'}
-        if not merchant.onboarding_fee_paid and request.path not in dashboard_preview_allowed:
+        if not billing_validated and request.path not in dashboard_preview_allowed:
             messages.info(request, 'Votre dashboard et votre QR sont prêts. Finalisez le paiement onboarding pour débloquer toute l’application.')
             return redirect('admin-dashboard')
     return None
