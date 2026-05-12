@@ -603,10 +603,15 @@ def staff_merchants(request):
             merchant.is_demo = False
             merchant.demo_expires_at = None
             merchant.onboarding_fee_paid = True
+            merchant.onboarding_completed = True
+            merchant.flyer_visual_approved = True
+            merchant.flyer_order_status = 'visual_approved_waiting_payment'
+            if not merchant.flyer_style:
+                merchant.flyer_style = 'premium'
             merchant.payment_method = 'Facturation directe'
             merchant.billing_payment_type = 'direct'
             merchant.billing_payment_reference = (request.POST.get('billing_reference') or '').strip()[:120] or 'Activation manuelle staff'
-            merchant.save(update_fields=['is_active', 'is_demo', 'demo_expires_at', 'onboarding_fee_paid', 'payment_method', 'billing_payment_type', 'billing_payment_reference'])
+            merchant.save(update_fields=['is_active', 'is_demo', 'demo_expires_at', 'onboarding_fee_paid', 'onboarding_completed', 'flyer_visual_approved', 'flyer_order_status', 'flyer_style', 'payment_method', 'billing_payment_type', 'billing_payment_reference'])
             campaign, _, _ = _ensure_default_growlee_setup(merchant)
             campaign.is_active = True
             campaign.review_enabled = True
