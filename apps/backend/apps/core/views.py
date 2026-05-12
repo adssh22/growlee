@@ -107,56 +107,11 @@ def partners_page(request):
 
 
 def demo_page(request):
-    step = request.GET.get('step', 'landing')
-    if step not in {'landing', 'game', 'collect', 'reward', 'review', 'wallet'}:
-        step = 'landing'
-    merchant = SimpleNamespace(
-        name='Maison Growlee',
-        slug='demo',
-        tagline='Parcours client premium',
-        business_sector='Commerce local',
-        primary_color='#0D1F18',
-        accent_color='#1ECC7A',
-        surface_color='#F5F7F5',
-        text_color='#0D1F18',
-        heading_font='inter',
-        body_font='inter',
-        logo=None,
-        logo_url='',
-        google_review_url='https://www.google.com/search?q=Growlee',
-    )
-    campaign = SimpleNamespace(
-        journey_type='premium_mobile',
-        is_active=True,
-        review_enabled=True,
-        wallet_enabled=True,
-        game_type='spin',
-        landing_headline='Scannez, jouez, revenez',
-        landing_subheadline='Une expérience mobile identique au vrai parcours Growlee : jeu, gain, avis et wallet.',
-        cta_label='Jouer maintenant',
-        quiz_question='',
-        quiz_answer_a='',
-        quiz_answer_b='',
-        quiz_answer_c='',
-        scratch_label='',
-    )
-    return render(request, 'public/play.html', {
-        'merchant': merchant,
-        'campaign': campaign,
-        'entry_point': None,
-        'form': ClaimRewardForm(),
-        'recent_sessions': [],
-        'step': step,
-        'claimed_session': None,
-        'wheel_segments': [],
-        'total_weight': 0,
-        'heading_font_stack': _font_stack('inter'),
-        'body_font_stack': _font_stack('inter'),
-        'game_step_count': 4,
-        'game_enabled': True,
-        'review_enabled': True,
-        'wallet_enabled': True,
-        'google_review_url': merchant.google_review_url,
+    return render(request, 'public/demo.html', {
+        'title': 'Démo interactive Growlee',
+        'description': 'Un aperçu cliquable du parcours Growlee : scan QR, jeu, gain, avis Google, wallet et retour client.',
+        'canonical_url': 'https://growlee.fr/demo/',
+        'plain_hero': True,
     })
 
 
