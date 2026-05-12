@@ -298,14 +298,14 @@ def _admin_access_block_response(request, merchant=None):
     if merchant is None:
         messages.error(request, 'Aucun commerce n’est rattaché à ce compte.')
         return redirect('logout')
-    if not _merchant_is_unlocked(merchant):
-        return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
     onboarding_allowed = {
         '/admin/account/',
         '/admin/onboarding/',
         '/admin/checkout/',
         '/logout/',
     }
+    if not _merchant_is_unlocked(merchant) and request.path not in onboarding_allowed:
+        return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
     if request.path not in onboarding_allowed:
         if not merchant.onboarding_completed:
             messages.info(request, 'Complétez l’onboarding commerçant pour personnaliser votre interface Growlee.')
@@ -597,6 +597,23 @@ def staff_merchants(request):
             merchant.save(update_fields=['is_demo', 'demo_expires_at', 'is_active'])
             messages.success(request, f'Accès démo {"activé" if merchant.is_demo else "désactivé"} pour {merchant.name}.')
             return redirect('staff-merchants')
+        if action == 'activate_direct_billing':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            merchant.is_active = True
+            merchant.is_demo = False
+            merchant.demo_expires_at = None
+            merchant.onboarding_fee_paid = True
+            merchant.payment_method = 'Facturation directe'
+            merchant.billing_payment_type = 'direct'
+            merchant.billing_payment_reference = (request.POST.get('billing_reference') or '').strip()[:120] or 'Activation manuelle staff'
+            merchant.save(update_fields=['is_active', 'is_demo', 'demo_expires_at', 'onboarding_fee_paid', 'payment_method', 'billing_payment_type', 'billing_payment_reference'])
+            campaign, _, _ = _ensure_default_growlee_setup(merchant)
+            campaign.is_active = True
+            campaign.review_enabled = True
+            campaign.wallet_enabled = True
+            campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
+            messages.success(request, f'{merchant.name} est activé en facturation directe. Le commerçant peut accéder à son compte sans paiement via le site.')
+            return redirect('staff-merchants')
         if action == 'delete_merchant':
             merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
             confirm = (request.POST.get('confirm_name') or '').strip()
@@ -798,8 +815,6 @@ def merchant_onboarding(request):
             'Adresse': merchant.address,
             'Secteur d’activité': merchant.business_sector,
             'Email de contact': merchant.contact_email,
-            'Type de paiement': merchant.billing_payment_type,
-            'Référence paiement': merchant.billing_payment_reference,
             'Offre flyers': merchant.flyer_offer,
         }
         missing = [label for label, value in required.items() if not (value or '').strip()]
@@ -814,8 +829,11 @@ def merchant_onboarding(request):
         merchant.save()
         merchant_form.save_m2m()
         campaign, entry_point, reward = _ensure_default_growlee_setup(merchant)
-        messages.success(request, 'Onboarding enregistré. Votre dashboard, votre QR code et votre parcours client personnalisé sont prêts.')
-        return redirect('admin-dashboard')
+        if merchant.is_active:
+            messages.success(request, 'Onboarding enregistré. Votre dashboard, votre QR code et votre parcours client personnalisé sont prêts.')
+            return redirect('admin-dashboard')
+        messages.success(request, 'Onboarding enregistré. Vos informations sont sauvegardées : vous pouvez revenir payer ou demander une activation par facturation directe plus tard.')
+        return redirect('merchant-account')
 
     context = _merchant_context_for_user(request.user)
     latest_campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()

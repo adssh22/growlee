@@ -109,10 +109,11 @@
                 </div>
               </td>
               <td>{{ row.customers_count }}</td>
-              <td><span class="badge {% if row.merchant.is_active %}on{% else %}off{% endif %}">{% if row.merchant.is_active %}Actif{% else %}Désactivé{% endif %}</span>{% if row.merchant.is_demo %}<br><span class="badge warn" title="Expire {{ row.merchant.demo_expires_at|date:'d/m/Y' }}">Démo</span>{% endif %}</td>
+              <td><span class="badge {% if row.merchant.is_active %}on{% else %}off{% endif %}">{% if row.merchant.is_active %}Actif{% else %}Désactivé{% endif %}</span>{% if row.merchant.is_demo %}<br><span class="badge warn" title="Expire {{ row.merchant.demo_expires_at|date:'d/m/Y' }}">Démo</span>{% endif %}{% if row.merchant.onboarding_fee_paid %}<br><span class="badge on" title="{{ row.merchant.billing_payment_reference|default:'Paiement validé' }}">Payé / direct</span>{% endif %}</td>
               <td><div class="row-actions">
                 <a class="btn secondary" href="/play/{{ row.merchant.slug }}/" target="_blank">Parcours</a>
                 <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><button class="btn {% if row.merchant.is_active %}warn{% else %}secondary{% endif %}" type="submit">{% if row.merchant.is_active %}Désactiver{% else %}Activer commerce{% endif %}</button></form>
+                <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="activate_direct_billing"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><input type="hidden" name="billing_reference" value="Facturation directe validée par {{ request.user.username }}"><button class="btn" type="submit">Activer facturation directe</button></form>
                 <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_demo"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><button class="btn secondary" type="submit">{% if row.merchant.is_demo %}Stop démo{% else %}Accès démo{% endif %}</button></form>
                 <label class="btn warn" for="delete-merchant-{{ row.merchant.id }}" style="cursor:pointer">Supprimer</label>
                 <input class="delete-toggle" id="delete-merchant-{{ row.merchant.id }}" type="checkbox" style="display:none">

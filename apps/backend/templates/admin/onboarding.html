@@ -119,13 +119,13 @@
 
           <section class="ob-step" data-step="2">
             <div class="step-tag">Récapitulatif / Paiement</div>
-            <div class="step-title">Choisir l’impression et lancer la commande.</div>
-            <p class="step-sub">Le paiement est volontairement placé uniquement ici : le commerçant vérifie son rendu, choisit son volume, puis valide.</p>
-            <div class="step-focus"><b>3</b><div><strong>Objectif : confirmer et payer simplement</strong><small>Vérifiez l’offre, choisissez le moyen de paiement puis ouvrez le checkout Growlee. Le style visuel est déjà défini à l’étape précédente.</small></div></div>
+            <div class="step-title">Choisir l’impression et préparer la facturation.</div>
+            <p class="step-sub">Le paiement est volontairement placé uniquement ici : le commerçant vérifie son rendu, choisit son volume, puis peut sauvegarder et payer plus tard.</p>
+            <div class="step-focus"><b>3</b><div><strong>Objectif : confirmer sans bloquer</strong><small>Vérifiez l’offre, choisissez éventuellement un moyen de paiement, puis enregistrez. Le compte reste sauvegardé même si la facturation est finalisée plus tard.</small></div></div>
             <div class="form-grid">
               <input type="hidden" name="merchant-flyer_style" value="{{ merchant.flyer_style|default:'premium' }}">
               <div class="ob-field critical-field"><label>Offre d’impression</label>{{ merchant_form.flyer_offer }}<div class="hint"><span class="recommend">Recommandé</span> 1000 flyers pour démarrer vite ; 5000 pour fort volume marketing.</div></div>
-              <div class="ob-field critical-field"><label>Mode de paiement</label>{{ merchant_form.billing_payment_type }}<div class="security-badge"><b>🔒</b><span>Les informations sensibles servent uniquement à préparer le checkout sécurisé. Growlee ne transforme jamais ce bouton en email.</span></div></div>
+              <div class="ob-field critical-field"><label>Mode de paiement optionnel</label>{{ merchant_form.billing_payment_type }}<div class="security-badge"><b>🔒</b><span>Optionnel à ce stade : vous pouvez enregistrer l’onboarding maintenant et finaliser la facturation plus tard, en ligne ou directement avec Growlee.</span></div></div>
               <div class="ob-field full critical-field payment-panel is-hidden" data-payment-panel="cb">
                 <div class="payment-head"><strong>Carte bancaire</strong><span>Checkout sécurisé</span></div>
                 <div class="payment-grid">
@@ -159,7 +159,7 @@
               <div class="recap-row"><span>Offre flyers</span><strong>{{ merchant.get_flyer_offer_display|default:'1000 flyers · 80€' }}</strong></div>
               <div class="recap-row"><span>Premier paiement</span><strong>Flyers sélectionnés · 1 mois Growlee offert</strong></div>
               <div class="recap-row"><span>Après le mois offert</span><strong>Abonnement automatique</strong></div>
-              <div class="recap-row"><span>Statut commande</span><strong>{% if merchant.flyer_visual_approved %}Visuel validé · paiement attendu{% else %}À valider en enregistrant{% endif %}</strong></div>
+              <div class="recap-row"><span>Statut commande</span><strong>{% if merchant.onboarding_fee_paid %}Facturation validée{% elif merchant.flyer_visual_approved %}Onboarding sauvegardé · paiement possible plus tard{% else %}À valider en enregistrant{% endif %}</strong></div>
               {% if merchant.flyer_visual_approved and not merchant.onboarding_fee_paid %}
                 <a class="ob-btn primary" style="width:100%;margin-top:16px;" href="/admin/checkout/">Procéder au paiement</a>
               {% endif %}
@@ -186,7 +186,7 @@
       <div class="ob-actions">
         <button class="ob-btn secondary is-hidden" type="button" id="prevStep">Retour</button>
         <button class="ob-btn primary" type="button" id="nextStep">Suivant</button>
-        <button class="ob-btn primary is-hidden" type="submit" id="submitStep">Enregistrer l’onboarding</button>
+        <button class="ob-btn primary is-hidden" type="submit" id="submitStep">Enregistrer et payer plus tard</button>
       </div>
     </form>
   </div>
