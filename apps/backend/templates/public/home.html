@@ -230,6 +230,46 @@
     /* Passe complète de stabilisation visuelle — stats et flux */
     .section{position:relative;padding:96px 0!important}.section>h2,.section>.lead{text-align:center}.section>.lead{max-width:780px;margin-left:auto!important;margin-right:auto!important}.process,.grid3,.grid4,.pricing,.timeline,.contact-grid,.partner-kpis,.brand-feature-grid{gap:16px!important}.card,.process-card,.price-card,.contact-card,.timeline-step,.stat-card{background:#fff!important;border:1px solid rgba(0,0,0,.08)!important;border-radius:20px!important;box-shadow:0 14px 34px rgba(39,32,91,.06)!important}.card:hover,.process-card:hover,.price-card:hover,.contact-card:hover{transform:translateY(-2px);box-shadow:0 22px 50px rgba(39,32,91,.10)!important;border-color:rgba(0,0,0,.14)!important}.source-stat{display:grid!important;grid-template-columns:auto 1fr!important;align-items:center!important;gap:22px!important;width:min(760px,100%)!important;margin:34px auto 0!important;padding:24px 28px!important;border:1px solid rgba(83,74,183,.14)!important;border-radius:24px!important;background:linear-gradient(135deg,#fff,#f7f6ff)!important;box-shadow:0 18px 46px rgba(39,32,91,.08)!important}.source-stat-figure{font-size:clamp(44px,6vw,64px)!important;line-height:1!important;letter-spacing:-.04em!important;font-weight:700!important;color:#534ab7!important;white-space:nowrap}.source-stat-body p{margin:0!important;color:#333!important;font-size:16px!important;line-height:1.65!important;font-weight:500!important}.source-stat-body span{display:inline-flex;margin-top:10px;padding:5px 9px;border-radius:999px;background:#f7f6f3;color:#777;font-size:11px;font-style:italic}.source-stat-wide{margin-top:42px!important}.contact-source-stat{margin-top:28px!important;background:linear-gradient(135deg,#f5f4fe,#fff)!important}.stat-grid{align-items:stretch!important}.stat-card{display:flex!important;flex-direction:column!important;min-height:100%!important}.stat-card .stat-number,.stat-card .stat-figure{font-size:50px!important;letter-spacing:-.03em!important;font-weight:700!important;color:#534ab7!important}.stat-card .stat-copy,.stat-card .stat-text{font-size:15px!important;line-height:1.65!important;font-weight:500!important;color:#555!important}.stat-card .stat-source{margin-top:auto!important;width:max-content;max-width:100%;background:#f7f6f3!important;border-radius:999px!important;padding:5px 9px!important;font-size:11px!important;font-style:italic!important;text-transform:none!important;letter-spacing:0!important}.split{align-items:center!important}.split .stat-grid{margin-top:24px!important}.modules-stats{margin-top:28px!important}.honesty-note{margin-bottom:28px!important}.footer{margin-top:0!important}@media(max-width:767px){.section{padding:56px 0!important}.source-stat{grid-template-columns:1fr!important;text-align:left!important;padding:22px!important}.source-stat-figure{font-size:44px!important}.stat-card .stat-number,.stat-card .stat-figure{font-size:42px!important}.process,.grid3,.grid4,.pricing,.timeline,.contact-grid,.partner-kpis,.brand-feature-grid{gap:10px!important}}
 
+
+    /* QA contraste final — cartes foncées + thème sombre après toutes les passes */
+    .card.dark,
+    html[data-theme="light"] .card.dark,
+    html[data-theme="dark"] .card.dark{
+      background:radial-gradient(circle at top right,rgba(175,169,236,.24),transparent 34%),linear-gradient(145deg,#141322,#251a64)!important;
+      border-color:rgba(255,255,255,.12)!important;
+      color:#fff!important;
+      box-shadow:0 24px 70px rgba(39,32,91,.18)!important;
+    }
+    .card.dark:before{background:linear-gradient(180deg,rgba(255,255,255,.08),transparent)!important}
+    .card.dark:after{background:radial-gradient(circle,rgba(114,224,188,.16),transparent 68%)!important}
+    .card.dark h2,
+    .card.dark h3,
+    .card.dark .big{color:#fff!important}
+    .card.dark p,
+    .card.dark .dark-list span{color:rgba(255,255,255,.90)!important}
+    .card.dark .dark-list span{background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.16)!important}
+    html[data-theme="dark"] .card:not(.dark),
+    html[data-theme="dark"] .process-card,
+    html[data-theme="dark"] .price-card,
+    html[data-theme="dark"] .contact-card,
+    html[data-theme="dark"] .timeline-step,
+    html[data-theme="dark"] .stat-card,
+    html[data-theme="dark"] .faq-item{
+      background:rgba(15,23,42,.82)!important;
+      border-color:rgba(255,255,255,.12)!important;
+      color:#f8fafc!important;
+      box-shadow:0 24px 70px rgba(0,0,0,.24)!important;
+    }
+    html[data-theme="dark"] .stat-card .stat-copy,
+    html[data-theme="dark"] .stat-card .stat-text,
+    html[data-theme="dark"] .source-stat-body p,
+    html[data-theme="dark"] .features li,
+    html[data-theme="dark"] .timeline-step span,
+    html[data-theme="dark"] .faq-answer p{color:#cbd5e1!important}
+    html[data-theme="dark"] .source-stat,
+    html[data-theme="dark"] .contact-source-stat{background:rgba(15,23,42,.82)!important;border-color:rgba(255,255,255,.12)!important}
+    html[data-theme="dark"] .source-stat-body span,
+    html[data-theme="dark"] .stat-card .stat-source{background:rgba(255,255,255,.08)!important;color:#94a3b8!important}
   </style>
 </head>
 <body>
