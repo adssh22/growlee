@@ -32,6 +32,7 @@ from apps.campaigns.models import Campaign, EntryPoint, WheelSegment
 from apps.core.forms import CampaignForm, EntryPointForm, MerchantForm, MerchantReviewForm, MerchantSignupForm, RewardForm, StaffMerchantCreateForm
 from apps.core.totp import generate_secret, provisioning_uri, verify_totp
 from apps.core.utils import build_qr_svg, generate_qr_data_uri
+from apps.core.security import rate_limit
 from apps.customers.forms import ClaimRewardForm
 from apps.customers.models import Customer, GameSession, WalletPass
 from apps.customers.services import claim_reward, reward_claim_url, send_reward_notifications
@@ -49,6 +50,7 @@ def home(request):
     return render(request, 'public/home.html', {'seo_base_url': settings.APP_BASE_URL})
 
 
+@rate_limit('contact_page', limit=10, limit_setting='RATELIMIT_CONTACT_ATTEMPTS', window=3600)
 def contact_page(request):
     sent = False
     if request.method == 'POST':
@@ -75,6 +77,7 @@ def contact_page(request):
 
 
 @csrf_exempt
+@rate_limit('api_contact', limit=10, limit_setting='RATELIMIT_CONTACT_ATTEMPTS', window=3600)
 def api_contact(request):
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'method_not_allowed'}, status=405)
@@ -343,6 +346,7 @@ def _unique_merchant_slug(name):
     return slug
 
 
+@rate_limit('signup', limit=5, limit_setting='RATELIMIT_SIGNUP_ATTEMPTS', window=3600)
 def signup_view(request):
     if request.user.is_authenticated:
         return redirect('admin-dashboard')
@@ -367,6 +371,7 @@ def signup_view(request):
         return redirect('admin-dashboard')
     return render(request, 'admin/signup.html', {'form': form})
 
+@rate_limit('login', limit=8, limit_setting='RATELIMIT_LOGIN_ATTEMPTS', window=900)
 def login_view(request):
     if request.user.is_authenticated:
         if request.user.is_superuser:
@@ -1326,6 +1331,7 @@ def employee_exit(request):
     return render(request, 'admin/employee_exit.html', {'merchant': merchant, 'form': form})
 
 
+@rate_limit('reward_claim', limit=20, limit_setting='RATELIMIT_GAIN_ATTEMPTS', window=3600)
 def reward_claim_page(request, token):
     session = get_object_or_404(
         GameSession.objects.select_related('customer', 'campaign__merchant', 'reward'),
@@ -1404,6 +1410,7 @@ def google_wallet_pass(request, slug):
         }, status=501)
     return redirect(wallet_pass.pass_url)
 
+@rate_limit('play_page', limit=30, limit_setting='RATELIMIT_PLAY_POST_ATTEMPTS', window=3600)
 def play_page(request, slug):
     merchant = get_object_or_404(Merchant, slug=slug, is_active=True)
     # Le parcours public ne dépend plus uniquement du module Jeu.

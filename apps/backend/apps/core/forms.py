@@ -6,6 +6,7 @@ import re
 from apps.campaigns.models import Campaign, EntryPoint
 from apps.merchants.models import Merchant
 from apps.rewards.models import Reward
+from apps.core.security import validate_uploaded_image
 
 
 class MerchantForm(forms.ModelForm):
@@ -72,16 +73,22 @@ class MerchantForm(forms.ModelForm):
         return reference
 
     def clean_logo(self):
-        logo = self.cleaned_data.get('logo')
-        if logo and getattr(logo, 'size', 0) > 5 * 1024 * 1024:
-            raise forms.ValidationError('Logo trop lourd : maximum 5 Mo.')
-        return logo
+        return validate_uploaded_image(
+            self.cleaned_data.get('logo'),
+            max_size_mb=5,
+            max_width=3000,
+            max_height=3000,
+            label='Logo',
+        )
 
     def clean_inspiration_image(self):
-        image = self.cleaned_data.get('inspiration_image')
-        if image and getattr(image, 'size', 0) > 8 * 1024 * 1024:
-            raise forms.ValidationError('Image trop lourde : maximum 8 Mo.')
-        return image
+        return validate_uploaded_image(
+            self.cleaned_data.get('inspiration_image'),
+            max_size_mb=8,
+            max_width=5000,
+            max_height=5000,
+            label='Image d’inspiration',
+        )
 
 
 class MerchantReviewForm(forms.ModelForm):

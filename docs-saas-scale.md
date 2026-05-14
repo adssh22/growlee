@@ -70,3 +70,57 @@ Avant scale sérieux, ajouter des tests automatiques qui prouvent qu’un marcha
 - automations ;
 
 d’un marchand B.
+
+## Sécurité et exploitation ajoutées
+
+### Rate limiting
+
+Les vues sensibles sont maintenant limitées par cache Django :
+
+- `/login/`
+- `/signup/`
+- `/contact/`
+- `/api/contact/`
+- `/play/<slug>/` sur POST
+- `/gain/<token>/` sur POST
+
+Variables utiles :
+
+```env
+RATELIMIT_ENABLED=1
+RATELIMIT_LOGIN_ATTEMPTS=8
+RATELIMIT_SIGNUP_ATTEMPTS=5
+RATELIMIT_PLAY_POST_ATTEMPTS=30
+RATELIMIT_CONTACT_ATTEMPTS=10
+RATELIMIT_GAIN_ATTEMPTS=20
+```
+
+En multi-worker ou multi-node, utiliser Redis pour un compteur partagé :
+
+```env
+REDIS_URL=redis://redis:6379/1
+```
+
+### Uploads
+
+Les images marchand sont validées côté serveur :
+
+- vrai format image vérifié avec Pillow ;
+- PNG/JPG/WebP uniquement ;
+- taille maximale ;
+- dimensions maximales ;
+- payload non-image rejeté même si l’extension est `.png`.
+
+### Tests isolation SaaS
+
+Des tests couvrent les premiers cas critiques : un marchand ne peut pas modifier la campagne d’un autre marchand via le toggle admin.
+À étendre systématiquement à chaque nouvelle vue admin.
+
+### Ops inclus
+
+Scripts ajoutés :
+
+- `ops/backup_postgres.sh` : backup quotidien PostgreSQL au format custom ;
+- `ops/restore_check_postgres.sh` : test de restauration sur base jetable ;
+- `ops/monitoring_check.sh` : disque, RAM, load, taille DB, expiration SSL ;
+- `ops/INFRA-HARDENING.md` : firewall, SSH, fail2ban, updates, reverse proxy HTTPS.

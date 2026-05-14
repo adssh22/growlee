@@ -155,6 +155,55 @@ READ_REPLICA_DATABASE_URL = os.getenv('READ_REPLICA_DATABASE_URL', '').strip()
 if READ_REPLICA_DATABASE_URL:
     DATABASES['replica'] = postgres_config_from_env('READ_REPLICA_POSTGRES', 'READ_REPLICA_DATABASE_URL')
 
+if env_bool('DJANGO_TEST_SQLITE', False):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test.sqlite3',
+        }
+    }
+
+
+
+RATELIMIT_ENABLED = env_bool('RATELIMIT_ENABLED', True)
+RATELIMIT_LOGIN_ATTEMPTS = int(os.getenv('RATELIMIT_LOGIN_ATTEMPTS', '8'))
+RATELIMIT_SIGNUP_ATTEMPTS = int(os.getenv('RATELIMIT_SIGNUP_ATTEMPTS', '5'))
+RATELIMIT_PLAY_POST_ATTEMPTS = int(os.getenv('RATELIMIT_PLAY_POST_ATTEMPTS', '30'))
+RATELIMIT_CONTACT_ATTEMPTS = int(os.getenv('RATELIMIT_CONTACT_ATTEMPTS', '10'))
+RATELIMIT_GAIN_ATTEMPTS = int(os.getenv('RATELIMIT_GAIN_ATTEMPTS', '20'))
+
+REDIS_URL = os.getenv('REDIS_URL', '').strip()
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': os.getenv('DJANGO_CACHE_BACKEND', 'django.core.cache.backends.locmem.LocMemCache'),
+            'LOCATION': os.getenv('DJANGO_CACHE_LOCATION', 'growlee-default-cache'),
+        }
+    }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {'format': '[{levelname}] {asctime} {name}: {message}', 'style': '{'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'standard'},
+    },
+    'root': {'handlers': ['console'], 'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO')},
+    'loggers': {
+        'django.security': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'apps': {'handlers': ['console'], 'level': os.getenv('GROWLEE_LOG_LEVEL', 'INFO'), 'propagate': False},
+    },
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
