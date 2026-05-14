@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -93,16 +94,67 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'growlee.wsgi.application'
 
-DATABASES = {
-    'default': {
+def postgres_config_from_env(prefix: str = 'POSTGRES', url_env: str = 'DATABASE_URL') -> dict:
+    """Build a cloud-friendly PostgreSQL DATABASES entry.
+
+    Priority:
+    1. DATABASE_URL / READ_REPLICA_DATABASE_URL style value for managed cloud DBs.
+    2. POSTGRES_* variables for local Docker / VPS deployments.
+
+    Supported URL example:
+    postgresql://user:password@host:5432/dbname?sslmode=require
+    """
+    database_url = os.getenv(url_env, '').strip()
+    conn_max_age = int(os.getenv(f'{prefix}_CONN_MAX_AGE', os.getenv('DB_CONN_MAX_AGE', '60')) or 60)
+    conn_health_checks = env_bool(f'{prefix}_CONN_HEALTH_CHECKS', env_bool('DB_CONN_HEALTH_CHECKS', True))
+
+    if database_url:
+        parsed = urlparse(database_url)
+        if parsed.scheme not in {'postgres', 'postgresql'}:
+            raise RuntimeError(f'{url_env} must use postgres:// or postgresql://')
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        options = {}
+        sslmode = query.pop('sslmode', os.getenv(f'{prefix}_SSLMODE', os.getenv('POSTGRES_SSLMODE', '')).strip())
+        if sslmode:
+            options['sslmode'] = sslmode
+        config = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': unquote((parsed.path or '/').lstrip('/')),
+            'USER': unquote(parsed.username or ''),
+            'PASSWORD': unquote(parsed.password or ''),
+            'HOST': parsed.hostname or '',
+            'PORT': str(parsed.port or query.pop('port', '5432')),
+            'CONN_MAX_AGE': conn_max_age,
+            'CONN_HEALTH_CHECKS': conn_health_checks,
+        }
+        if options:
+            config['OPTIONS'] = options
+        return config
+
+    options = {}
+    sslmode = os.getenv(f'{prefix}_SSLMODE', os.getenv('POSTGRES_SSLMODE', '')).strip()
+    if sslmode:
+        options['sslmode'] = sslmode
+    config = {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'growlee'),
-        'USER': os.getenv('POSTGRES_USER', 'growlee'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'growlee'),
-        'HOST': os.getenv('POSTGRES_HOST', 'db'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        'NAME': os.getenv(f'{prefix}_DB', os.getenv('POSTGRES_DB', 'growlee')),
+        'USER': os.getenv(f'{prefix}_USER', os.getenv('POSTGRES_USER', 'growlee')),
+        'PASSWORD': os.getenv(f'{prefix}_PASSWORD', os.getenv('POSTGRES_PASSWORD', 'growlee')),
+        'HOST': os.getenv(f'{prefix}_HOST', os.getenv('POSTGRES_HOST', 'db')),
+        'PORT': os.getenv(f'{prefix}_PORT', os.getenv('POSTGRES_PORT', '5432')),
+        'CONN_MAX_AGE': conn_max_age,
+        'CONN_HEALTH_CHECKS': conn_health_checks,
     }
-}
+    if options:
+        config['OPTIONS'] = options
+    return config
+
+
+DATABASES = {'default': postgres_config_from_env()}
+READ_REPLICA_DATABASE_URL = os.getenv('READ_REPLICA_DATABASE_URL', '').strip()
+if READ_REPLICA_DATABASE_URL:
+    DATABASES['replica'] = postgres_config_from_env('READ_REPLICA_POSTGRES', 'READ_REPLICA_DATABASE_URL')
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
