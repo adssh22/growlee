@@ -1,0 +1,60 @@
+{% extends 'admin/base.html' %}
+{% block title %}Configuration · Growlee{% endblock %}
+{% block content %}
+<style>
+  .config-hero{position:relative;overflow:hidden;border-radius:32px;padding:28px;margin-bottom:18px;background:radial-gradient(circle at 88% 8%,rgba(114,224,188,.28),transparent 28%),linear-gradient(135deg,var(--color-brand),#30257f 58%,#1d9e75);color:#fff;box-shadow:0 28px 80px rgba(39,32,91,.18)}
+  .config-hero:after{content:"";position:absolute;right:-70px;top:-90px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.13)}.config-hero>*{position:relative}.config-hero h1{margin:8px 0 8px;font-size:clamp(34px,5vw,58px);line-height:.98;letter-spacing:-.07em;color:#fff}.config-hero p{max-width:760px;margin:0;color:rgba(255,255,255,.78);line-height:1.55}.config-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.config-actions .btn.secondary{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.18);color:#fff}.module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.module-card{position:relative;overflow:hidden;border-radius:28px;padding:22px;background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);box-shadow:0 18px 46px rgba(39,32,91,.08);display:flex;flex-direction:column;min-height:265px}.module-card:before{content:"";position:absolute;inset:0 0 auto;height:5px;background:linear-gradient(90deg,var(--module-a),var(--module-b));opacity:.95}.module-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}.module-icon{width:52px;height:52px;border-radius:19px;display:grid;place-items:center;font-size:25px;background:color-mix(in srgb,var(--module-a) 13%,var(--color-background-secondary));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--module-a) 15%,transparent)}.module-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.10em;font-weight:900;color:var(--color-text-tertiary)}.module-card h2{font-size:26px;line-height:1.05;letter-spacing:-.05em;margin:6px 0 8px;color:var(--color-text-primary)}.module-card p{color:var(--color-text-secondary);line-height:1.55;margin:0}.module-status{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 10px;font-size:12px;font-weight:900;background:var(--color-background-secondary);color:var(--color-text-secondary);white-space:nowrap}.module-status:before{content:"";width:8px;height:8px;border-radius:50%;background:#c7cedd}.module-status.on{background:#e9fff6;color:#0f6e56}.module-status.on:before{background:#1d9e75;box-shadow:0 0 0 5px rgba(29,158,117,.12)}.module-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:20px}.module-switch-form{margin:0}.module-switch.mini{min-height:44px;padding:8px 10px;border-radius:999px}.module-link{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:12px 16px;font-weight:900;background:linear-gradient(135deg,var(--module-a),var(--module-b));color:#fff;text-decoration:none;box-shadow:0 16px 34px color-mix(in srgb,var(--module-a) 24%,transparent)}.module-link.secondary{background:var(--color-background-secondary);color:var(--color-text-primary);box-shadow:none;border:.5px solid var(--color-border-tertiary)}.config-note{margin-top:14px;border-radius:24px;padding:18px;background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);line-height:1.55}.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 18px}.quick-card{border-radius:22px;padding:16px;background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);box-shadow:0 12px 30px rgba(39,32,91,.05)}.quick-card strong{display:block;font-size:22px;color:var(--color-text-primary)}.quick-card span{display:block;margin-top:4px;color:var(--color-text-secondary);font-size:12px}html[data-theme="dark"] .module-status.on{background:rgba(29,158,117,.16);color:#b7ead8}html[data-theme="dark"] .config-actions .btn.secondary{background:rgba(255,255,255,.10)!important;color:#fff!important}html[data-theme="dark"] .module-link.secondary{background:rgba(255,255,255,.06);color:#f8fafc}@media(max-width:980px){.module-grid,.quick-grid{grid-template-columns:1fr}.config-hero{padding:22px;border-radius:26px}.module-footer{align-items:stretch;flex-direction:column}.module-link,.module-switch.mini{width:100%}}
+</style>
+
+<div class="config-hero">
+  <div class="eyebrow" style="color:rgba(255,255,255,.78);">Configuration</div>
+  <h1>Modules Growlee</h1>
+  <p>Activez ou désactivez les briques du parcours client, puis entrez dans chaque sous-page pour régler les détails : jeu, avis Google, wallet et campagnes.</p>
+  <div class="config-actions">
+    <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=landing" target="_blank">Ouvrir le parcours client</a>
+    <a class="btn secondary" href="/admin/account/">Compte & identité</a>
+  </div>
+</div>
+
+<div class="quick-grid">
+  <div class="quick-card"><strong>{{ active_modules_count }}/3</strong><span>modules actifs dans le parcours client</span></div>
+  <div class="quick-card"><strong>{{ rewards|length }}</strong><span>récompense{% if rewards|length > 1 %}s{% endif %} configurée{% if rewards|length > 1 %}s{% endif %}</span></div>
+  <div class="quick-card"><strong>{% if primary_entry %}QR prêt{% else %}QR à créer{% endif %}</strong><span>point d’entrée principal du commerce</span></div>
+</div>
+
+<div class="module-grid">
+  <article class="module-card" style="--module-a:#534ab7;--module-b:#766cf0;">
+    <div class="module-top"><div><div class="module-icon">🎁</div><div class="module-kicker">Module 1</div><h2>Jeu</h2><p>Configurez la mécanique, les textes d’accueil, les récompenses, les probabilités et l’aperçu mobile.</p></div><span class="module-status {% if campaign and campaign.is_active %}on{% endif %}">{% if campaign and campaign.is_active %}Activé{% else %}Désactivé{% endif %}</span></div>
+    <div class="module-footer">
+      <form class="module-switch-form" method="post" action="/admin/campaign/toggle/">{% csrf_token %}<input type="hidden" name="campaign_id" value="{{ campaign.id }}"><input type="hidden" name="flag" value="is_active"><input type="hidden" name="value" value="{% if campaign and campaign.is_active %}0{% else %}1{% endif %}"><input type="hidden" name="next" value="/admin/onboarding/"><button type="submit" class="module-switch mini {% if campaign and campaign.is_active %}is-on{% endif %}"><span class="switch-track"><span class="switch-knob"></span></span><strong>{% if campaign and campaign.is_active %}Désactiver{% else %}Activer{% endif %}</strong></button></form>
+      <a class="module-link" href="/admin/game/">Configurer le jeu</a>
+    </div>
+  </article>
+
+  <article class="module-card" style="--module-a:#1d9e75;--module-b:#72e0bc;">
+    <div class="module-top"><div><div class="module-icon">⭐</div><div class="module-kicker">Module 2</div><h2>Avis</h2><p>Définissez le lien Google Reviews et le comportement de redirection après une expérience positive.</p></div><span class="module-status {% if campaign and campaign.review_enabled %}on{% endif %}">{% if campaign and campaign.review_enabled %}Activé{% else %}Désactivé{% endif %}</span></div>
+    <div class="module-footer">
+      <form class="module-switch-form" method="post" action="/admin/campaign/toggle/">{% csrf_token %}<input type="hidden" name="campaign_id" value="{{ campaign.id }}"><input type="hidden" name="flag" value="review_enabled"><input type="hidden" name="value" value="{% if campaign and campaign.review_enabled %}0{% else %}1{% endif %}"><input type="hidden" name="next" value="/admin/onboarding/"><button type="submit" class="module-switch mini {% if campaign and campaign.review_enabled %}is-on{% endif %}"><span class="switch-track"><span class="switch-knob"></span></span><strong>{% if campaign and campaign.review_enabled %}Désactiver{% else %}Activer{% endif %}</strong></button></form>
+      <a class="module-link" href="/admin/game/review/">Configurer les avis</a>
+    </div>
+  </article>
+
+  <article class="module-card" style="--module-a:#0f172a;--module-b:#534ab7;">
+    <div class="module-top"><div><div class="module-icon">💳</div><div class="module-kicker">Module 3</div><h2>Wallet</h2><p>Activez la carte wallet, les stamps, le retour client et les raccourcis Apple / Google Wallet.</p></div><span class="module-status {% if campaign and campaign.wallet_enabled %}on{% endif %}">{% if campaign and campaign.wallet_enabled %}Activé{% else %}Désactivé{% endif %}</span></div>
+    <div class="module-footer">
+      <form class="module-switch-form" method="post" action="/admin/campaign/toggle/">{% csrf_token %}<input type="hidden" name="campaign_id" value="{{ campaign.id }}"><input type="hidden" name="flag" value="wallet_enabled"><input type="hidden" name="value" value="{% if campaign and campaign.wallet_enabled %}0{% else %}1{% endif %}"><input type="hidden" name="next" value="/admin/onboarding/"><button type="submit" class="module-switch mini {% if campaign and campaign.wallet_enabled %}is-on{% endif %}"><span class="switch-track"><span class="switch-knob"></span></span><strong>{% if campaign and campaign.wallet_enabled %}Désactiver{% else %}Activer{% endif %}</strong></button></form>
+      <a class="module-link" href="/admin/game/wallet/">Configurer le wallet</a>
+    </div>
+  </article>
+
+  <article class="module-card" style="--module-a:#f59e0b;--module-b:#fb7185;">
+    <div class="module-top"><div><div class="module-icon">📣</div><div class="module-kicker">Module 4</div><h2>Campagnes</h2><p>Préparez les relances SMS/email et les messages de retour pour transformer un passage en prochaine visite.</p></div><span class="module-status on">Disponible</span></div>
+    <div class="module-footer">
+      <span class="module-link secondary">Pilotage séparé</span>
+      <a class="module-link" href="/admin/automations/">Configurer les campagnes</a>
+    </div>
+  </article>
+</div>
+
+<div class="config-note"><strong>À retenir :</strong> cette page est le point d’entrée configuration. Les réglages détaillés restent dans les sous-pages pour éviter de mélanger activation, contenu, récompenses et aperçu.</div>
+{% endblock %}

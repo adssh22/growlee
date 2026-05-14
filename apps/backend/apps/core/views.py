@@ -796,6 +796,12 @@ def merchant_onboarding(request):
     if merchant is None:
         messages.error(request, 'Aucun commerce lié à ce compte.')
         return redirect('admin-dashboard')
+    if request.method == 'GET' and request.path == '/admin/onboarding/' and merchant.onboarding_completed:
+        context = _merchant_context_for_user(request.user)
+        if context.get('campaign') is None:
+            _ensure_default_growlee_setup(merchant)
+            context = _merchant_context_for_user(request.user)
+        return render(request, 'admin/configuration.html', context)
     merchant_form = MerchantForm(
         request.POST or None,
         request.FILES or None,
