@@ -965,22 +965,30 @@ def toggle_campaign_flag(request):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
     context = _merchant_context_for_user(request.user)
+    merchant = context['merchant']
     campaign = context['campaign']
+    if campaign is None and merchant:
+        campaign, _entry_point, _reward = _ensure_default_growlee_setup(merchant)
     campaign_id = request.POST.get('campaign_id')
-    if campaign_id and context['merchant']:
-        campaign = Campaign.objects.filter(id=campaign_id, merchant=context['merchant']).first()
+    if campaign_id and merchant:
+        campaign = Campaign.objects.filter(id=campaign_id, merchant=merchant).first() or campaign
     if campaign is None:
         messages.error(request, 'Aucune campagne à modifier.')
         return redirect('merchant-onboarding')
     flag = request.POST.get('flag')
     requested = request.POST.get('value')
     desired = (requested == '1') if requested in {'0', '1'} else None
-    if flag == 'is_active':
-        Campaign.objects.filter(id=campaign.id).update(is_active=(desired if desired is not None else (not campaign.is_active)))
-    elif flag == 'review_enabled':
-        Campaign.objects.filter(id=campaign.id).update(review_enabled=(desired if desired is not None else (not campaign.review_enabled)))
-    elif flag == 'wallet_enabled':
-        Campaign.objects.filter(id=campaign.id).update(wallet_enabled=(desired if desired is not None else (not campaign.wallet_enabled)))
+    labels = {
+        'is_active': 'Jeu',
+        'review_enabled': 'Avis',
+        'wallet_enabled': 'Wallet',
+    }
+    if flag in labels:
+        current = getattr(campaign, flag)
+        next_value = desired if desired is not None else (not current)
+        setattr(campaign, flag, next_value)
+        campaign.save(update_fields=[flag])
+        messages.success(request, f'Module {labels[flag]} {"activé" if next_value else "désactivé"}.')
     else:
         messages.error(request, 'Option inconnue.')
     return redirect(request.POST.get('next') or 'merchant-onboarding')
