@@ -1,7 +1,7 @@
 {% extends 'admin/base.html' %}
 {% block title %}Avis · Growlee{% endblock %}
 {% block content %}
-<button class="btn secondary" onclick="location.href='/admin/game/'" style="margin-bottom:20px;">‹ Configuration</button>
+<button class="btn secondary" onclick="location.href='/admin/onboarding/'" style="margin-bottom:20px;">‹ Configuration</button>
 <div class="topbar" style="margin-bottom:16px;"><div><div class="eyebrow">Module 2</div><div class="title">Avis</div><div class="subtitle">Ajoutez le lien Google de votre établissement : les clients satisfaits seront redirigés dessus depuis le parcours QR.</div></div><div style="display:flex; align-items:center; gap:10px;"><form method="post" action="/admin/campaign/toggle/">{% csrf_token %}<input type="hidden" name="campaign_id" value="{{ campaign.id }}" /><input type="hidden" name="flag" value="review_enabled" /><input type="hidden" name="value" value="{% if campaign and campaign.review_enabled %}0{% else %}1{% endif %}" /><input type="hidden" name="next" value="/admin/game/review/" /><button type="submit" class="module-switch {% if campaign and campaign.review_enabled %}is-on{% endif %}"><span class="switch-track"><span class="switch-knob"></span></span><strong>{% if campaign and campaign.review_enabled %}Activé{% else %}Désactivé{% endif %}</strong></button></form></div></div>
 
 <form method="post">

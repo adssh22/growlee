@@ -138,13 +138,13 @@
           <a class="ni" href="/admin/employee/exit/">Mode employeur</a>
         {% else %}
           <div class="nav-section">Principal</div>
-          {% if merchant and not merchant.onboarding_fee_paid %}
+          {% if merchant and not merchant.onboarding_completed %}
             <a class="ni active" href="/admin/account/">Onboarding</a>
           {% else %}
             <a class="ni {% if request.path == '/admin/' %}active{% endif %}" href="/admin/">Tableau de bord</a>
             <a class="ni {% if request.path == '/admin/customers/' or '/admin/customers/' in request.path %}active{% endif %}" href="/admin/customers/">Clients</a>
-            <a class="ni {% if request.path == '/admin/game/' or request.path == '/admin/game/review/' or request.path == '/admin/game/wallet/' %}active{% endif %}" href="/admin/game/">Configuration</a>
-            {% if request.path == '/admin/game/' or request.path == '/admin/game/review/' or request.path == '/admin/game/wallet/' %}
+            <a class="ni {% if request.path == '/admin/onboarding/' or request.path == '/admin/account/' or request.path == '/admin/game/' or request.path == '/admin/game/review/' or request.path == '/admin/game/wallet/' %}active{% endif %}" href="/admin/onboarding/">Configuration</a>
+            {% if request.path == '/admin/onboarding/' or request.path == '/admin/account/' or request.path == '/admin/game/' or request.path == '/admin/game/review/' or request.path == '/admin/game/wallet/' %}
             <div class="submenu-group">
               <a class="ni sub {% if request.path == '/admin/game/' %}active{% endif %}" href="/admin/game/">Jeu</a>
               <a class="ni sub {% if request.path == '/admin/game/review/' %}active{% endif %}" href="/admin/game/review/">Avis</a>
@@ -165,10 +165,10 @@
             <a class="btn secondary" href="/admin/employee/exit/" style="width:100%;justify-content:center;">Mode employeur</a>
           {% else %}
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-              <a class="av" href="{% if merchant.onboarding_fee_paid %}/admin/game/{% else %}/admin/account/{% endif %}" title="Compte commerce" style="text-decoration:none;">{{ merchant.name|default:'G'|slice:':2' }}</a>
+              <a class="av" href="/admin/account/" title="Compte commerce" style="text-decoration:none;">{{ merchant.name|default:'G'|slice:':2' }}</a>
               <button id="themeToggle" class="theme-toggle" type="button" aria-label="Changer de thème"><span class="switch-track"><span class="switch-knob"></span></span></button>
             </div>
-            <a class="logout-link" href="{% if merchant.onboarding_fee_paid %}/admin/game/{% else %}/admin/account/{% endif %}">{{ merchant.name|default:'Compte commerce' }}</a>
+            <a class="logout-link" href="/admin/account/">{{ merchant.name|default:'Compte commerce' }}</a>
             <a class="logout-link" href="/logout/">Déconnexion</a>
           {% endif %}
         </div>
