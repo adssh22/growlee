@@ -1,8 +1,8 @@
 {% load static %}
 <header class="nav-wrap"><div class="wrap"><div class="nav">
   <a class="brand" href="/" aria-label="Growlee"><img src="{% static 'brand/growlee-logo-clean.png' %}" alt="Growlee – logiciel de fidélisation QR pour commerces" loading="eager" width="220" height="72"></a>
-  <button class="nav-hamburger" type="button" aria-label="Ouvrir le menu" aria-hidden="true"><span></span><span></span><span></span></button>
-  <nav class="links" aria-label="Navigation principale">
+  <button class="nav-hamburger" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="publicNav"><span></span><span></span><span></span></button>
+  <nav id="publicNav" class="links" aria-label="Navigation principale">
     <a href="/#parcours">Parcours</a>
     <a href="/#modules">Modules</a>
     <a href="/#pricing">Tarifs</a>
