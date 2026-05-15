@@ -2,6 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
+from django.views.generic.base import RedirectView
 
 from apps.core.views import (
     admin_dashboard,
@@ -62,6 +63,7 @@ urlpatterns = [
     path('confidentialite/', legal_page, {'page': 'confidentialite'}, name='legal-privacy'),
     path('robots.txt', robots_txt, name='robots-txt'),
     path('sitemap.xml', sitemap_xml, name='sitemap-xml'),
+    path('favicon.ico', RedirectView.as_view(url='/static/brand/favicon.ico', permanent=True), name='favicon'),
     path('login/', login_view, name='login'),
     path('signup/', signup_view, name='signup'),
     path('logout/', logout_view, name='logout'),

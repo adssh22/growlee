@@ -1,8 +1,33 @@
 {% extends 'public/info_page.html' %}
 {% block body %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Apporteurs d'affaires Growlee",
+  "url": "https://growlee.fr/apporteurs/",
+  "description": "Programme partenaire Growlee pour apporteurs d'affaires : 30€ par mois et par client actif apporté pendant 12 mois.",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Growlee",
+    "url": "https://growlee.fr/"
+  },
+  "about": {
+    "@type": "Service",
+    "name": "Programme apporteurs d'affaires Growlee",
+    "provider": {
+      "@type": "Organization",
+      "name": "Growlee",
+      "url": "https://growlee.fr/",
+      "logo": "https://growlee.fr/static/brand/growlee-icon-clean.png"
+    },
+    "serviceType": "Programme partenaire commercial"
+  }
+}
+</script>
 <style>
   .partner-hero{margin-bottom:28px}.partner-hero h2{font-size:clamp(34px,5vw,56px);line-height:.96;letter-spacing:-.07em;margin:0 0 14px;color:var(--ink)}.partner-hero p{font-size:20px;line-height:1.6;color:#5f5a76}.commission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.commission-card{padding:20px;border-radius:24px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 42px rgba(39,32,91,.07)}.commission-card strong{display:block;font-size:30px;letter-spacing:-.055em;color:var(--ink)}.commission-card span{display:block;color:#69647f;margin-top:5px}.gain-table{width:100%;border-collapse:separate;border-spacing:0 10px;margin:18px 0}.gain-table th,.gain-table td{text-align:left;padding:14px 16px;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.gain-table th:first-child,.gain-table td:first-child{border-left:1px solid var(--line);border-radius:16px 0 0 16px}.gain-table th:last-child,.gain-table td:last-child{border-right:1px solid var(--line);border-radius:0 16px 16px 0}.gain-table th{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink)}.conditions{display:grid;gap:9px;margin:18px 0 0;padding:0}.conditions li{list-style:none}.conditions li:before{content:"✓";color:var(--green);font-weight:950;margin-right:8px}.steps-list{counter-reset:step;display:grid;gap:12px;padding:0}.steps-list li{list-style:none;padding:18px;border-radius:22px;background:rgba(255,255,255,.78);border:1px solid var(--line)}.steps-list li:before{counter-increment:step;content:counter(step);display:inline-grid;place-items:center;width:30px;height:30px;border-radius:11px;background:#f1efff;color:var(--purple);font-weight:950;margin-right:10px}.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}@media(max-width:720px){.commission-grid{grid-template-columns:1fr}.gain-table{font-size:13px}.gain-table th,.gain-table td{padding:10px 8px}}
-.partner-form{display:grid;gap:14px;margin-top:18px;padding:24px;border-radius:18px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 42px rgba(39,32,91,.07)}.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.partner-form label{display:grid;gap:7px;font-weight:800;color:var(--ink)}.partner-form input,.partner-form textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;color:var(--ink);background:#fff}.partner-form input:focus,.partner-form textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 4px rgba(83,74,183,.10)}.success-message{display:none;padding:20px;border-radius:18px;background:#e9fff6;color:#0f6e56;font-weight:900}.success-message.visible{display:block}.form-status{display:none;padding:12px 14px;border-radius:12px;background:#fff1f0;color:#7a1a1a}@media(max-width:720px){.pf-grid{grid-template-columns:1fr}}
+.partner-form{display:grid;gap:14px;margin-top:18px;padding:24px;border-radius:18px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 42px rgba(39,32,91,.07)}.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.partner-form label{display:grid;gap:7px;font-weight:800;color:var(--ink)}.partner-form input,.partner-form textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;color:var(--ink);background:#fff}.partner-form input:focus,.partner-form textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 4px rgba(83,74,183,.10)}.success-message{display:none;padding:20px;border-radius:18px;background:#e9fff6;color:#0f6e56;font-weight:900}.success-message.visible{display:block}.form-status{display:none;padding:12px 14px;border-radius:12px;background:#fff1f0;color:#7a1a1a}html[data-theme="dark"] .commission-card,html[data-theme="dark"] .gain-table th,html[data-theme="dark"] .gain-table td,html[data-theme="dark"] .steps-list li,html[data-theme="dark"] .partner-form{background:rgba(15,23,42,.82);border-color:rgba(255,255,255,.10);color:#f8fafc;box-shadow:0 16px 42px rgba(0,0,0,.18)}html[data-theme="dark"] .commission-card strong,html[data-theme="dark"] .gain-table th,html[data-theme="dark"] .partner-form label{color:#f8fafc}html[data-theme="dark"] .commission-card span{color:#cbd5e1}html[data-theme="dark"] .steps-list li:before{background:rgba(118,108,240,.22);color:#afa9ec}@media(max-width:720px){.pf-grid{grid-template-columns:1fr}}
 </style>
 <section>
   <h2>Devenez partenaire Growlee. Construisez des revenus récurrents.</h2>
