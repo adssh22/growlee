@@ -372,6 +372,9 @@
     .gw-phone{height:650px!important}.gw-screen{padding:38px 16px 14px!important}.gw-card-v2{padding:16px 14px 13px!important;overflow:visible!important}.gw-card-v2 h3{font-size:24px!important}.gw-card-v2 p{font-size:11.5px!important;max-width:232px!important}.gw-wheel-wrap-v2{width:154px!important;height:154px!important;margin:12px auto 8px!important;filter:drop-shadow(0 22px 34px rgba(23,21,43,.22))!important}.gw-wheel-v2{width:146px!important;height:146px!important;background:repeating-conic-gradient(from -12deg,rgba(23,21,43,.12) 0 .45deg,rgba(255,255,255,.16) .45deg .85deg,transparent .85deg 45deg),conic-gradient(from -12deg,#534ab7 0 45deg,#f1efff 45deg 90deg,#1d9e75 90deg 135deg,#fbfbff 135deg 180deg,#766cf0 180deg 225deg,#e9fff6 225deg 270deg,#afa9ec 270deg 315deg,#2f267f 315deg 360deg)!important;box-shadow:0 20px 42px rgba(23,21,43,.22),inset 0 0 0 8px #fff,inset 0 0 0 11px rgba(83,74,183,.10),inset 0 -16px 32px rgba(23,21,43,.08)!important;animation:gwPrizeSpinV2 2.65s cubic-bezier(.15,.92,.22,1) .65s both,gwWheelIdleV2 5.4s ease-in-out 3.35s infinite!important}.gw-wheel-v2:before{inset:-16px!important;filter:blur(14px)!important;opacity:.85}.gw-wheel-v2 .gw-wheel-core{inset:46px!important}.gw-wheel-v2 .gw-wheel-core strong{font-size:25px!important}.gw-wheel-v2 .gw-wheel-core small{font-size:7px!important;letter-spacing:.08em!important}.gw-wheel-v2 .gw-wheel-shine{background:radial-gradient(circle at 30% 18%,rgba(255,255,255,.42),transparent 18%),linear-gradient(125deg,transparent 20%,rgba(255,255,255,.16) 43%,transparent 62%)!important;animation:gwWheelGlint 5.4s ease-in-out 3.3s infinite!important}.gw-wheel-wrap-v2 .gw-pointer{top:-10px!important;width:36px!important;height:30px!important}.gw-wheel-wrap-v2 .gw-pointer span{bottom:-12px!important;border-left-width:11px!important;border-right-width:11px!important;border-top-width:17px!important}.gw-next-flow-v2{grid-template-columns:1fr!important;gap:5px!important;margin:8px 0!important}.gw-next-flow-v2 div{padding:7px 10px!important;border-radius:14px!important}.gw-trust{margin:7px 0!important}.gw-cta{padding:13px 16px!important}.gw-burst i{animation:gwBurstV2 1.15s ease-out 2.45s both!important}@keyframes gwPrizeSpinV2{0%{transform:rotate(-90deg) scale(.96)}68%{transform:rotate(1128deg) scale(1.04)}86%{transform:rotate(1100deg) scale(.99)}100%{transform:rotate(1107deg) scale(1)}}@keyframes gwWheelIdleV2{0%,100%{transform:rotate(1107deg) scale(1)}50%{transform:rotate(1111deg) scale(1.008)}}@keyframes gwBurstV2{0%{opacity:0;transform:translate(0,0) rotate(0) scale(.5)}28%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(190deg) scale(.9)}}
     @media(max-width:820px){.gw-phone{height:612px!important}.gw-wheel-wrap-v2{width:144px!important;height:144px!important}.gw-wheel-v2{width:136px!important;height:136px!important}.gw-wheel-v2 .gw-wheel-core{inset:43px!important}.gw-next-flow-v2 div{padding:6px 9px!important}.gw-trust span{padding:7px 3px!important}}
 
+    /* Premium SVG wheel — crisp segments, no clipping, no CSS artefacts */
+    .gw-wheel-svg{background:none!important;box-shadow:none!important;overflow:visible!important;display:grid!important;place-items:center!important;animation:none!important}.gw-prize-wheel{width:154px;height:154px;overflow:visible;display:block}.gw-wheel-spin{transform-origin:120px 120px;animation:gwSvgSpin 2.9s cubic-bezier(.15,.92,.22,1) .65s both,gwSvgIdle 5.4s ease-in-out 3.55s infinite}.gw-wheel-svg:before{content:"";position:absolute;inset:-15px;border-radius:50%;background:conic-gradient(from 110deg,rgba(83,74,183,.26),rgba(255,255,255,.04),rgba(29,158,117,.22),rgba(175,169,236,.22),rgba(83,74,183,.26));filter:blur(14px);z-index:-1;animation:gwWheelAura 3.8s ease-in-out infinite}.gw-wheel-svg .gw-wheel-shine{position:absolute;inset:0;border-radius:50%;background:linear-gradient(125deg,transparent 22%,rgba(255,255,255,.18) 43%,transparent 62%);mix-blend-mode:screen;animation:gwWheelGlint 5.4s ease-in-out 3.4s infinite}@keyframes gwSvgSpin{0%{transform:rotate(-105deg) scale(.96)}64%{transform:rotate(1186deg) scale(1.045)}84%{transform:rotate(1155deg) scale(.992)}100%{transform:rotate(1162deg) scale(1)}}@keyframes gwSvgIdle{0%,100%{transform:rotate(1162deg) scale(1)}50%{transform:rotate(1166deg) scale(1.008)}}@media(max-width:820px){.gw-prize-wheel{width:144px;height:144px}}
+
   </style>
 </head>
 <body>
@@ -409,8 +412,51 @@
                 <p>Un jeu simple, élégant et rapide pour déclencher l’engagement client en boutique.</p>
                 <div class="gw-wheel-wrap gw-wheel-wrap-v2" aria-hidden="true">
                   <div class="gw-pointer"><span></span></div>
-                  <div class="gw-wheel gw-wheel-v2">
-                    <div class="gw-wheel-core"><strong>G</strong><small>reward</small></div>
+                  <div class="gw-wheel gw-wheel-svg" role="presentation">
+                    <svg class="gw-prize-wheel" viewBox="0 0 240 240" aria-hidden="true" focusable="false">
+                      <defs>
+                        <filter id="gwWheelShadow" x="-25%" y="-25%" width="150%" height="150%">
+                          <feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#17152b" flood-opacity="0.26"/>
+                        </filter>
+                        <linearGradient id="gwRim" x1="42" y1="24" x2="198" y2="216" gradientUnits="userSpaceOnUse">
+                          <stop stop-color="#ffffff"/>
+                          <stop offset="0.46" stop-color="#f4f1ff"/>
+                          <stop offset="1" stop-color="#dcd8ff"/>
+                        </linearGradient>
+                        <radialGradient id="gwHub" cx="36%" cy="24%" r="72%">
+                          <stop stop-color="#ffffff"/>
+                          <stop offset="0.56" stop-color="#f4f1ff"/>
+                          <stop offset="1" stop-color="#e9fff6"/>
+                        </radialGradient>
+                        <linearGradient id="gwGlass" x1="58" y1="34" x2="184" y2="202" gradientUnits="userSpaceOnUse">
+                          <stop stop-color="#ffffff" stop-opacity="0.55"/>
+                          <stop offset="0.38" stop-color="#ffffff" stop-opacity="0.14"/>
+                          <stop offset="0.72" stop-color="#ffffff" stop-opacity="0"/>
+                        </linearGradient>
+                      </defs>
+                      <g class="gw-wheel-spin" filter="url(#gwWheelShadow)">
+                        <circle cx="120" cy="120" r="105" fill="url(#gwRim)"/>
+                        <g transform="translate(120 120)">
+                          <path d="M0 0 L0 -91 A91 91 0 0 1 64.35 -64.35 Z" fill="#534ab7"/>
+                          <path d="M0 0 L64.35 -64.35 A91 91 0 0 1 91 0 Z" fill="#f1efff"/>
+                          <path d="M0 0 L91 0 A91 91 0 0 1 64.35 64.35 Z" fill="#1d9e75"/>
+                          <path d="M0 0 L64.35 64.35 A91 91 0 0 1 0 91 Z" fill="#fbfbff"/>
+                          <path d="M0 0 L0 91 A91 91 0 0 1 -64.35 64.35 Z" fill="#766cf0"/>
+                          <path d="M0 0 L-64.35 64.35 A91 91 0 0 1 -91 0 Z" fill="#e9fff6"/>
+                          <path d="M0 0 L-91 0 A91 91 0 0 1 -64.35 -64.35 Z" fill="#afa9ec"/>
+                          <path d="M0 0 L-64.35 -64.35 A91 91 0 0 1 0 -91 Z" fill="#2f267f"/>
+                          <g stroke="rgba(23,21,43,.16)" stroke-width="1.15" stroke-linecap="round">
+                            <line x1="0" y1="-91" x2="0" y2="-23"/><line x1="64.35" y1="-64.35" x2="16.26" y2="-16.26"/><line x1="91" y1="0" x2="23" y2="0"/><line x1="64.35" y1="64.35" x2="16.26" y2="16.26"/><line x1="0" y1="91" x2="0" y2="23"/><line x1="-64.35" y1="64.35" x2="-16.26" y2="16.26"/><line x1="-91" y1="0" x2="-23" y2="0"/><line x1="-64.35" y1="-64.35" x2="-16.26" y2="-16.26"/>
+                          </g>
+                        </g>
+                        <circle cx="120" cy="120" r="91" fill="none" stroke="rgba(255,255,255,.82)" stroke-width="3"/>
+                        <circle cx="120" cy="120" r="106" fill="none" stroke="rgba(83,74,183,.12)" stroke-width="2"/>
+                        <circle cx="120" cy="120" r="43" fill="url(#gwHub)" stroke="rgba(83,74,183,.13)" stroke-width="1.5"/>
+                        <text x="120" y="116" text-anchor="middle" font-size="34" font-weight="900" fill="#534ab7" font-family="Inter, system-ui, sans-serif">G</text>
+                        <text x="120" y="137" text-anchor="middle" font-size="9" font-weight="900" letter-spacing="1.1" fill="#1d9e75" font-family="Inter, system-ui, sans-serif">REWARD</text>
+                        <path d="M54 42 C88 20 144 20 184 55 C136 44 92 50 56 78 Z" fill="url(#gwGlass)"/>
+                      </g>
+                    </svg>
                     <div class="gw-wheel-shine"></div>
                   </div>
                   <div class="gw-burst"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
