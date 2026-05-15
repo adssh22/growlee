@@ -537,6 +537,12 @@
     }
     @media(max-width:380px){.hero .actions{grid-template-columns:1fr!important}.metrics{grid-template-columns:1fr!important}.gw-stage{min-height:406px!important}.gw-phone{width:202px!important;height:418px!important}.gw-scene-wrap{min-height:262px!important}.iso-phone{width:min(228px,86vw)!important;height:480px!important}.iso-hero{height:344px!important}.iso-panel{max-height:344px!important}.persona-grid{grid-template-columns:1fr!important}.journey-steps{grid-template-columns:1fr 1fr!important}}
 
+
+    /* Robust mobile menu + ergonomic touch polish */
+    @media(max-width:767px){
+      body.public-menu-open{overflow:hidden!important}.nav{isolation:isolate!important}.nav-hamburger{display:grid!important;place-items:center!important;flex:0 0 auto!important;touch-action:manipulation!important}.links{position:fixed!important;left:12px!important;right:12px!important;top:76px!important;z-index:999!important;max-height:calc(100dvh - 96px)!important;overflow:auto!important;overscroll-behavior:contain!important;opacity:0!important;visibility:hidden!important;transform:translateY(-10px) scale(.98)!important;pointer-events:none!important}.nav.menu-open .links{opacity:1!important;visibility:visible!important;transform:none!important;pointer-events:auto!important}.links>a:not(.btn),.links .btn,.links .theme-toggle{min-height:48px!important;border-radius:16px!important;display:flex!important;align-items:center!important;justify-content:center!important}.links .btn.primary{order:20}.links .btn.secondary{order:19}.nav.menu-open .nav-hamburger{background:#534ab7!important;border-color:#534ab7!important}.nav.menu-open .nav-hamburger span{background:#fff!important}.btn,.nav-hamburger,.theme-toggle,.faq-question,.persona-chip{touch-action:manipulation!important;-webkit-tap-highlight-color:transparent!important}.btn:active,.persona-chip:active,.faq-question:active{transform:translateY(1px)!important}.section[id],#personnalisation,#modules,#pricing{scroll-margin-top:92px!important}.card,.process-card,.launch-card,.price-card,.timeline-step,.stat-card{overflow:hidden!important}html[data-theme="dark"] .nav.menu-open .nav-hamburger{background:#766cf0!important;border-color:#766cf0!important}html[data-theme="dark"] .links{background:rgba(15,23,42,.98)!important;border-color:rgba(255,255,255,.12)!important}}
+    @media(max-width:380px){.links{left:10px!important;right:10px!important;top:72px!important}.links>a:not(.btn),.links .btn,.links .theme-toggle{min-height:46px!important}}
+
 </style>
 </head>
 <body>
@@ -797,14 +803,21 @@
     const publicBurger = document.querySelector('.nav-hamburger');
     const publicLinks = document.querySelectorAll('#publicNav a, #publicNav button:not(.nav-hamburger)');
     function closePublicMenu(){ publicNav?.classList.remove('menu-open'); publicBurger?.setAttribute('aria-expanded','false'); }
-    publicBurger?.addEventListener('click', () => {
-      const open = !publicNav?.classList.contains('menu-open');
+    function setPublicMenu(open){
       publicNav?.classList.toggle('menu-open', open);
-      publicBurger.setAttribute('aria-expanded', String(open));
+      document.body.classList.toggle('public-menu-open', open);
+      publicBurger?.setAttribute('aria-expanded', String(open));
+    }
+    function closePublicMenuSafe(){ setPublicMenu(false); }
+    publicBurger?.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      setPublicMenu(!publicNav?.classList.contains('menu-open'));
     });
-    publicLinks.forEach(el => el.addEventListener('click', closePublicMenu));
-    document.addEventListener('keydown', e => { if(e.key === 'Escape') closePublicMenu(); });
-    document.addEventListener('click', e => { if(publicNav && !publicNav.contains(e.target)) closePublicMenu(); });
+    publicNav?.addEventListener('click', e => e.stopPropagation());
+    publicLinks.forEach(el => el.addEventListener('click', closePublicMenuSafe));
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') closePublicMenuSafe(); });
+    document.addEventListener('click', closePublicMenuSafe);
 
     const demoModal = document.getElementById('growleeDemoModal');
     const demoTrack = demoModal?.querySelector('.demo-track');
