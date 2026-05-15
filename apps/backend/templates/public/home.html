@@ -368,6 +368,10 @@
     @media(max-width:820px){.gw-stage{min-height:565px}.gw-phone{width:286px;height:620px;transform:none;animation:gwMobilePhoneIn .9s cubic-bezier(.16,1,.3,1) .08s both,gwMobileFloat 6s ease-in-out 1.2s infinite}.gw-wheel-wrap{width:170px;height:170px}.gw-wheel{width:160px;height:160px}.gw-wheel-core{inset:51px}.gw-wheel-face span:nth-child(1){transform:rotate(5deg) translateY(-56px)}.gw-wheel-face span:nth-child(2){transform:rotate(50deg) translateY(-56px) rotate(-50deg)}.gw-wheel-face span:nth-child(3){transform:rotate(95deg) translateY(-56px) rotate(-95deg)}.gw-wheel-face span:nth-child(4){transform:rotate(140deg) translateY(-56px) rotate(-140deg)}.gw-wheel-face span:nth-child(5){transform:rotate(185deg) translateY(-56px) rotate(-185deg)}.gw-wheel-face span:nth-child(6){transform:rotate(230deg) translateY(-56px) rotate(-230deg)}.gw-wheel-face span:nth-child(7){transform:rotate(275deg) translateY(-56px) rotate(-275deg)}.gw-wheel-face span:nth-child(8){transform:rotate(320deg) translateY(-56px) rotate(-320deg)}@keyframes gwMobilePhoneIn{from{opacity:0;transform:translateY(28px) scale(.92);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}@keyframes gwMobileFloat{50%{transform:translateY(-9px)}}}
     @media(prefers-reduced-motion:reduce){.gw-stage,.gw-stage *{animation:none!important;transition:none!important}.gw-phone{transform:none!important}}
 
+    /* Hero v2 cleanup — no clipped wheel, no noisy labels */
+    .gw-phone{height:650px!important}.gw-screen{padding:38px 16px 14px!important}.gw-card-v2{padding:16px 14px 13px!important;overflow:visible!important}.gw-card-v2 h3{font-size:24px!important}.gw-card-v2 p{font-size:11.5px!important;max-width:232px!important}.gw-wheel-wrap-v2{width:154px!important;height:154px!important;margin:12px auto 8px!important;filter:drop-shadow(0 22px 34px rgba(23,21,43,.22))!important}.gw-wheel-v2{width:146px!important;height:146px!important;background:repeating-conic-gradient(from -12deg,rgba(23,21,43,.12) 0 .45deg,rgba(255,255,255,.16) .45deg .85deg,transparent .85deg 45deg),conic-gradient(from -12deg,#534ab7 0 45deg,#f1efff 45deg 90deg,#1d9e75 90deg 135deg,#fbfbff 135deg 180deg,#766cf0 180deg 225deg,#e9fff6 225deg 270deg,#afa9ec 270deg 315deg,#2f267f 315deg 360deg)!important;box-shadow:0 20px 42px rgba(23,21,43,.22),inset 0 0 0 8px #fff,inset 0 0 0 11px rgba(83,74,183,.10),inset 0 -16px 32px rgba(23,21,43,.08)!important;animation:gwPrizeSpinV2 2.65s cubic-bezier(.15,.92,.22,1) .65s both,gwWheelIdleV2 5.4s ease-in-out 3.35s infinite!important}.gw-wheel-v2:before{inset:-16px!important;filter:blur(14px)!important;opacity:.85}.gw-wheel-v2 .gw-wheel-core{inset:46px!important}.gw-wheel-v2 .gw-wheel-core strong{font-size:25px!important}.gw-wheel-v2 .gw-wheel-core small{font-size:7px!important;letter-spacing:.08em!important}.gw-wheel-v2 .gw-wheel-shine{background:radial-gradient(circle at 30% 18%,rgba(255,255,255,.42),transparent 18%),linear-gradient(125deg,transparent 20%,rgba(255,255,255,.16) 43%,transparent 62%)!important;animation:gwWheelGlint 5.4s ease-in-out 3.3s infinite!important}.gw-wheel-wrap-v2 .gw-pointer{top:-10px!important;width:36px!important;height:30px!important}.gw-wheel-wrap-v2 .gw-pointer span{bottom:-12px!important;border-left-width:11px!important;border-right-width:11px!important;border-top-width:17px!important}.gw-next-flow-v2{grid-template-columns:1fr!important;gap:5px!important;margin:8px 0!important}.gw-next-flow-v2 div{padding:7px 10px!important;border-radius:14px!important}.gw-trust{margin:7px 0!important}.gw-cta{padding:13px 16px!important}.gw-burst i{animation:gwBurstV2 1.15s ease-out 2.45s both!important}@keyframes gwPrizeSpinV2{0%{transform:rotate(-90deg) scale(.96)}68%{transform:rotate(1128deg) scale(1.04)}86%{transform:rotate(1100deg) scale(.99)}100%{transform:rotate(1107deg) scale(1)}}@keyframes gwWheelIdleV2{0%,100%{transform:rotate(1107deg) scale(1)}50%{transform:rotate(1111deg) scale(1.008)}}@keyframes gwBurstV2{0%{opacity:0;transform:translate(0,0) rotate(0) scale(.5)}28%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(190deg) scale(.9)}}
+    @media(max-width:820px){.gw-phone{height:612px!important}.gw-wheel-wrap-v2{width:144px!important;height:144px!important}.gw-wheel-v2{width:136px!important;height:136px!important}.gw-wheel-v2 .gw-wheel-core{inset:43px!important}.gw-next-flow-v2 div{padding:6px 9px!important}.gw-trust span{padding:7px 3px!important}}
+
   </style>
 </head>
 <body>
@@ -399,24 +403,25 @@
                 <div class="gw-pill">Live</div>
               </div>
               <div class="gw-steps"><span class="active">Jeu</span><span>Gain</span><span>Avis</span><span>Wallet</span></div>
-              <section class="gw-card">
+              <section class="gw-card gw-card-v2">
                 <div class="gw-kicker">Surprise du jour</div>
-                <h3>Tentez votre chance</h3>
-                <p>Une animation claire, rapide, pensée pour donner envie de jouer en boutique.</p>
-                <div class="gw-wheel-wrap" aria-hidden="true">
+                <h3>Tournez la roue</h3>
+                <p>Un jeu simple, élégant et rapide pour déclencher l’engagement client en boutique.</p>
+                <div class="gw-wheel-wrap gw-wheel-wrap-v2" aria-hidden="true">
                   <div class="gw-pointer"><span></span></div>
-                  <div class="gw-wheel">
-                    <div class="gw-wheel-face">
-                      <span>−10%</span><span>Café</span><span>🎁</span><span>Bonus</span><span>Cookie</span><span>Avis</span><span>VIP</span><span>Merci</span>
-                    </div>
-                    <div class="gw-wheel-core"><strong>G</strong><small>win</small></div>
+                  <div class="gw-wheel gw-wheel-v2">
+                    <div class="gw-wheel-core"><strong>G</strong><small>reward</small></div>
                     <div class="gw-wheel-shine"></div>
                   </div>
                   <div class="gw-burst"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
                 </div>
                 <div class="gw-result"><span>🎁</span><div><strong>Cookie offert</strong><small>Gain débloqué · valable 7 jours</small></div></div>
               </section>
-              <div class="gw-next-flow" aria-hidden="true"><div class="done"><b>✓</b><span>Gain validé</span></div><div><b>★</b><span>Avis Google</span></div><div><b>◆</b><span>Wallet ajouté</span></div></div>
+              <div class="gw-next-flow gw-next-flow-v2" aria-hidden="true">
+                <div class="done"><b>✓</b><span>Gain validé</span></div>
+                <div><b>★</b><span>Avis Google</span></div>
+                <div><b>◆</b><span>Wallet ajouté</span></div>
+              </div>
               <div class="gw-trust"><span>30 sec</span><span>Sans app</span><span>En boutique</span></div>
               <div class="gw-cta">Jouer maintenant</div>
             </div>
