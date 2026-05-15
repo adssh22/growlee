@@ -1,12 +1,11 @@
 {% load static %}
 <header class="nav-wrap"><div class="wrap"><div class="nav">
-  <a class="brand" href="/" aria-label="Growlee"><img src="{% static 'brand/growlee-logo-clean.png' %}" alt="Growlee – logiciel de fidélisation QR pour commerces" loading="eager" width="220" height="72"></a>
+  <a class="brand" href="/" aria-label="Growlee"><img class="brand-icon" src="{% static 'brand/growlee-icon-clean.png' %}" alt="" loading="eager" width="42" height="42"><span class="brand-word">Growlee</span></a>
   <button class="nav-hamburger" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="publicNav"><span></span><span></span><span></span></button>
   <nav id="publicNav" class="links" aria-label="Navigation principale">
-    <a href="/#parcours">Parcours</a>
+    <a href="/#personnalisation">Parcours</a>
     <a href="/#modules">Modules</a>
     <a href="/#pricing">Tarifs</a>
-    <a href="/#demo"{% if header_demo_modal %} data-open-demo{% endif %}>Démo</a>
     <a href="/apporteurs/">Apporteurs</a>
     <a href="/contact/">Contact</a>
     <button id="landingThemeToggle" class="theme-toggle" type="button" aria-label="Basculer le mode sombre"><svg class="theme-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
