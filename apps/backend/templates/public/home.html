@@ -368,6 +368,12 @@
     html[data-theme="dark"] .gw-panel-scene{background:linear-gradient(180deg,rgba(15,23,42,.96),rgba(17,24,39,.93))!important;border:1px solid rgba(255,255,255,.12)!important;color:#f8fafc!important;box-shadow:0 28px 76px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.08)!important}html[data-theme="dark"] .gw-panel-scene h3,html[data-theme="dark"] .gw-summary strong,html[data-theme="dark"] .gw-choice-row b{color:#f8fafc!important}html[data-theme="dark"] .gw-panel-scene p,html[data-theme="dark"] .gw-summary em,html[data-theme="dark"] .gw-choice-row span{color:#cbd5e1!important}html[data-theme="dark"] .gw-panel-icon{background:rgba(118,108,240,.18)!important;color:#ddd8ff!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)!important}html[data-theme="dark"] .gw-form-grid span,html[data-theme="dark"] .gw-input-line,html[data-theme="dark"] .gw-choice-row div{background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.12)!important;color:#cbd5e1!important}html[data-theme="dark"] .gw-summary{background:linear-gradient(135deg,rgba(118,108,240,.16),rgba(15,23,42,.58))!important;border-color:rgba(255,255,255,.10)!important}html[data-theme="dark"] .gw-choice-row .sel{background:rgba(29,158,117,.14)!important;border-color:rgba(114,224,188,.24)!important}html[data-theme="dark"] .gw-wallet-actions span+span{background:rgba(255,255,255,.08)!important;color:#f8fafc!important;border-color:rgba(255,255,255,.12)!important}
     html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:#111827!important;color:#f8fafc!important;border-color:rgba(255,255,255,.14)!important}html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#94a3b8!important}html[data-theme="dark"] .partner-form input,html[data-theme="dark"] .partner-form textarea{background:#111827!important;color:#f8fafc!important;border-color:rgba(255,255,255,.14)!important}html[data-theme="dark"] .success-message{background:rgba(29,158,117,.14)!important;color:#baf7df!important}html[data-theme="dark"] .form-status{background:rgba(220,38,38,.16)!important;color:#fecaca!important}
 
+    /* FINAL QA OVERRIDE — hero progress must run after every previous pass */
+    .gw-progress{position:relative!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:7px!important;margin:0 0 8px!important;z-index:2!important}.gw-progress span{height:7px!important;border-radius:999px!important;background:rgba(255,255,255,.18)!important;border:1px solid rgba(255,255,255,.10)!important;overflow:hidden!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.10)!important}.gw-progress span:before{content:none!important}.gw-progress span i{display:block!important;height:100%!important;width:var(--gw-fill,0%)!important;animation:none!important;border-radius:inherit!important;background:linear-gradient(90deg,#fff,#72e0bc)!important;box-shadow:0 0 18px rgba(114,224,188,.48)!important;transition:width .12s linear!important}.gw-progress span.is-active{background:rgba(255,255,255,.24)!important;box-shadow:0 0 0 1px rgba(114,224,188,.20),0 0 20px rgba(114,224,188,.18)!important}.gw-progress span.is-done i{width:100%!important}.gw-labels span{transition:color .18s ease,opacity .18s ease!important}.gw-labels span.is-active,.gw-labels span.is-done{color:#fff!important;opacity:1!important}
+    html[data-theme="dark"] .gw-panel-scene{background:linear-gradient(180deg,rgba(15,23,42,.97),rgba(17,24,39,.94))!important;border-color:rgba(255,255,255,.13)!important;color:#f8fafc!important}html[data-theme="dark"] .gw-panel-scene h3,html[data-theme="dark"] .gw-summary strong,html[data-theme="dark"] .gw-choice-row b{color:#f8fafc!important}html[data-theme="dark"] .gw-panel-scene p,html[data-theme="dark"] .gw-summary em,html[data-theme="dark"] .gw-choice-row span{color:#cbd5e1!important}html[data-theme="dark"] .gw-form-grid span,html[data-theme="dark"] .gw-input-line,html[data-theme="dark"] .gw-choice-row div{background:rgba(255,255,255,.065)!important;border-color:rgba(255,255,255,.13)!important;color:#dbe4f0!important}html[data-theme="dark"] .gw-summary{background:linear-gradient(135deg,rgba(118,108,240,.17),rgba(15,23,42,.60))!important;border-color:rgba(255,255,255,.11)!important}html[data-theme="dark"] .gw-wallet-actions span+span{background:rgba(255,255,255,.08)!important;color:#f8fafc!important;border-color:rgba(255,255,255,.14)!important}
+    /* FINAL QA OVERRIDE — public landing dark contrast after all visual passes */
+    html[data-theme="dark"] :where(.card:not(.dark),.metric,.process-card,.price-card,.timeline-step,.faq-item,.faq details,.partner-kpis div,.contact-card,.source-stat,.stat-card,.partner-box,.gain-table th,.gain-table td,.pricing-steps .timeline-step){background:rgba(15,23,42,.88)!important;border-color:rgba(255,255,255,.13)!important;color:#f8fafc!important;box-shadow:0 18px 48px rgba(0,0,0,.24)!important}html[data-theme="dark"] :where(.card:not(.dark),.metric,.process-card,.price-card,.timeline-step,.faq-item,.partner-kpis div,.contact-card,.source-stat,.stat-card,.partner-box) :where(h1,h2,h3,h4,strong,b,.price){color:#f8fafc!important}html[data-theme="dark"] :where(.card:not(.dark),.metric,.process-card,.price-card,.timeline-step,.faq-item,.partner-kpis div,.contact-card,.source-stat,.stat-card,.partner-box) :where(p,li,span,small,.muted,.lead,.features li,.timeline-step span,.source-stat-body p,.stat-copy,.stat-text){color:#cbd5e1!important}html[data-theme="dark"] :where(input,select,textarea,.btn.secondary,.wallet-badge.google,.wallet-action.google){background:#111827!important;border-color:rgba(255,255,255,.15)!important;color:#f8fafc!important}html[data-theme="dark"] :where(input,textarea)::placeholder{color:#94a3b8!important}
+
   </style>
 </head>
 <body>
@@ -597,6 +603,33 @@
     window.showToast = showToast;
 
     const publicNav = document.querySelector('.nav');
+
+    // Keep the hero progress synchronized with the 4 animated phone scenes.
+    (() => {
+      const bars = [...document.querySelectorAll('.gw-progress span')];
+      const labels = [...document.querySelectorAll('.gw-labels span')];
+      if (!bars.length) return;
+      const duration = 12000;
+      const segment = duration / bars.length;
+      const start = performance.now();
+      function tick(now) {
+        const elapsed = (now - start) % duration;
+        const step = Math.min(bars.length - 1, Math.floor(elapsed / segment));
+        const fill = ((elapsed - step * segment) / segment) * 100;
+        bars.forEach((bar, index) => {
+          bar.classList.toggle('is-done', index < step);
+          bar.classList.toggle('is-active', index === step);
+          bar.style.setProperty('--gw-fill', index < step ? '100%' : index === step ? `${fill}%` : '0%');
+        });
+        labels.forEach((label, index) => {
+          label.classList.toggle('is-done', index < step);
+          label.classList.toggle('is-active', index === step);
+        });
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    })();
+
     const publicBurger = document.querySelector('.nav-hamburger');
     const publicLinks = document.querySelectorAll('#publicNav a, #publicNav button:not(.nav-hamburger)');
     function closePublicMenu(){ publicNav?.classList.remove('menu-open'); publicBurger?.setAttribute('aria-expanded','false'); }

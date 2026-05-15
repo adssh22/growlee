@@ -208,6 +208,31 @@
 
       <main class="main">
         {% block content %}{% endblock %}
+        <style>
+          /* Final dark-mode hardening loaded after page-specific styles. */
+          html[data-theme="dark"] :where(.card,.metric-card,.quick-card,.module-card,.reward-item,.empty-rewards,.toggle-row,.pill,.badge.neutral,.logout-link,.conf-row,.status-row,.list-row,.meta-pill,.commission-card,.partner-form,.plan,.note,.stat,.table-wrap,.secret,.payment-panel,.critical-field,.optional-zone,.info-box,.offer-card,.preview-card,.logo-preview,.color-field,.ob-start-card,.design-appointment) {
+            background: rgba(15,23,42,.88) !important;
+            border-color: rgba(255,255,255,.13) !important;
+            color: #f8fafc !important;
+            box-shadow: 0 18px 44px rgba(0,0,0,.22) !important;
+          }
+          html[data-theme="dark"] :where(.card,.metric-card,.quick-card,.module-card,.reward-item,.empty-rewards,.toggle-row,.pill,.badge.neutral,.logout-link,.conf-row,.status-row,.list-row,.meta-pill,.commission-card,.partner-form,.plan,.note,.stat,.secret) :where(h1,h2,h3,h4,strong,b,.title,.section-title,.metric-value,.reward-name,.module-card h2,.quick-card strong) { color:#f8fafc !important; }
+          html[data-theme="dark"] :where(.subtitle,.section-sub,.mini,.muted,.hint,.reward-desc,.reward-sub,.module-card p,.quick-card span,.metric-label,.metric-delta,.owner,.small,.features li,.steps) { color:#cbd5e1 !important; }
+          html[data-theme="dark"] :where(input,select,textarea,.btn.secondary,.module-link.secondary,.module-toggle-btn,.danger-btn,.secondary) {
+            background:#111827 !important;
+            border-color:rgba(255,255,255,.15) !important;
+            color:#f8fafc !important;
+          }
+          html[data-theme="dark"] :where(input,textarea)::placeholder { color:#94a3b8 !important; }
+          html[data-theme="dark"] :where(table,thead,tbody,tr,th,td,.table td,.gain-table th,.gain-table td) {
+            background:rgba(15,23,42,.88) !important;
+            border-color:rgba(255,255,255,.12) !important;
+            color:#f8fafc !important;
+          }
+          html[data-theme="dark"] :where(.badge:not(.neutral),.message,.success-message,.module-card.is-active .module-status) { background:rgba(29,158,117,.16) !important;color:#b7ead8 !important;border-color:rgba(114,224,188,.24) !important; }
+          html[data-theme="dark"] :where(.errors,.errorlist,.error,.form-status,.badge.warn) { background:rgba(220,38,38,.16) !important;color:#fecaca !important;border-color:rgba(248,113,113,.24) !important; }
+          html[data-theme="dark"] :where(.qr, iframe[title*="QR"], iframe[src*="/qr/"], img[src*="/qr/"]) { background:#fff !important; color:#111827 !important; }
+        </style>
       </main>
     </div>
   </div>
