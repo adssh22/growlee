@@ -138,6 +138,26 @@ class NotificationJobTests(TestCase):
         self.merchant = Merchant.objects.create(name='Notify Shop', slug='notify-shop', is_active=True)
         self.campaign = Campaign.objects.create(merchant=self.merchant, name='Notify campaign', game_type='quiz', is_active=True)
 
+    def test_public_play_page_creates_notification_jobs(self):
+        Reward.objects.create(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            name='Public reward',
+            description='Public reward',
+            probability_weight=100,
+            active=True,
+        )
+
+        response = self.client.post('/play/notify-shop/?step=collect', {
+            'phone': '+33600000008',
+            'email': 'public-notify@example.test',
+            'first_name': 'Public',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        session = GameSession.objects.get(customer__phone='+33600000008')
+        self.assertEqual(NotificationJob.objects.filter(game_session=session, status=NotificationJob.STATUS_PENDING).count(), 2)
+
     def test_enqueue_reward_notifications_creates_pending_email_and_sms_jobs(self):
         customer, session, _ = claim_reward(
             merchant=self.merchant,
@@ -167,6 +187,22 @@ class NotificationJobTests(TestCase):
         self.assertEqual(NotificationJob.objects.filter(status=NotificationJob.STATUS_SENT).count(), 2)
         self.assertEqual(len(mail.outbox), 1)
         self.assertTrue(NotificationJob.objects.filter(sent_at__isnull=False).exists())
+
+    @override_settings(SMS_PROVIDER='unknown-provider')
+    def test_process_notification_jobs_marks_failed_when_provider_cannot_send(self):
+        _customer, session, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000012',
+        )
+        enqueue_reward_notifications(session)
+
+        call_command('process_notification_jobs')
+
+        job = NotificationJob.objects.get(game_session=session)
+        self.assertEqual(job.status, NotificationJob.STATUS_FAILED)
+        self.assertEqual(job.attempts, 1)
+        self.assertIn('Provider returned false', job.last_error)
 
     @override_settings(NOTIFICATION_SEND_SYNC=True)
     def test_sync_dev_mode_processes_fresh_jobs_immediately(self):

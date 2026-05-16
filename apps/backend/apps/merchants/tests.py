@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.campaigns.models import Campaign, EntryPoint
-from apps.core.billing import handle_checkout_session_completed, handle_invoice_payment_failed, handle_stripe_subscription_event, map_stripe_subscription_status
+from apps.core.billing import handle_checkout_session_completed, handle_invoice_payment_failed, handle_invoice_payment_succeeded, handle_stripe_subscription_event, map_stripe_subscription_status
 from apps.core.common_views import _merchant_context_for_user, _merchant_is_unlocked
 from apps.customers.models import Customer, GameSession, WalletPass
 from apps.core.models import AuditLog, MerchantDailyMetric
@@ -132,6 +132,18 @@ class StripeBillingTests(TestCase):
         self.assertEqual(subscription.status, Subscription.STATUS_PAST_DUE)
         self.assertEqual(subscription.provider, Subscription.PROVIDER_STRIPE)
 
+    def test_invoice_payment_succeeded_marks_subscription_active(self):
+        merchant = Merchant.objects.create(name='Recovered Stripe Shop', slug='recovered-stripe-shop', is_active=False, onboarding_fee_paid=False)
+        Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_PAST_DUE, provider=Subscription.PROVIDER_STRIPE, provider_customer_id='cus_recovered', provider_subscription_id='sub_recovered')
+
+        subscription = handle_invoice_payment_succeeded({'id': 'in_paid', 'customer': 'cus_recovered', 'subscription': 'sub_recovered'})
+
+        merchant.refresh_from_db()
+        self.assertTrue(merchant.is_active)
+        self.assertTrue(merchant.onboarding_fee_paid)
+        self.assertEqual(subscription.status, Subscription.STATUS_ACTIVE)
+        self.assertEqual(subscription.provider, Subscription.PROVIDER_STRIPE)
+
     def test_deleted_stripe_subscription_marks_subscription_canceled(self):
         merchant = Merchant.objects.create(name='Canceled Stripe Shop', slug='canceled-stripe-shop', is_active=True, onboarding_fee_paid=True)
         Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_STRIPE, provider_customer_id='cus_cancel', provider_subscription_id='sub_cancel')
@@ -144,6 +156,26 @@ class StripeBillingTests(TestCase):
 
         self.assertEqual(subscription.status, Subscription.STATUS_CANCELED)
         self.assertEqual(subscription.provider, Subscription.PROVIDER_STRIPE)
+
+    @override_settings(STRIPE_WEBHOOK_SECRET='whsec_test')
+    def test_stripe_webhook_without_matching_merchant_does_not_500(self):
+        event = {
+            'type': 'checkout.session.completed',
+            'data': {
+                'object': {
+                    'id': 'cs_missing_merchant',
+                    'customer': 'cus_missing',
+                    'subscription': 'sub_missing',
+                    'metadata': {'merchant_id': '999999'},
+                }
+            },
+        }
+
+        with mock.patch('apps.core.stripe_views.stripe.Webhook.construct_event', return_value=event):
+            response = self.client.post('/webhooks/stripe/', data=b'{}', content_type='application/json', HTTP_STRIPE_SIGNATURE='valid')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Subscription.objects.filter(provider_subscription_id='sub_missing').exists())
 
     @override_settings(STRIPE_WEBHOOK_SECRET='whsec_test')
     def test_stripe_webhook_routes_checkout_completed_event(self):
@@ -490,7 +522,7 @@ class AuditLogActionTests(TestCase):
         self.assertIsNone(reward.archived_by)
         self.assertTrue(AuditLog.objects.filter(action='merchant.reward.restore', merchant=self.merchant, target_type='Reward', target_id=str(reward.id)).exists())
 
-    def test_delete_customer_soft_deletes_and_creates_audit_log(self):
+    def test_delete_customer_soft_deletes_hides_from_crm_and_creates_audit_log(self):
         response = self.client.post(f'/admin/customers/{self.customer.id}/delete/')
 
         self.assertEqual(response.status_code, 302)
@@ -504,6 +536,12 @@ class AuditLogActionTests(TestCase):
         self.assertEqual(log.target_type, 'Customer')
         self.assertEqual(log.target_id, str(self.customer.id))
         self.assertEqual(log.metadata['phone'], '+33644444444')
+
+        list_response = self.client.get('/admin/customers/')
+        export_response = self.client.get('/admin/customers/export/')
+        self.assertNotContains(list_response, '+33644444444')
+        rows = list(csv.DictReader(export_response.content.decode().splitlines()))
+        self.assertNotIn('+33644444444', {row['phone'] for row in rows})
 
     def test_redeem_session_creates_audit_log(self):
         response = self.client.post(f'/admin/sessions/{self.session.id}/redeem/')

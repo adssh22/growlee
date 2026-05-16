@@ -268,6 +268,14 @@ class MerchantRolePermissionTests(TestCase):
         MerchantMembership.objects.create(user=self.manager, merchant=self.merchant, role='manager')
         MerchantMembership.objects.create(user=self.staff, merchant=self.merchant, role='staff')
 
+    def test_owner_can_access_billing_members_customers_and_campaigns(self):
+        self.client.force_login(self.owner)
+
+        self.assertEqual(self.client.get('/admin/checkout/').status_code, 200)
+        self.assertEqual(self.client.get('/admin/members/').status_code, 200)
+        self.assertEqual(self.client.get('/admin/customers/').status_code, 200)
+        self.assertEqual(self.client.get('/admin/game/').status_code, 200)
+
     def test_staff_is_redirected_from_full_dashboard_but_can_use_employee_mode(self):
         self.client.force_login(self.staff)
 
