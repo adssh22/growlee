@@ -66,6 +66,12 @@ Sécurité: la commande refuse de s’exécuter quand `DJANGO_DEBUG=0`, sauf si 
 
 Copier `.env.example`, puis renseigner les variables utiles.
 
+### Cache Redis / rate-limit
+
+En production, `docker-compose.prod.yml` lance un service Redis interne non exposé publiquement et transmet `REDIS_URL=redis://redis:6379/1` au service web. Django utilise alors `django-redis` comme cache partagé, ce qui rend le rate-limit global entre workers Gunicorn.
+
+Sans `REDIS_URL`, Django retombe sur `LocMemCache`, acceptable en développement mais non partagé entre workers.
+
 ### Email
 
 En dev, les emails sortent en console. En prod, configurer un backend SMTP Django:
