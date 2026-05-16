@@ -16,6 +16,7 @@
       <a class="brand" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <span class="pill">Connecté : {{ request.user.username }}</span>
+        <a class="btn secondary" href="/growlee-control/support/">Support</a>
         <a class="btn secondary" href="/admin/">Admin commerçant</a>
         <a class="btn secondary" href="/logout/">Déconnexion</a>
       </div>

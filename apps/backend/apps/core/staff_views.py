@@ -349,3 +349,50 @@ def staff_merchant_detail(request, merchant_id):
         'active_modules_count': int(modules['game']) + int(modules['review']) + int(modules['wallet']),
         'latest_audit_logs': AuditLog.objects.select_related('actor').filter(merchant=merchant).order_by('-created_at')[:10],
     })
+
+
+@superuser_required
+def staff_support(request):
+    gated = _staff_control_gate(request)
+    if gated is not None:
+        return gated
+
+    q = (request.GET.get('q') or '').strip()
+    results = {
+        'merchants': [],
+        'customers': [],
+        'sessions': [],
+        'entry_points': [],
+    }
+    if q:
+        log_audit_event(request, 'staff.support.search', metadata={'query': q[:120]})
+        results['merchants'] = list(
+            Merchant.objects.filter(
+                Q(name__icontains=q) |
+                Q(slug__icontains=q) |
+                Q(contact_email__icontains=q) |
+                Q(memberships__user__email__icontains=q) |
+                Q(memberships__user__username__icontains=q)
+            ).distinct().order_by('name')[:20]
+        )
+        results['customers'] = list(
+            Customer.objects.select_related('merchant').filter(
+                Q(phone__icontains=q) |
+                Q(email__icontains=q) |
+                Q(first_name__icontains=q)
+            ).order_by('-created_at')[:20]
+        )
+        results['sessions'] = list(
+            GameSession.objects.select_related('customer', 'campaign__merchant', 'reward').filter(
+                Q(claim_code__iexact=q) |
+                Q(claim_token__iexact=q)
+            ).order_by('-created_at')[:20]
+        )
+        results['entry_points'] = list(
+            EntryPoint.objects.select_related('merchant', 'campaign').filter(code__icontains=q).order_by('code')[:20]
+        )
+
+    return render(request, 'admin/staff_support.html', {
+        'q': q,
+        'results': results,
+    })

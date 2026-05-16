@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from apps.campaigns.models import Campaign
+from apps.campaigns.models import Campaign, EntryPoint
 from apps.core.common_views import _merchant_is_unlocked
 from apps.customers.models import Customer, GameSession
 from apps.core.models import AuditLog
@@ -209,6 +209,38 @@ class GrowleeControlSubscriptionTests(TestCase):
         response = self.client.get('/play/archived-public-shop/')
 
         self.assertEqual(response.status_code, 404)
+
+    def test_support_search_finds_grouped_results_and_logs_audit(self):
+        merchant = Merchant.objects.create(name='Support Bakery', slug='support-bakery', is_active=True, contact_email='owner@support.test')
+        campaign = Campaign.objects.create(merchant=merchant, name='Support Campaign', is_active=True)
+        customer = Customer.objects.create(merchant=merchant, phone='+33677777777', email='client@support.test', first_name='Sofia')
+        session = GameSession.objects.create(customer=customer, campaign=campaign, reward_label='Café offert', claim_code='SUPPORT42', claim_token='support-token-42')
+        entry = EntryPoint.objects.create(merchant=merchant, campaign=campaign, name='QR support', code='support-qr-main')
+
+        merchant_response = self.client.get('/growlee-control/support/?q=support-bakery')
+        customer_response = self.client.get('/growlee-control/support/?q=+33677777777')
+        session_response = self.client.get('/growlee-control/support/?q=SUPPORT42')
+        entry_response = self.client.get('/growlee-control/support/?q=support-qr')
+
+        self.assertContains(merchant_response, 'Support Bakery')
+        self.assertContains(customer_response, '+33677777777')
+        self.assertContains(session_response, 'SUPPORT42')
+        self.assertContains(entry_response, 'support-qr-main')
+        self.assertContains(session_response, f'/gain/{session.claim_token}/')
+        self.assertContains(entry_response, f'/admin/qr/{entry.code}.svg')
+        self.assertTrue(AuditLog.objects.filter(action='staff.support.search', actor=self.user).exists())
+
+    def test_support_search_requires_superuser_and_mfa(self):
+        owner = User.objects.create_user('merchant-support-owner', password='secret-12345')
+        self.client.force_login(owner)
+        response = self.client.get('/growlee-control/support/?q=anything')
+        self.assertNotEqual(response.status_code, 200)
+
+        staff_without_mfa = User.objects.create_superuser('staff-no-mfa', 'no-mfa@example.test', 'secret-12345')
+        self.client.force_login(staff_without_mfa)
+        response = self.client.get('/growlee-control/support/?q=anything')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/growlee-control/mfa/setup/')
 
 
 @override_settings(STORAGES=TEST_STORAGES)

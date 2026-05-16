@@ -40,7 +40,7 @@ from apps.core.public_views import (
     robots_txt,
     sitemap_xml,
 )
-from apps.core.staff_views import staff_control_mfa_setup, staff_control_verify, staff_merchant_detail, staff_merchants
+from apps.core.staff_views import staff_control_mfa_setup, staff_control_verify, staff_merchant_detail, staff_merchants, staff_support
 from apps.core.wallet_views import apple_wallet_pass, google_wallet_pass, wallet_configuration, wallet_pass_scan
 
 urlpatterns = [
@@ -66,6 +66,7 @@ urlpatterns = [
     path('growlee-control/verify/', staff_control_verify, name='staff-control-verify'),
     path('_growlee-control/merchants/', staff_merchants, name='staff-merchants'),
     path('growlee-control/merchants/', staff_merchants, name='staff-merchants-alias'),
+    path('growlee-control/support/', staff_support, name='staff-support'),
     path('growlee-control/merchants/<int:merchant_id>/', staff_merchant_detail, name='staff-merchant-detail'),
     path('admin/', admin_dashboard, name='admin-dashboard'),
     path('admin/account/', merchant_account, name='merchant-account'),
