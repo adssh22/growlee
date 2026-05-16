@@ -1,5 +1,3 @@
-from urllib.parse import urlencode
-
 from django.shortcuts import redirect
 
 from apps.core.common_views import _control_access_granted, _staff_mfa_for_user
@@ -17,6 +15,5 @@ class StaffAdminMfaMiddleware:
                 mfa = _staff_mfa_for_user(request.user)
                 if not mfa.enabled:
                     return redirect('staff-control-mfa-setup')
-                querystring = urlencode({'next': request.get_full_path()})
-                return redirect(f'/growlee-control/verify/?{querystring}')
+                return redirect(f'/growlee-control/verify/?next={request.path}')
         return self.get_response(request)

@@ -158,7 +158,16 @@ class StaffAdminMfaTests(TestCase):
         response = self.client.get('/django-admin/')
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'], '/growlee-control/verify/?next=%2Fdjango-admin%2F')
+        self.assertEqual(response['Location'], '/growlee-control/verify/?next=/django-admin/')
+
+    def test_django_admin_refuses_non_superuser(self):
+        user = User.objects.create_user('plain-admin-user', password='secret-12345')
+        self.client.force_login(user)
+
+        response = self.client.get('/django-admin/')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response['Location'].startswith('/django-admin/login/'))
 
     def test_django_admin_allows_superuser_after_control_mfa_session(self):
         StaffMFA.objects.create(user=self.user, secret=generate_secret(), enabled=True)
