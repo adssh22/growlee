@@ -181,6 +181,45 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml exec web python m
 
 Les jobs échoués restent en `failed` avec `last_error` et sont relançables par la commande ci-dessus ou via l’admin Django.
 
+### Métriques analytics quotidiennes
+
+En production, `docker-compose.prod.yml` lance aussi un service `metrics-worker` sans port exposé. Il reconstruit régulièrement les agrégats `MerchantDailyMetric` sur une fenêtre récente afin d’éviter de recalculer tout l’historique:
+
+```bash
+python manage.py rebuild_daily_metrics --since <YYYY-MM-DD>
+```
+
+Variables:
+
+```env
+GROWLEE_METRICS_REBUILD_DAYS=7
+METRICS_WORKER_INTERVAL_SECONDS=3600
+```
+
+Vérifier le worker:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f metrics-worker
+```
+
+Lancer manuellement une reconstruction récente:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec web python manage.py rebuild_daily_metrics --since 2026-05-01
+```
+
+Forcer une reconstruction complète:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec web python manage.py rebuild_daily_metrics
+```
+
+Vérifier les métriques en base:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select merchant_id, date, scans_count, contacts_count, winners_count, redeemed_count from core_merchantdailymetric order by date desc limit 20;"
+```
+
 ### SMS
 
 Providers supportés:
