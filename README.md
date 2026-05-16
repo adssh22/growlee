@@ -98,6 +98,28 @@ GROWLEE_PLAY_COOLDOWN_HOURS=24
 
 Mettre `GROWLEE_PLAY_COOLDOWN_HOURS=0` désactive cette règle pour dev/démo. Le même numéro reste autorisé chez un autre commerce.
 
+### Stripe billing
+
+Stripe Checkout est utilisé uniquement si `STRIPE_SECRET_KEY` et `STRIPE_PRICE_ID_PRO` sont configurés. Sinon, le checkout garde le comportement existant (`GROWLEE_PAYMENT_LINK_PRO` ou écran d’attente).
+
+Variables:
+
+```env
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID_PRO=
+STRIPE_SUCCESS_URL=https://growlee.fr/admin/?checkout=stripe_success
+STRIPE_CANCEL_URL=https://growlee.fr/admin/checkout/?checkout=stripe_cancel
+```
+
+Webhook à configurer côté Stripe:
+
+```text
+https://growlee.fr/webhooks/stripe/
+```
+
+Événements suivis: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.payment_succeeded`.
+
 ### Email
 
 En dev, les emails sortent en console. En prod, configurer un backend SMTP Django:

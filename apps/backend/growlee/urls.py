@@ -41,6 +41,7 @@ from apps.core.public_views import (
     sitemap_xml,
 )
 from apps.core.staff_views import staff_control_mfa_setup, staff_control_verify, staff_merchant_detail, staff_merchants, staff_support
+from apps.core.stripe_views import stripe_webhook
 from apps.core.wallet_views import apple_wallet_pass, google_wallet_pass, wallet_configuration, wallet_pass_scan
 
 urlpatterns = [
@@ -62,6 +63,7 @@ urlpatterns = [
     path('login/', login_view, name='login'),
     path('signup/', signup_view, name='signup'),
     path('logout/', logout_view, name='logout'),
+    path('webhooks/stripe/', stripe_webhook, name='stripe-webhook'),
     path('growlee-control/mfa/setup/', staff_control_mfa_setup, name='staff-control-mfa-setup'),
     path('growlee-control/verify/', staff_control_verify, name='staff-control-verify'),
     path('_growlee-control/merchants/', staff_merchants, name='staff-merchants'),

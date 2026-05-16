@@ -1,5 +1,8 @@
+import stripe
+
 from apps.core.common_views import *  # noqa: F401,F403
 from apps.core.audit import log_audit_event
+from apps.core.billing import stripe_configured
 from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
     _control_access_granted,
@@ -48,10 +51,25 @@ def merchant_checkout(request):
     if merchant is None:
         messages.error(request, 'Aucun commerce lié à ce compte.')
         return redirect('admin-dashboard')
+    if stripe_configured():
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        session = stripe.checkout.Session.create(
+            mode='subscription',
+            customer_email=merchant.contact_email or request.user.email or None,
+            client_reference_id=str(merchant.id),
+            line_items=[{'price': settings.STRIPE_PRICE_ID_PRO, 'quantity': 1}],
+            success_url=settings.STRIPE_SUCCESS_URL,
+            cancel_url=settings.STRIPE_CANCEL_URL,
+            metadata={'merchant_id': str(merchant.id)},
+            subscription_data={'metadata': {'merchant_id': str(merchant.id)}},
+        )
+        log_audit_event(request, 'billing.stripe.checkout_created', target=merchant, merchant=merchant, metadata={'stripe_session_id': session.id})
+        return redirect(session.url)
+
     payment_link = settings.GROWLEE_PAYMENT_LINK_PRO
     if payment_link:
         return redirect(payment_link)
-    messages.info(request, 'Checkout Growlee prêt : configurez GROWLEE_PAYMENT_LINK_PRO pour activer le lien de paiement externe.')
+    messages.info(request, 'Checkout Growlee prêt : configurez Stripe ou GROWLEE_PAYMENT_LINK_PRO pour activer le paiement.')
     return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
 
 @login_required

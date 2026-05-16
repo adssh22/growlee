@@ -8,6 +8,8 @@ SENSITIVE_METADATA_KEYS = {'password', 'secret', 'token', 'totp', 'totp_code', '
 
 
 def _client_ip(request):
+    if request is None:
+        return None
     forwarded_for = (request.META.get('HTTP_X_FORWARDED_FOR') or '').split(',')[0].strip()
     return forwarded_for or request.META.get('REMOTE_ADDR') or None
 
@@ -57,7 +59,7 @@ def log_audit_event(request, action, target=None, merchant=None, metadata=None):
             target_id=target_id[:120],
             metadata=_safe_metadata(metadata),
             ip_address=_client_ip(request),
-            user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255],
+            user_agent=((request.META.get('HTTP_USER_AGENT') if request is not None else '') or '')[:255],
         )
     except Exception:
         logger.exception('Audit logging failed for action=%s', action)

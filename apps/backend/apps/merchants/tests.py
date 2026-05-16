@@ -1,8 +1,11 @@
+from unittest import mock
+
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.campaigns.models import Campaign, EntryPoint
+from apps.core.billing import handle_checkout_session_completed, handle_invoice_payment_failed, handle_stripe_subscription_event, map_stripe_subscription_status
 from apps.core.common_views import _merchant_is_unlocked
 from apps.customers.models import Customer, GameSession
 from apps.core.models import AuditLog
@@ -15,6 +18,105 @@ TEST_STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
+
+
+class StripeBillingTests(TestCase):
+    def test_maps_stripe_subscription_statuses(self):
+        self.assertEqual(map_stripe_subscription_status('active'), Subscription.STATUS_ACTIVE)
+        self.assertEqual(map_stripe_subscription_status('trialing'), Subscription.STATUS_TRIALING)
+        self.assertEqual(map_stripe_subscription_status('past_due'), Subscription.STATUS_PAST_DUE)
+        self.assertEqual(map_stripe_subscription_status('canceled'), Subscription.STATUS_CANCELED)
+        self.assertEqual(map_stripe_subscription_status('unpaid'), Subscription.STATUS_SUSPENDED)
+        self.assertEqual(map_stripe_subscription_status('unknown-new-status'), Subscription.STATUS_SUSPENDED)
+
+    def test_checkout_session_completed_activates_merchant_and_subscription(self):
+        merchant = Merchant.objects.create(name='Stripe Shop', slug='stripe-shop', is_active=False)
+
+        subscription = handle_checkout_session_completed({
+            'id': 'cs_test_123',
+            'customer': 'cus_123',
+            'subscription': 'sub_123',
+            'metadata': {'merchant_id': str(merchant.id)},
+        })
+
+        merchant.refresh_from_db()
+        self.assertTrue(merchant.is_active)
+        self.assertTrue(merchant.onboarding_fee_paid)
+        self.assertEqual(subscription.provider, Subscription.PROVIDER_STRIPE)
+        self.assertEqual(subscription.status, Subscription.STATUS_ACTIVE)
+        self.assertEqual(subscription.provider_customer_id, 'cus_123')
+        self.assertEqual(subscription.provider_subscription_id, 'sub_123')
+        self.assertTrue(AuditLog.objects.filter(action='billing.stripe.checkout_completed', merchant=merchant).exists())
+
+    def test_invoice_payment_failed_marks_subscription_past_due(self):
+        merchant = Merchant.objects.create(name='Late Stripe Shop', slug='late-stripe-shop', is_active=True, onboarding_fee_paid=True)
+        Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_STRIPE, provider_customer_id='cus_late', provider_subscription_id='sub_late')
+
+        subscription = handle_invoice_payment_failed({'id': 'in_failed', 'customer': 'cus_late', 'subscription': 'sub_late'})
+
+        self.assertEqual(subscription.status, Subscription.STATUS_PAST_DUE)
+        self.assertEqual(subscription.provider, Subscription.PROVIDER_STRIPE)
+
+    def test_deleted_stripe_subscription_marks_subscription_canceled(self):
+        merchant = Merchant.objects.create(name='Canceled Stripe Shop', slug='canceled-stripe-shop', is_active=True, onboarding_fee_paid=True)
+        Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_STRIPE, provider_customer_id='cus_cancel', provider_subscription_id='sub_cancel')
+
+        subscription = handle_stripe_subscription_event({
+            'id': 'sub_cancel',
+            'customer': 'cus_cancel',
+            'status': 'canceled',
+        })
+
+        self.assertEqual(subscription.status, Subscription.STATUS_CANCELED)
+        self.assertEqual(subscription.provider, Subscription.PROVIDER_STRIPE)
+
+    @override_settings(STRIPE_WEBHOOK_SECRET='whsec_test')
+    def test_stripe_webhook_routes_checkout_completed_event(self):
+        merchant = Merchant.objects.create(name='Webhook Shop', slug='webhook-shop', is_active=False)
+        event = {
+            'type': 'checkout.session.completed',
+            'data': {
+                'object': {
+                    'id': 'cs_webhook',
+                    'customer': 'cus_webhook',
+                    'subscription': 'sub_webhook',
+                    'metadata': {'merchant_id': str(merchant.id)},
+                }
+            },
+        }
+
+        with mock.patch('apps.core.stripe_views.stripe.Webhook.construct_event', return_value=event):
+            response = self.client.post('/webhooks/stripe/', data=b'{}', content_type='application/json', HTTP_STRIPE_SIGNATURE='valid')
+
+        self.assertEqual(response.status_code, 200)
+        merchant.refresh_from_db()
+        self.assertTrue(merchant.onboarding_fee_paid)
+        self.assertEqual(merchant.subscription.status, Subscription.STATUS_ACTIVE)
+
+    @override_settings(
+        STRIPE_SECRET_KEY='sk_test_123',
+        STRIPE_PRICE_ID_PRO='price_123',
+        STRIPE_SUCCESS_URL='https://example.test/success',
+        STRIPE_CANCEL_URL='https://example.test/cancel',
+    )
+    def test_merchant_checkout_creates_stripe_session_when_configured(self):
+        user = User.objects.create_user('stripe-owner', email='owner@example.test', password='secret-12345')
+        merchant = Merchant.objects.create(name='Checkout Shop', slug='checkout-shop', contact_email='billing@example.test', is_active=False)
+        MerchantMembership.objects.create(user=user, merchant=merchant, role='owner')
+        self.client.force_login(user)
+        stripe_session = mock.Mock(id='cs_test_created', url='https://checkout.stripe.test/session')
+
+        with mock.patch('apps.core.merchant_views.stripe.checkout.Session.create', return_value=stripe_session) as create_session:
+            response = self.client.get('/admin/checkout/')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], 'https://checkout.stripe.test/session')
+        create_session.assert_called_once()
+        kwargs = create_session.call_args.kwargs
+        self.assertEqual(kwargs['line_items'], [{'price': 'price_123', 'quantity': 1}])
+        self.assertEqual(kwargs['metadata'], {'merchant_id': str(merchant.id)})
+        self.assertEqual(kwargs['subscription_data'], {'metadata': {'merchant_id': str(merchant.id)}})
+        self.assertTrue(AuditLog.objects.filter(action='billing.stripe.checkout_created', merchant=merchant).exists())
 
 
 class SubscriptionUnlockTests(TestCase):

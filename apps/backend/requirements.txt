@@ -7,3 +7,4 @@ qrcode==7.4.2
 requests==2.32.3
 django-redis==5.4.0
 phonenumbers==8.13.47
+stripe==11.1.0
