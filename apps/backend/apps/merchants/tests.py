@@ -2,14 +2,15 @@ import csv
 from unittest import mock
 
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.campaigns.models import Campaign, EntryPoint
 from apps.core.billing import handle_checkout_session_completed, handle_invoice_payment_failed, handle_stripe_subscription_event, map_stripe_subscription_status
-from apps.core.common_views import _merchant_is_unlocked
-from apps.customers.models import Customer, GameSession
-from apps.core.models import AuditLog
+from apps.core.common_views import _merchant_context_for_user, _merchant_is_unlocked
+from apps.customers.models import Customer, GameSession, WalletPass
+from apps.core.models import AuditLog, MerchantDailyMetric
 from apps.core.totp import generate_secret
 from apps.merchants.models import Merchant, Subscription
 from apps.accounts.models import MerchantMembership, StaffMFA
@@ -19,6 +20,78 @@ TEST_STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
+
+
+class MerchantDailyMetricTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('metrics-owner', password='secret-12345')
+        self.merchant = Merchant.objects.create(name='Metrics Shop', slug='metrics-shop', is_active=True, onboarding_fee_paid=True)
+        self.other_merchant = Merchant.objects.create(name='Other Metrics Shop', slug='other-metrics-shop', is_active=True)
+        MerchantMembership.objects.create(user=self.user, merchant=self.merchant, role='owner')
+        self.campaign = Campaign.objects.create(merchant=self.merchant, name='Metrics Campaign', is_active=True)
+        self.other_campaign = Campaign.objects.create(merchant=self.other_merchant, name='Other Metrics Campaign', is_active=True)
+
+    def test_rebuild_daily_metrics_creates_aggregates(self):
+        customer = Customer.objects.create(merchant=self.merchant, phone='+33670000001')
+        winner = GameSession.objects.create(customer=customer, campaign=self.campaign, reward_label='Café', is_winner=True, redeemed=True)
+        GameSession.objects.create(customer=customer, campaign=self.campaign, reward_label='Perdu', is_winner=False, redeemed=False)
+        WalletPass.objects.create(customer=customer, campaign=self.campaign, provider='apple', serial_number='metric-pass-1')
+
+        call_command('rebuild_daily_metrics')
+
+        metric = MerchantDailyMetric.objects.get(merchant=self.merchant, date=winner.created_at.date())
+        self.assertEqual(metric.scans_count, 2)
+        self.assertEqual(metric.contacts_count, 1)
+        self.assertEqual(metric.winners_count, 1)
+        self.assertEqual(metric.redeemed_count, 1)
+        self.assertEqual(metric.wallet_passes_count, 1)
+
+    def test_rebuild_daily_metrics_can_filter_merchant_and_since(self):
+        customer = Customer.objects.create(merchant=self.merchant, phone='+33670000002')
+        other_customer = Customer.objects.create(merchant=self.other_merchant, phone='+33670000003')
+        old_session = GameSession.objects.create(customer=customer, campaign=self.campaign, reward_label='Old', is_winner=True)
+        GameSession.objects.create(customer=other_customer, campaign=self.other_campaign, reward_label='Other', is_winner=True)
+        old_date = timezone.now() - timezone.timedelta(days=3)
+        Customer.objects.filter(id=customer.id).update(created_at=old_date)
+        GameSession.objects.filter(id=old_session.id).update(created_at=old_date)
+
+        call_command('rebuild_daily_metrics', merchant_id=self.merchant.id, since=timezone.now().date().isoformat())
+
+        self.assertFalse(MerchantDailyMetric.objects.filter(merchant=self.other_merchant).exists())
+        self.assertFalse(MerchantDailyMetric.objects.filter(merchant=self.merchant).exists())
+
+    def test_merchant_context_uses_metrics_when_available(self):
+        Customer.objects.create(merchant=self.merchant, phone='+33670000004')
+        MerchantDailyMetric.objects.create(
+            merchant=self.merchant,
+            date=timezone.localdate(),
+            scans_count=10,
+            contacts_count=4,
+            winners_count=7,
+            redeemed_count=3,
+            wallet_passes_count=2,
+        )
+
+        context = _merchant_context_for_user(self.user)
+
+        self.assertEqual(context['stats']['scans'], 10)
+        self.assertEqual(context['stats']['contacts'], 4)
+        self.assertEqual(context['stats']['gains_won'], 7)
+        self.assertEqual(context['stats']['redeemed'], 3)
+        self.assertEqual(context['stats']['gains_waiting'], 4)
+        self.assertEqual(context['stats']['wallets'], 2)
+        self.assertEqual(context['stats']['return_rate'], '30%')
+
+    def test_merchant_context_falls_back_to_live_counts_without_metrics(self):
+        customer = Customer.objects.create(merchant=self.merchant, phone='+33670000005')
+        GameSession.objects.create(customer=customer, campaign=self.campaign, reward_label='Live', is_winner=True, redeemed=True)
+
+        context = _merchant_context_for_user(self.user)
+
+        self.assertEqual(context['stats']['scans'], 1)
+        self.assertEqual(context['stats']['contacts'], 1)
+        self.assertEqual(context['stats']['gains_won'], 1)
+        self.assertEqual(context['stats']['redeemed'], 1)
 
 
 class StripeBillingTests(TestCase):

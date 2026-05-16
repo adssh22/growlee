@@ -16,7 +16,7 @@ from django.core.mail import send_mail
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -31,6 +31,7 @@ import qrcode.image.svg
 from apps.accounts.models import MerchantMembership, StaffMFA
 from apps.campaigns.models import Campaign, EntryPoint, WheelSegment
 from apps.core.forms import CampaignForm, EntryPointForm, MerchantForm, MerchantReviewForm, MerchantSignupForm, RewardForm, StaffMerchantCreateForm
+from apps.core.models import MerchantDailyMetric
 from apps.core.totp import generate_secret, provisioning_uri, verify_totp
 from apps.core.utils import build_qr_svg, generate_qr_data_uri
 from apps.core.security import rate_limit
@@ -271,10 +272,30 @@ def _merchant_context_for_user(user):
     primary_entry = entry_points.order_by('created_at', 'id').first() if merchant else None
     rewards = Reward.objects.filter(merchant=merchant) if merchant else []
     customers = Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).order_by('-created_at')[:10] if merchant else []
-    distributed = GameSession.objects.filter(campaign__merchant=merchant).count() if merchant else 0
-    redeemed = GameSession.objects.filter(campaign__merchant=merchant, redeemed=True).count() if merchant else 0
-    gains_won = GameSession.objects.filter(campaign__merchant=merchant, is_winner=True).count() if merchant else 0
-    gains_waiting = GameSession.objects.filter(campaign__merchant=merchant, is_winner=True, redeemed=False).count() if merchant else 0
+    metrics = MerchantDailyMetric.objects.filter(merchant=merchant) if merchant else MerchantDailyMetric.objects.none()
+    if metrics.exists():
+        metric_totals = metrics.aggregate(
+            scans=Sum('scans_count'),
+            contacts=Sum('contacts_count'),
+            wallets=Sum('wallet_passes_count'),
+            redeemed=Sum('redeemed_count'),
+            gains_won=Sum('winners_count'),
+            review_clicks=Sum('review_clicks_count'),
+        )
+        distributed = metric_totals['scans'] or 0
+        contacts_count = metric_totals['contacts'] or 0
+        wallets = metric_totals['wallets'] or 0
+        redeemed = metric_totals['redeemed'] or 0
+        gains_won = metric_totals['gains_won'] or 0
+        review_clicks = metric_totals['review_clicks'] or 0
+    else:
+        distributed = GameSession.objects.filter(campaign__merchant=merchant).count() if merchant else 0
+        contacts_count = Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).count() if merchant else 0
+        wallets = WalletPass.objects.filter(campaign__merchant=merchant).count() if merchant else 0
+        redeemed = GameSession.objects.filter(campaign__merchant=merchant, redeemed=True).count() if merchant else 0
+        gains_won = GameSession.objects.filter(campaign__merchant=merchant, is_winner=True).count() if merchant else 0
+        review_clicks = 0
+    gains_waiting = max(gains_won - redeemed, 0)
     now = timezone.now()
     active_campaigns = campaigns.filter(is_active=True).filter(
         Q(send_immediately=True) | Q(scheduled_for__isnull=True) | Q(scheduled_for__lte=now)
@@ -282,14 +303,14 @@ def _merchant_context_for_user(user):
     scheduled_campaigns = campaigns.filter(is_active=True, send_immediately=False, scheduled_for__gt=now)
     stats = {
         'scans': distributed,
-        'contacts': Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).count() if merchant else 0,
-        'wallets': redeemed,
+        'contacts': contacts_count,
+        'wallets': wallets,
         'return_rate': f"{int((redeemed / distributed) * 100) if distributed else 0}%",
         'distributed': distributed,
         'redeemed': redeemed,
         'gains_won': gains_won,
         'gains_waiting': gains_waiting,
-        'review_clicks': 0,
+        'review_clicks': review_clicks,
         'review_target': 20,
         'campaigns_live': active_campaigns.count(),
         'campaigns_scheduled': scheduled_campaigns.count(),

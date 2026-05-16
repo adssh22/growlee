@@ -4,6 +4,33 @@ from django.db import models
 from apps.merchants.models import Merchant
 
 
+class MerchantDailyMetric(models.Model):
+    merchant = models.ForeignKey(Merchant, on_delete=models.CASCADE, related_name='daily_metrics')
+    date = models.DateField()
+    scans_count = models.PositiveIntegerField(default=0)
+    contacts_count = models.PositiveIntegerField(default=0)
+    winners_count = models.PositiveIntegerField(default=0)
+    redeemed_count = models.PositiveIntegerField(default=0)
+    review_clicks_count = models.PositiveIntegerField(default=0)
+    wallet_passes_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date', 'merchant__name']
+        constraints = [
+            models.UniqueConstraint(fields=['merchant', 'date'], name='uniq_merchant_daily_metric_date'),
+        ]
+        indexes = [
+            models.Index(fields=['merchant']),
+            models.Index(fields=['date']),
+            models.Index(fields=['merchant', 'date']),
+        ]
+
+    def __str__(self):
+        return f'{self.merchant} · {self.date}'
+
+
 class AuditLog(models.Model):
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
     merchant = models.ForeignKey(Merchant, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
