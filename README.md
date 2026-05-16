@@ -55,8 +55,12 @@ docker compose up --build
 
 ## Compte de démo
 
-- login: `demo`
-- password: `demo1234`
+La commande `python manage.py seed_demo` crée les comptes de démonstration en développement:
+
+- superuser: `demo` / `demo1234`
+- commerçant: `demo-merchant` / `demo1234`
+
+Sécurité: la commande refuse de s’exécuter quand `DJANGO_DEBUG=0`, sauf si `ALLOW_DEMO_SEED=1` est explicitement défini.
 
 ## Configuration production
 

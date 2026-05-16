@@ -1,5 +1,8 @@
+import os
+
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from apps.accounts.models import MerchantMembership
 from apps.campaigns.models import Campaign, EntryPoint
@@ -11,6 +14,13 @@ class Command(BaseCommand):
     help = 'Seed demo data for Growlee'
 
     def handle(self, *args, **options):
+        allow_prod_seed = os.getenv('ALLOW_DEMO_SEED', '').strip().lower() in {'1', 'true', 'yes', 'on'}
+        if not settings.DEBUG and not allow_prod_seed:
+            raise CommandError(
+                'Refusing to seed demo accounts while DJANGO_DEBUG=0. '
+                'Set ALLOW_DEMO_SEED=1 only if you intentionally want demo credentials in this environment.'
+            )
+
         merchant, _ = Merchant.objects.get_or_create(
             slug='demo-bistro',
             defaults={
