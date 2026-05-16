@@ -291,7 +291,7 @@ def customers_list(request):
         return redirect('admin-dashboard')
 
     query = (request.GET.get('q') or '').strip()
-    customers = Customer.objects.filter(merchant=merchant).order_by('-created_at')
+    customers = Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).order_by('-created_at')
     if query:
         customers = customers.filter(
             Q(phone__icontains=query) |
@@ -312,7 +312,7 @@ def customers_list(request):
 def customer_detail(request, customer_id):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
-    customer = get_object_or_404(Customer, id=customer_id, merchant=merchant)
+    customer = get_object_or_404(Customer, id=customer_id, merchant=merchant, deleted_at__isnull=True)
     sessions = customer.game_sessions.select_related('campaign', 'reward').order_by('-created_at')
     return render(request, 'admin/customer_detail.html', {
         'customer': customer,
@@ -326,11 +326,13 @@ def delete_customer(request, customer_id):
         return HttpResponseNotAllowed(['POST'])
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
-    customer = get_object_or_404(Customer, id=customer_id, merchant=merchant)
+    customer = get_object_or_404(Customer, id=customer_id, merchant=merchant, deleted_at__isnull=True)
     phone = customer.phone
-    log_audit_event(request, 'merchant.customer.delete', target=customer, merchant=merchant, metadata={'phone': phone})
-    customer.delete()
-    messages.success(request, f'Client supprimé: {phone}.')
+    customer.deleted_at = timezone.now()
+    customer.deleted_by = request.user if request.user.is_authenticated else None
+    customer.save(update_fields=['deleted_at', 'deleted_by'])
+    log_audit_event(request, 'merchant.customer.archive', target=customer, merchant=merchant, metadata={'phone': phone})
+    messages.success(request, f'Client archivé: {phone}.')
     return redirect('customers-list')
 
 @login_required
@@ -345,7 +347,7 @@ def customers_export_csv(request):
     response['Content-Disposition'] = f'attachment; filename="growlee-customers-{merchant.slug}.csv"'
     writer = csv.writer(response)
     writer.writerow(['phone', 'first_name', 'email', 'created_at', 'sessions_count'])
-    for customer in Customer.objects.filter(merchant=merchant).order_by('-created_at'):
+    for customer in Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).order_by('-created_at'):
         writer.writerow([
             customer.phone,
             customer.first_name,

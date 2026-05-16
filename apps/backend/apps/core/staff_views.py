@@ -34,6 +34,9 @@ def _staff_control_gate(request):
 
 
 def _run_staff_merchant_action(request, merchant, action):
+    if merchant.deleted_at and action != 'restore_merchant':
+        messages.error(request, 'Commerce archivé : restaure-le avant toute modification.')
+        return False
     if action == 'toggle':
         merchant.is_active = not merchant.is_active
         merchant.save(update_fields=['is_active'])
@@ -102,19 +105,37 @@ def _run_staff_merchant_action(request, merchant, action):
         log_audit_event(request, 'staff.campaign.module_toggle', target=campaign, merchant=merchant, metadata={'flag': flag, 'is_active': campaign.is_active, 'review_enabled': campaign.review_enabled, 'wallet_enabled': campaign.wallet_enabled})
         messages.success(request, f'Module mis à jour pour {merchant.name}.')
         return True
-    if action == 'delete_merchant':
+    if action == 'archive_merchant':
         confirm = (request.POST.get('confirm_name') or '').strip()
         if confirm != merchant.name:
-            messages.error(request, f'Suppression annulée : tape exactement le nom du commerce ({merchant.name}).')
+            messages.error(request, f'Archivage annulé : tape exactement le nom du commerce ({merchant.name}).')
             return False
-        merchant_name = merchant.name
-        owner_users = [membership.user for membership in merchant.memberships.select_related('user').all()]
-        log_audit_event(request, 'staff.merchant.delete', target=merchant, merchant=merchant, metadata={'merchant_name': merchant.name, 'merchant_slug': merchant.slug})
-        merchant.delete()
-        for user in owner_users:
-            if not user.is_staff and not user.merchant_memberships.exists():
-                user.delete()
-        messages.success(request, f'Commerce supprimé : {merchant_name}.')
+        merchant.is_active = False
+        merchant.is_demo = False
+        merchant.demo_expires_at = None
+        merchant.deleted_at = timezone.now()
+        merchant.deleted_by = request.user if request.user.is_authenticated else None
+        merchant.save(update_fields=['is_active', 'is_demo', 'demo_expires_at', 'deleted_at', 'deleted_by'])
+        subscription = _ensure_subscription_for_merchant(merchant)
+        subscription.status = Subscription.STATUS_SUSPENDED
+        subscription.save(update_fields=['status', 'updated_at'])
+        log_audit_event(request, 'staff.merchant.archive', target=merchant, merchant=merchant, metadata={'merchant_name': merchant.name, 'merchant_slug': merchant.slug})
+        messages.success(request, f'Commerce archivé : {merchant.name}. Les données, users, stats et sessions sont conservés.')
+        return True
+    if action == 'restore_merchant':
+        if not merchant.deleted_at:
+            messages.info(request, f'{merchant.name} n’est pas archivé.')
+            return False
+        merchant.deleted_at = None
+        merchant.deleted_by = None
+        merchant.is_active = True
+        merchant.save(update_fields=['deleted_at', 'deleted_by', 'is_active'])
+        subscription = _ensure_subscription_for_merchant(merchant)
+        if subscription.status in {Subscription.STATUS_SUSPENDED, Subscription.STATUS_CANCELED}:
+            subscription.status = Subscription.STATUS_ACTIVE
+            subscription.save(update_fields=['status', 'updated_at'])
+        log_audit_event(request, 'staff.merchant.restore', target=merchant, merchant=merchant, metadata={'merchant_name': merchant.name, 'merchant_slug': merchant.slug})
+        messages.success(request, f'Commerce restauré : {merchant.name}.')
         return True
     return False
 
@@ -197,10 +218,10 @@ def staff_merchants(request):
                 messages.success(request, '2FA téléphone activée pour ce compte staff.')
                 return redirect('staff-merchants')
             mfa_error = 'Code 2FA invalide. Vérifie l’heure du téléphone et réessaie.'
-        if action in {'toggle', 'toggle_demo', 'activate_direct_billing', 'delete_merchant', 'module_toggle'}:
+        if action in {'toggle', 'toggle_demo', 'activate_direct_billing', 'archive_merchant', 'restore_merchant', 'module_toggle'}:
             merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
             handled = _run_staff_merchant_action(request, merchant, action)
-            if action == 'delete_merchant' and handled:
+            if action == 'archive_merchant' and handled:
                 return redirect('staff-merchants')
             return redirect('staff-merchants')
         if action == 'create' and form.is_valid():
@@ -228,11 +249,16 @@ def staff_merchants(request):
             return redirect('staff-merchants')
 
     merchants = Merchant.objects.select_related('subscription').prefetch_related('memberships__user').order_by('-created_at')
-    all_merchants = merchants
+    all_merchants = merchants.filter(deleted_at__isnull=True)
     q = (request.GET.get('q') or '').strip()
     active_filter = request.GET.get('active') or ''
     demo_filter = request.GET.get('demo') or ''
     subscription_filter = request.GET.get('subscription') or ''
+    archived_filter = request.GET.get('archived') or ''
+    if archived_filter == 'yes':
+        merchants = merchants.filter(deleted_at__isnull=False)
+    else:
+        merchants = merchants.filter(deleted_at__isnull=True)
     if q:
         merchants = merchants.filter(Q(name__icontains=q) | Q(slug__icontains=q) | Q(contact_email__icontains=q) | Q(memberships__user__email__icontains=q) | Q(memberships__user__username__icontains=q)).distinct()
     if active_filter == 'active':
@@ -271,7 +297,7 @@ def staff_merchants(request):
         'rows': rows,
         'page_obj': page_obj,
         'querystring': query_params.urlencode(),
-        'filters': {'q': q, 'active': active_filter, 'demo': demo_filter, 'subscription': subscription_filter},
+        'filters': {'q': q, 'active': active_filter, 'demo': demo_filter, 'subscription': subscription_filter, 'archived': archived_filter},
         'staff_mfa_users': staff_mfa_users,
         'total_merchants': all_merchants.count(),
         'active_merchants': all_merchants.filter(is_active=True).count(),
@@ -294,7 +320,7 @@ def staff_merchant_detail(request, merchant_id):
     if request.method == 'POST':
         action = request.POST.get('action')
         handled = _run_staff_merchant_action(request, merchant, action)
-        if action == 'delete_merchant' and handled:
+        if action == 'archive_merchant' and handled:
             return redirect('staff-merchants')
         return redirect('staff-merchant-detail', merchant_id=merchant.id)
 

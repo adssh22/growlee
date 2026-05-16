@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from apps.campaigns.models import Campaign
@@ -11,11 +12,17 @@ class Customer(models.Model):
     first_name = models.CharField(max_length=80, blank=True)
     consent_marketing = models.BooleanField(default=False)
     consent_marketing_at = models.DateTimeField(blank=True, null=True)
+    deleted_at = models.DateTimeField(blank=True, null=True, db_index=True)
+    deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='deleted_customers')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('merchant', 'phone')
         ordering = ['-created_at']
+
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
 
     def __str__(self):
         return f'{self.phone} · {self.merchant.name}'

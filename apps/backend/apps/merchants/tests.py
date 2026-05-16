@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from apps.campaigns.models import Campaign
 from apps.core.common_views import _merchant_is_unlocked
@@ -161,15 +162,53 @@ class GrowleeControlSubscriptionTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(AuditLog.objects.filter(action='staff.mfa.reset', actor=self.user, target_type='User', target_id=str(other_staff.id)).exists())
 
-    def test_staff_delete_merchant_creates_audit_log(self):
-        merchant = Merchant.objects.create(name='Delete Audit Shop', slug='delete-audit-shop', is_active=True)
+    def test_staff_archive_and_restore_merchant_soft_deletes_without_removing_users(self):
+        merchant = Merchant.objects.create(name='Archive Audit Shop', slug='archive-audit-shop', is_active=True)
+        owner = User.objects.create_user('archive-owner', password='secret-12345')
+        MerchantMembership.objects.create(user=owner, merchant=merchant, role='owner')
         Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
         merchant_id = merchant.id
 
-        response = self.client.post(f'/growlee-control/merchants/{merchant.id}/', {'action': 'delete_merchant', 'confirm_name': merchant.name})
+        response = self.client.post(f'/growlee-control/merchants/{merchant.id}/', {'action': 'archive_merchant', 'confirm_name': merchant.name})
 
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(AuditLog.objects.filter(action='staff.merchant.delete', target_type='Merchant', target_id=str(merchant_id)).exists())
+        merchant.refresh_from_db()
+        self.assertFalse(merchant.is_active)
+        self.assertIsNotNone(merchant.deleted_at)
+        self.assertTrue(User.objects.filter(id=owner.id).exists())
+        self.assertTrue(Merchant.objects.filter(id=merchant_id).exists())
+        self.assertTrue(AuditLog.objects.filter(action='staff.merchant.archive', target_type='Merchant', target_id=str(merchant_id)).exists())
+        self.assertEqual(merchant.subscription.status, Subscription.STATUS_SUSPENDED)
+
+        response = self.client.post(f'/growlee-control/merchants/{merchant.id}/', {'action': 'restore_merchant'})
+
+        self.assertEqual(response.status_code, 302)
+        merchant.refresh_from_db()
+        self.assertTrue(merchant.is_active)
+        self.assertIsNone(merchant.deleted_at)
+        self.assertTrue(AuditLog.objects.filter(action='staff.merchant.restore', target_type='Merchant', target_id=str(merchant_id)).exists())
+
+    def test_archived_merchants_are_hidden_by_default_and_visible_with_filter(self):
+        active = Merchant.objects.create(name='Visible Shop', slug='visible-shop', is_active=True)
+        archived = Merchant.objects.create(name='Archived Shop', slug='archived-shop', is_active=False, deleted_at=timezone.now(), deleted_by=self.user)
+        Subscription.objects.create(merchant=active, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+        Subscription.objects.create(merchant=archived, status=Subscription.STATUS_SUSPENDED, provider=Subscription.PROVIDER_MANUAL)
+
+        default_response = self.client.get('/growlee-control/merchants/')
+        archived_response = self.client.get('/growlee-control/merchants/?archived=yes')
+
+        self.assertContains(default_response, 'Visible Shop')
+        self.assertNotContains(default_response, 'Archived Shop')
+        self.assertContains(archived_response, 'Archived Shop')
+        self.assertNotContains(archived_response, 'Visible Shop')
+
+    def test_archived_merchant_does_not_serve_public_play_page(self):
+        merchant = Merchant.objects.create(name='Archived Public Shop', slug='archived-public-shop', is_active=False, deleted_at=timezone.now(), deleted_by=self.user)
+        Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_SUSPENDED, provider=Subscription.PROVIDER_MANUAL)
+
+        response = self.client.get('/play/archived-public-shop/')
+
+        self.assertEqual(response.status_code, 404)
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -192,11 +231,15 @@ class AuditLogActionTests(TestCase):
         self.session = GameSession.objects.create(customer=self.customer, campaign=self.campaign, reward_label='Dessert offert', is_winner=True)
         self.client.force_login(self.owner)
 
-    def test_delete_customer_creates_audit_log(self):
+    def test_delete_customer_soft_deletes_and_creates_audit_log(self):
         response = self.client.post(f'/admin/customers/{self.customer.id}/delete/')
 
         self.assertEqual(response.status_code, 302)
-        log = AuditLog.objects.get(action='merchant.customer.delete')
+        self.customer.refresh_from_db()
+        self.assertIsNotNone(self.customer.deleted_at)
+        self.assertEqual(self.customer.deleted_by, self.owner)
+        self.assertTrue(GameSession.objects.filter(id=self.session.id, customer=self.customer).exists())
+        log = AuditLog.objects.get(action='merchant.customer.archive')
         self.assertEqual(log.actor, self.owner)
         self.assertEqual(log.merchant, self.merchant)
         self.assertEqual(log.target_type, 'Customer')

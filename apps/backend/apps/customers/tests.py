@@ -60,6 +60,24 @@ class CustomerConsentTests(TestCase):
         self.assertEqual(customer.consent_marketing_at, consented_at)
         self.assertEqual(session.customer, customer)
 
+    def test_claim_reward_restores_soft_deleted_customer_for_same_phone(self):
+        customer = Customer.objects.create(
+            merchant=self.merchant,
+            phone='+33600000004',
+            deleted_at=timezone.now(),
+        )
+
+        restored_customer, session, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000004',
+        )
+
+        self.assertEqual(restored_customer, customer)
+        self.assertIsNone(restored_customer.deleted_at)
+        self.assertIsNone(restored_customer.deleted_by)
+        self.assertEqual(session.customer, customer)
+
 
 class RewardQuotaTests(TestCase):
     def setUp(self):

@@ -20,7 +20,7 @@ from apps.core.common_views import (  # noqa: F401
 )
 
 def entry_redirect(request, code):
-    entry_point = get_object_or_404(EntryPoint, code=code)
+    entry_point = get_object_or_404(EntryPoint.objects.select_related('merchant'), code=code, merchant__deleted_at__isnull=True, merchant__is_active=True)
     target = entry_point.redirect_url or f'/play/{entry_point.merchant.slug}/'
     return redirect(target)
 
@@ -48,7 +48,7 @@ def reward_claim_page(request, token):
 
 @rate_limit('play_page', limit=30, limit_setting='RATELIMIT_PLAY_POST_ATTEMPTS', window=3600)
 def play_page(request, slug):
-    merchant = get_object_or_404(Merchant, slug=slug, is_active=True)
+    merchant = get_object_or_404(Merchant, slug=slug, is_active=True, deleted_at__isnull=True)
     # Le parcours public ne dépend plus uniquement du module Jeu.
     # La campagne courante porte aussi les modules Avis / Wallet et la collecte d'infos.
     campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()

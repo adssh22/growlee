@@ -91,6 +91,10 @@ def claim_reward(*, merchant, campaign, phone: str, email: str = '', first_name:
     )
 
     update_fields = []
+    if customer.deleted_at:
+        customer.deleted_at = None
+        customer.deleted_by = None
+        update_fields.extend(['deleted_at', 'deleted_by'])
     if email and customer.email != email:
         customer.email = email
         update_fields.append('email')

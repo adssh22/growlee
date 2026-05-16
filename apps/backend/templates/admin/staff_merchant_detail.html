@@ -19,7 +19,7 @@
 
     <div class="hero">
       <div><div class="eyebrow">Growlee Control · merchant detail</div><h1>{{ merchant.name }}</h1><p class="muted">/{{ merchant.slug }}/ · créé le {{ merchant.created_at|date:'d/m/Y H:i' }}</p></div>
-      <div class="row-actions"><a class="btn secondary" href="/play/{{ merchant.slug }}/" target="_blank">Parcours client</a></div>
+      <div class="row-actions">{% if not merchant.deleted_at %}<a class="btn secondary" href="/play/{{ merchant.slug }}/" target="_blank">Parcours client</a>{% endif %}</div>
     </div>
 
     <div class="stats">
@@ -58,7 +58,7 @@
       <div class="stack">
         <div class="card">
           <h2 style="margin:0 0 12px;letter-spacing:-.04em">Statuts</h2>
-          <p><span class="badge {% if merchant.is_active %}on{% else %}off{% endif %}">{% if merchant.is_active %}Commerce actif{% else %}Commerce inactif{% endif %}</span> {% if merchant.is_demo %}<span class="badge warn">Démo{% if merchant.demo_expires_at %} · expire {{ merchant.demo_expires_at|date:'d/m/Y' }}{% endif %}</span>{% endif %}</p>
+          <p>{% if merchant.deleted_at %}<span class="badge warn">Archivé · {{ merchant.deleted_at|date:'d/m/Y H:i' }}</span> {% endif %}<span class="badge {% if merchant.is_active %}on{% else %}off{% endif %}">{% if merchant.is_active %}Commerce actif{% else %}Commerce inactif{% endif %}</span> {% if merchant.is_demo %}<span class="badge warn">Démo{% if merchant.demo_expires_at %} · expire {{ merchant.demo_expires_at|date:'d/m/Y' }}{% endif %}</span>{% endif %}</p>
           <p><span class="badge {% if subscription.status == 'active' or subscription.status == 'trialing' %}on{% elif subscription.status == 'past_due' or subscription.status == 'suspended' %}warn{% else %}off{% endif %}">{{ subscription.get_status_display }}</span></p>
           <p class="small">{{ subscription.get_plan_display }} · {{ subscription.get_provider_display }}{% if subscription.provider_customer_id %}<br>{{ subscription.provider_customer_id }}{% endif %}{% if subscription.provider_subscription_id %}<br>{{ subscription.provider_subscription_id }}{% endif %}</p>
         </div>
@@ -71,23 +71,31 @@
         <div class="card">
           <h2 style="margin:0 0 12px;letter-spacing:-.04em">Modules actifs</h2>
           <div class="row-actions">
-            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="game"><button class="badge {% if modules.game %}on{% else %}off{% endif %}" type="submit">Jeu</button></form>
-            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="review"><button class="badge {% if modules.review %}on{% else %}off{% endif %}" type="submit">Avis</button></form>
-            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="wallet"><button class="badge {% if modules.wallet %}on{% else %}off{% endif %}" type="submit">Wallet</button></form>
+            {% if merchant.deleted_at %}
+              <span class="badge {% if modules.game %}on{% else %}off{% endif %}">Jeu</span><span class="badge {% if modules.review %}on{% else %}off{% endif %}">Avis</span><span class="badge {% if modules.wallet %}on{% else %}off{% endif %}">Wallet</span>
+            {% else %}
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="game"><button class="badge {% if modules.game %}on{% else %}off{% endif %}" type="submit">Jeu</button></form>
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="review"><button class="badge {% if modules.review %}on{% else %}off{% endif %}" type="submit">Avis</button></form>
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="wallet"><button class="badge {% if modules.wallet %}on{% else %}off{% endif %}" type="submit">Wallet</button></form>
+            {% endif %}
           </div>
-          <p class="small">Ces actions modifient la dernière campagne du commerce.</p>
+          <p class="small">{% if merchant.deleted_at %}Commerce archivé : restaure-le avant de modifier les modules.{% else %}Ces actions modifient la dernière campagne du commerce.{% endif %}</p>
         </div>
 
         <div class="card">
           <h2 style="margin:0 0 12px;letter-spacing:-.04em">Actions sensibles</h2>
-          <div class="row-actions">
-            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><button class="btn {% if merchant.is_active %}warn{% else %}secondary{% endif %}" type="submit">{% if merchant.is_active %}Désactiver{% else %}Activer commerce{% endif %}</button></form>
-            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_demo"><button class="btn secondary" type="submit">{% if merchant.is_demo %}Stop démo{% else %}Accès démo{% endif %}</button></form>
-            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="activate_direct_billing"><input type="hidden" name="billing_reference" value="Facturation directe validée par {{ request.user.username }}"><button class="btn" type="submit">Activer facturation directe</button></form>
-          </div>
-          <label class="btn warn" for="delete-merchant" style="cursor:pointer;margin-top:18px">Supprimer ce commerce</label>
-          <input class="delete-toggle" id="delete-merchant" type="checkbox" style="display:none">
-          <form class="delete-box" method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_merchant"><input name="confirm_name" placeholder="Tapez: {{ merchant.name }}" required><button class="btn danger" type="submit">Confirmer suppression</button></form>
+          {% if merchant.deleted_at %}
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="restore_merchant"><button class="btn" type="submit">Restaurer ce commerce</button></form>
+          {% else %}
+            <div class="row-actions">
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><button class="btn {% if merchant.is_active %}warn{% else %}secondary{% endif %}" type="submit">{% if merchant.is_active %}Désactiver{% else %}Activer commerce{% endif %}</button></form>
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_demo"><button class="btn secondary" type="submit">{% if merchant.is_demo %}Stop démo{% else %}Accès démo{% endif %}</button></form>
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="activate_direct_billing"><input type="hidden" name="billing_reference" value="Facturation directe validée par {{ request.user.username }}"><button class="btn" type="submit">Activer facturation directe</button></form>
+            </div>
+            <label class="btn warn" for="archive-merchant" style="cursor:pointer;margin-top:18px">Archiver ce commerce</label>
+            <input class="delete-toggle" id="archive-merchant" type="checkbox" style="display:none">
+            <form class="delete-box" method="post">{% csrf_token %}<input type="hidden" name="action" value="archive_merchant"><input name="confirm_name" placeholder="Tapez: {{ merchant.name }}" required><button class="btn danger" type="submit">Confirmer archivage</button></form>
+          {% endif %}
         </div>
       </div>
     </div>

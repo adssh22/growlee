@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -51,10 +52,16 @@ class Merchant(models.Model):
     onboarding_completed = models.BooleanField(default=False)
     demo_expires_at = models.DateTimeField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    deleted_at = models.DateTimeField(blank=True, null=True, db_index=True)
+    deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='archived_merchants')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['name']
+
+    @property
+    def is_archived(self):
+        return self.deleted_at is not None
 
     def __str__(self):
         return self.name

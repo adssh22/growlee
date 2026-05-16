@@ -66,7 +66,7 @@ def _ensure_subscription_for_merchant(merchant, *, provider=None, status=None):
 def _merchant_is_unlocked(merchant):
     if merchant and merchant.is_demo and merchant.demo_expires_at and merchant.demo_expires_at < timezone.now():
         return False
-    if not merchant:
+    if not merchant or merchant.deleted_at:
         return False
     try:
         subscription = merchant.subscription
@@ -225,7 +225,7 @@ def _merchant_context_for_user(user):
     entry_points = EntryPoint.objects.filter(merchant=merchant) if merchant else []
     primary_entry = entry_points.order_by('created_at', 'id').first() if merchant else None
     rewards = Reward.objects.filter(merchant=merchant) if merchant else []
-    customers = Customer.objects.filter(merchant=merchant).order_by('-created_at')[:10] if merchant else []
+    customers = Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).order_by('-created_at')[:10] if merchant else []
     distributed = GameSession.objects.filter(campaign__merchant=merchant).count() if merchant else 0
     redeemed = GameSession.objects.filter(campaign__merchant=merchant, redeemed=True).count() if merchant else 0
     gains_won = GameSession.objects.filter(campaign__merchant=merchant, is_winner=True).count() if merchant else 0
@@ -237,7 +237,7 @@ def _merchant_context_for_user(user):
     scheduled_campaigns = campaigns.filter(is_active=True, send_immediately=False, scheduled_for__gt=now)
     stats = {
         'scans': distributed,
-        'contacts': Customer.objects.filter(merchant=merchant).count() if merchant else 0,
+        'contacts': Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).count() if merchant else 0,
         'wallets': redeemed,
         'return_rate': f"{int((redeemed / distributed) * 100) if distributed else 0}%",
         'distributed': distributed,
@@ -346,7 +346,7 @@ def _font_stack(font_key):
     return mapping.get(font_key, mapping['inter'])
 
 def _latest_session_for_wallet(request, slug):
-    merchant = get_object_or_404(Merchant, slug=slug, is_active=True)
+    merchant = get_object_or_404(Merchant, slug=slug, is_active=True, deleted_at__isnull=True)
     campaign = _get_active_campaign_for_merchant(merchant)
     session_id = request.session.get(f'growlee_last_session_{merchant.slug}')
     session = None
