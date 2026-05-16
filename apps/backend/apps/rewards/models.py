@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from apps.campaigns.models import Campaign
@@ -22,10 +23,16 @@ class Reward(models.Model):
     total_distributed = models.PositiveIntegerField(default=0)
     active = models.BooleanField(default=True)
     expires_in_hours = models.PositiveIntegerField(default=168)
+    archived_at = models.DateTimeField(blank=True, null=True, db_index=True)
+    archived_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name='archived_rewards')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['merchant__name', 'name']
+
+    @property
+    def is_archived(self):
+        return self.archived_at is not None
 
     def __str__(self):
         return f'{self.merchant.name} · {self.name}'

@@ -322,6 +322,42 @@ class RewardQuotaTests(TestCase):
         self.assertEqual(session.reward, available_reward)
         self.assertEqual(session.reward_label, available_segment.label)
 
+    def test_archived_reward_is_not_distributed_but_history_stays_readable(self):
+        archived = Reward.objects.create(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            name='Ancien gain',
+            description='Ancien gain historique',
+            probability_weight=100,
+            daily_quota=10,
+            active=True,
+            archived_at=timezone.now(),
+        )
+        historical = GameSession.objects.create(
+            customer=self._customer(),
+            campaign=self.campaign,
+            reward=archived,
+            reward_label=archived.description,
+            claim_token='archived-history',
+            is_winner=True,
+        )
+        active = Reward.objects.create(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            name='Nouveau gain',
+            description='Nouveau gain actif',
+            probability_weight=100,
+            daily_quota=10,
+            active=True,
+        )
+
+        _, session, _segment = claim_reward(merchant=self.merchant, campaign=self.campaign, phone='+33555555554')
+
+        self.assertEqual(session.reward, active)
+        historical.refresh_from_db()
+        self.assertEqual(historical.reward_label, 'Ancien gain historique')
+        self.assertEqual(historical.reward, archived)
+
     def test_no_available_reward_creates_non_winning_session_without_error(self):
         reward = Reward.objects.create(
             merchant=self.merchant,

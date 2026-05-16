@@ -270,7 +270,7 @@ def _merchant_context_for_user(user):
     campaign = campaigns.first()
     entry_points = EntryPoint.objects.filter(merchant=merchant) if merchant else []
     primary_entry = entry_points.order_by('created_at', 'id').first() if merchant else None
-    rewards = Reward.objects.filter(merchant=merchant) if merchant else []
+    rewards = Reward.objects.filter(merchant=merchant, archived_at__isnull=True) if merchant else []
     customers = Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).order_by('-created_at')[:10] if merchant else []
     metrics = MerchantDailyMetric.objects.filter(merchant=merchant) if merchant else MerchantDailyMetric.objects.none()
     if metrics.exists():
@@ -390,7 +390,7 @@ def _ensure_spin_defaults(campaign):
     active_segments = WheelSegment.objects.filter(campaign=campaign, active=True)
     if active_segments.count() >= 3:
         return
-    reward = Reward.objects.filter(campaign=campaign, active=True).order_by('-probability_weight', 'id').first()
+    reward = Reward.objects.filter(campaign=campaign, active=True, archived_at__isnull=True).order_by('-probability_weight', 'id').first()
     defaults = [
         ('Gain principal', 65, 50, 1, '#f59e0b'),
         ('Petit bonus', 25, 50, 2, '#fb7185'),

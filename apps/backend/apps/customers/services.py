@@ -54,7 +54,10 @@ def _weighted_choice(items, weight_attr='probability_weight'):
 def _pick_reward_for_campaign(*, merchant, campaign):
     if campaign.game_type in {'spin', 'scratch'}:
         segments = list(
-            WheelSegment.objects.filter(campaign=campaign, active=True).select_related('reward').order_by('display_order', 'id')
+            WheelSegment.objects.filter(campaign=campaign, active=True)
+            .filter(Q(reward__isnull=True) | Q(reward__archived_at__isnull=True))
+            .select_related('reward')
+            .order_by('display_order', 'id')
         )
         weighted_segments = [segment for segment in segments if segment.probability_weight > 0]
         available_segments = [segment for segment in weighted_segments if _segment_quota_available(segment)]
@@ -65,7 +68,7 @@ def _pick_reward_for_campaign(*, merchant, campaign):
             return None, 'Aucun gain disponible aujourd’hui', None, False
 
     rewards = list(
-        Reward.objects.filter(merchant=merchant, active=True)
+        Reward.objects.filter(merchant=merchant, active=True, archived_at__isnull=True)
         .filter(Q(campaign=campaign) | Q(campaign__isnull=True))
         .order_by('-probability_weight', 'id')
     )

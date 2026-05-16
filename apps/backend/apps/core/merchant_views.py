@@ -265,7 +265,7 @@ def game_configuration(request):
             defaults={'name': 'QR principal', 'channel': 'qr', 'placement': 'counter'},
         )
     segments = WheelSegment.objects.filter(campaign=campaign).select_related('reward').order_by('display_order', 'id') if campaign else []
-    rewards = Reward.objects.filter(merchant=merchant).order_by('name')
+    rewards = Reward.objects.filter(merchant=merchant, archived_at__isnull=True).order_by('name')
     total_weight = sum(segment.probability_weight for segment in segments if segment.active)
     context.update({'campaign': campaign, 'campaign_form': campaign_form, 'segments': segments, 'total_weight': total_weight, 'merchant_form': merchant_style_form, 'rewards': rewards, 'reward_form': reward_form, 'qr_entry_code': entry_point.code if entry_point else ''})
     return render(request, 'admin/game_config.html', context)
@@ -451,7 +451,7 @@ def rewards_list(request):
         return redirect('game-configuration')
     context = _merchant_context_for_user(request.user)
     merchant = context['merchant']
-    rewards = Reward.objects.filter(merchant=merchant).order_by('name') if merchant else []
+    rewards = Reward.objects.filter(merchant=merchant, archived_at__isnull=True).order_by('name') if merchant else []
     reward_form = RewardForm(request.POST or None, prefix='reward', initial={
         'reward_type': 'gift',
         'probability_weight': 100,
@@ -480,8 +480,20 @@ def reward_delete(request, reward_id):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
     reward = get_object_or_404(Reward, id=reward_id, merchant=merchant)
-    reward.delete()
-    messages.success(request, 'Récompense supprimée.')
+    action = request.POST.get('action') or 'archive'
+    if action == 'restore':
+        reward.archived_at = None
+        reward.archived_by = None
+        reward.save(update_fields=['archived_at', 'archived_by'])
+        log_audit_event(request, 'merchant.reward.restore', target=reward, merchant=merchant, metadata={'reward_name': reward.name})
+        messages.success(request, 'Récompense restaurée.')
+        return redirect('game-configuration')
+    reward.archived_at = timezone.now()
+    reward.archived_by = request.user if request.user.is_authenticated else None
+    reward.active = False
+    reward.save(update_fields=['archived_at', 'archived_by', 'active'])
+    log_audit_event(request, 'merchant.reward.archive', target=reward, merchant=merchant, metadata={'reward_name': reward.name})
+    messages.success(request, 'Récompense archivée.')
     return redirect('game-configuration')
 
 @login_required

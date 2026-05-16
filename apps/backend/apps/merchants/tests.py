@@ -14,6 +14,7 @@ from apps.core.models import AuditLog, MerchantDailyMetric
 from apps.core.totp import generate_secret
 from apps.merchants.models import Merchant, Subscription
 from apps.accounts.models import MerchantMembership, StaffMFA
+from apps.rewards.models import Reward
 
 
 TEST_STORAGES = {
@@ -459,6 +460,35 @@ class AuditLogActionTests(TestCase):
         rows = list(csv.DictReader(response.content.decode().splitlines()))
         row = next(row for row in rows if row['phone'] == self.customer.phone)
         self.assertEqual(row['sessions_count'], '1')
+
+    def test_reward_delete_archives_and_hides_reward_without_deleting_history(self):
+        reward = Reward.objects.create(merchant=self.merchant, campaign=self.campaign, name='Archive reward', description='Archive reward', active=True)
+        session = GameSession.objects.create(customer=self.customer, campaign=self.campaign, reward=reward, reward_label='Archive reward', is_winner=True)
+
+        response = self.client.post(f'/admin/rewards/{reward.id}/delete/')
+
+        self.assertEqual(response.status_code, 302)
+        reward.refresh_from_db()
+        self.assertTrue(Reward.objects.filter(id=reward.id).exists())
+        self.assertTrue(reward.is_archived)
+        self.assertFalse(reward.active)
+        self.assertEqual(reward.archived_by, self.owner)
+        self.assertTrue(GameSession.objects.filter(id=session.id, reward=reward, reward_label='Archive reward').exists())
+        self.assertTrue(AuditLog.objects.filter(action='merchant.reward.archive', merchant=self.merchant, target_type='Reward', target_id=str(reward.id)).exists())
+
+        response = self.client.get('/admin/game/')
+        self.assertNotContains(response, 'Archive reward')
+
+    def test_reward_restore_action_restores_archived_reward(self):
+        reward = Reward.objects.create(merchant=self.merchant, campaign=self.campaign, name='Restore reward', description='Restore reward', active=False, archived_at=timezone.now(), archived_by=self.owner)
+
+        response = self.client.post(f'/admin/rewards/{reward.id}/delete/', {'action': 'restore'})
+
+        self.assertEqual(response.status_code, 302)
+        reward.refresh_from_db()
+        self.assertFalse(reward.is_archived)
+        self.assertIsNone(reward.archived_by)
+        self.assertTrue(AuditLog.objects.filter(action='merchant.reward.restore', merchant=self.merchant, target_type='Reward', target_id=str(reward.id)).exists())
 
     def test_delete_customer_soft_deletes_and_creates_audit_log(self):
         response = self.client.post(f'/admin/customers/{self.customer.id}/delete/')
