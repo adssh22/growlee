@@ -1,0 +1,218 @@
+from apps.core.common_views import *  # noqa: F401,F403
+from apps.core.common_views import (  # noqa: F401
+    _admin_access_block_response,
+    _control_access_granted,
+    _current_merchant,
+    _employee_mode_block_response,
+    _ensure_default_growlee_setup,
+    _ensure_spin_defaults,
+    _first_membership,
+    _font_stack,
+    _get_active_campaign_for_merchant,
+    _latest_session_for_wallet,
+    _merchant_context_for_user,
+    _merchant_is_unlocked,
+    _merchant_logo_for_svg,
+    _pricing_plans,
+    _staff_mfa_for_user,
+    _staff_mfa_qr_context,
+    _unique_merchant_slug,
+)
+
+@superuser_required
+def staff_control_mfa_setup(request):
+    mfa = _staff_mfa_for_user(request.user)
+    if mfa.enabled:
+        messages.info(request, 'Ta 2FA est déjà activée. La réinitialisation doit être faite par un autre super utilisateur.')
+        return redirect('staff-merchants' if _control_access_granted(request) else 'staff-control-verify')
+
+    error = None
+
+    if request.method == 'POST':
+        if verify_totp(mfa.secret, request.POST.get('totp_code')):
+            mfa.enabled = True
+            mfa.save(update_fields=['enabled', 'updated_at'])
+            request.session['growlee_control_2fa_ok'] = True
+            request.session.set_expiry(60 * 60 * 4)
+            messages.success(request, '2FA téléphone activée.')
+            return redirect('staff-merchants')
+        error = 'Code 2FA invalide. Vérifie l’heure du téléphone et réessaie.'
+
+    context = _staff_mfa_qr_context(request.user, mfa)
+    context.update({
+        'error': error,
+    })
+    return render(request, 'admin/staff_control_mfa_setup.html', context)
+
+@superuser_required
+def staff_control_verify(request):
+    if _control_access_granted(request):
+        return redirect('staff-merchants')
+
+    mfa = _staff_mfa_for_user(request.user)
+    if not mfa.enabled:
+        return redirect('staff-merchants')
+
+    error = None
+    if request.method == 'POST':
+        if verify_totp(mfa.secret, request.POST.get('totp_code')):
+            request.session['growlee_control_2fa_ok'] = True
+            request.session.set_expiry(60 * 60 * 4)
+            next_url = request.GET.get('next') or ''
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+                return redirect(next_url)
+            return redirect('staff-merchants')
+        error = 'Code 2FA invalide.'
+
+    return render(request, 'admin/staff_control_verify.html', {'error': error})
+
+@superuser_required
+def staff_merchants(request):
+    mfa = _staff_mfa_for_user(request.user)
+    if not mfa.enabled:
+        return redirect('staff-control-mfa-setup')
+    if mfa.enabled and not _control_access_granted(request):
+        return redirect(f'/growlee-control/verify/?next={request.path}')
+
+    form = StaffMerchantCreateForm(request.POST or None)
+    mfa_error = None
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'reset_staff_mfa':
+            target_user = get_object_or_404(User, id=request.POST.get('user_id'), is_active=True, is_superuser=True)
+            if target_user.id == request.user.id:
+                messages.error(request, 'Impossible de réinitialiser ta propre 2FA. Demande à un autre super utilisateur.')
+                return redirect('staff-merchants')
+            target_mfa = _staff_mfa_for_user(target_user)
+            target_mfa.secret = generate_secret()
+            target_mfa.enabled = False
+            target_mfa.save(update_fields=['secret', 'enabled', 'updated_at'])
+            messages.success(request, f'2FA réinitialisée pour {target_user.username}. Il devra scanner un nouveau QR au prochain accès.')
+            return redirect('staff-merchants')
+        if action == 'mfa_enable':
+            if verify_totp(mfa.secret, request.POST.get('totp_code')):
+                mfa.enabled = True
+                mfa.save(update_fields=['enabled', 'updated_at'])
+                request.session['growlee_control_2fa_ok'] = True
+                request.session.set_expiry(60 * 60 * 4)
+                messages.success(request, '2FA téléphone activée pour ce compte staff.')
+                return redirect('staff-merchants')
+            mfa_error = 'Code 2FA invalide. Vérifie l’heure du téléphone et réessaie.'
+        if action == 'toggle':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            merchant.is_active = not merchant.is_active
+            merchant.save(update_fields=['is_active'])
+            messages.success(request, f'{merchant.name} est maintenant {"actif" if merchant.is_active else "désactivé"}.')
+            return redirect('staff-merchants')
+        if action == 'toggle_demo':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            merchant.is_demo = not merchant.is_demo
+            merchant.demo_expires_at = timezone.now() + timedelta(days=14) if merchant.is_demo else None
+            merchant.is_active = True if merchant.is_demo else merchant.is_active
+            merchant.save(update_fields=['is_demo', 'demo_expires_at', 'is_active'])
+            messages.success(request, f'Accès démo {"activé" if merchant.is_demo else "désactivé"} pour {merchant.name}.')
+            return redirect('staff-merchants')
+        if action == 'activate_direct_billing':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            merchant.is_active = True
+            merchant.is_demo = False
+            merchant.demo_expires_at = None
+            merchant.onboarding_fee_paid = True
+            merchant.onboarding_completed = True
+            merchant.flyer_visual_approved = True
+            merchant.flyer_order_status = 'visual_approved_waiting_payment'
+            if not merchant.flyer_style:
+                merchant.flyer_style = 'premium'
+            merchant.payment_method = 'Facturation directe'
+            merchant.billing_payment_type = 'direct'
+            merchant.billing_payment_reference = (request.POST.get('billing_reference') or '').strip()[:120] or 'Activation manuelle staff'
+            merchant.save(update_fields=['is_active', 'is_demo', 'demo_expires_at', 'onboarding_fee_paid', 'onboarding_completed', 'flyer_visual_approved', 'flyer_order_status', 'flyer_style', 'payment_method', 'billing_payment_type', 'billing_payment_reference'])
+            campaign, _, _ = _ensure_default_growlee_setup(merchant)
+            campaign.is_active = True
+            campaign.review_enabled = True
+            campaign.wallet_enabled = True
+            campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
+            messages.success(request, f'{merchant.name} est activé en facturation directe. Le commerçant peut accéder à son compte sans paiement via le site.')
+            return redirect('staff-merchants')
+        if action == 'delete_merchant':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            confirm = (request.POST.get('confirm_name') or '').strip()
+            if confirm != merchant.name:
+                messages.error(request, f'Suppression annulée : tape exactement le nom du commerce ({merchant.name}).')
+                return redirect('staff-merchants')
+            merchant_name = merchant.name
+            owner_users = [membership.user for membership in merchant.memberships.select_related('user').all()]
+            merchant.delete()
+            for user in owner_users:
+                if not user.is_staff and not user.merchant_memberships.exists():
+                    user.delete()
+            messages.success(request, f'Commerce supprimé : {merchant_name}.')
+            return redirect('staff-merchants')
+        if action == 'module_toggle':
+            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
+            campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
+            if campaign is None:
+                campaign, _, _ = _ensure_default_growlee_setup(merchant)
+                campaign.is_active = False
+                campaign.review_enabled = False
+                campaign.wallet_enabled = False
+                campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
+            flag = request.POST.get('flag')
+            if flag == 'game':
+                campaign.is_active = not campaign.is_active
+                campaign.save(update_fields=['is_active'])
+            elif flag == 'review':
+                campaign.review_enabled = not campaign.review_enabled
+                campaign.save(update_fields=['review_enabled'])
+            elif flag == 'wallet':
+                campaign.wallet_enabled = not campaign.wallet_enabled
+                campaign.save(update_fields=['wallet_enabled'])
+            messages.success(request, f'Module mis à jour pour {merchant.name}.')
+            return redirect('staff-merchants')
+        if action == 'create' and form.is_valid():
+            with transaction.atomic():
+                email = form.cleaned_data['owner_email']
+                username = form.cleaned_data['owner_username'] or email
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=form.cleaned_data['owner_password'],
+                )
+                merchant = Merchant.objects.create(
+                    name=form.cleaned_data['merchant_name'],
+                    slug=_unique_merchant_slug(form.cleaned_data['merchant_name']),
+                    primary_color='#4e3db7',
+                    accent_color='#3f9d87',
+                    is_active=form.cleaned_data['is_active'],
+                    is_demo=form.cleaned_data.get('is_demo') or False,
+                    demo_expires_at=(timezone.now() + timedelta(days=form.cleaned_data.get('demo_days') or 14)) if form.cleaned_data.get('is_demo') else None,
+                )
+                MerchantMembership.objects.create(user=user, merchant=merchant, role='owner')
+                _ensure_default_growlee_setup(merchant)
+            messages.success(request, f'Commerce créé : {merchant.name}. Propriétaire : {user.username}')
+            return redirect('staff-merchants')
+
+    merchants = Merchant.objects.prefetch_related('memberships__user').order_by('-created_at')
+    rows = []
+    for merchant in merchants:
+        campaigns = Campaign.objects.filter(merchant=merchant)
+        rows.append({
+            'merchant': merchant,
+            'owners': [m for m in merchant.memberships.all() if m.role == 'owner'],
+            'campaigns_count': campaigns.count(),
+            'customers_count': Customer.objects.filter(merchant=merchant).count(),
+            'active_campaign': campaigns.order_by('-created_at', '-id').first(),
+        })
+    mfa_context = _staff_mfa_qr_context(request.user, mfa)
+    staff_mfa_users = User.objects.filter(is_active=True, is_superuser=True).order_by('username')
+    return render(request, 'admin/staff_merchants.html', {
+        'form': form,
+        'rows': rows,
+        'staff_mfa_users': staff_mfa_users,
+        'total_merchants': merchants.count(),
+        'active_merchants': merchants.filter(is_active=True).count(),
+        'total_users': User.objects.count(),
+        'mfa_error': mfa_error,
+        **mfa_context,
+    })
+

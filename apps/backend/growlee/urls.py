@@ -4,7 +4,9 @@ from django.contrib import admin
 from django.urls import path
 from django.views.generic.base import RedirectView
 
-from apps.core.views import (
+from apps.core.auth_views import login_view, logout_view, signup_view
+from apps.core.employee_views import employee_exit, employee_mode
+from apps.core.merchant_views import (
     admin_dashboard,
     analytics_view,
     automations_view,
@@ -12,42 +14,32 @@ from apps.core.views import (
     customers_export_csv,
     customers_list,
     delete_customer,
-    entry_redirect,
-    employee_exit,
-    employee_mode,
     game_configuration,
-    home,
-    contact_page,
-    api_contact,
-    demo_page,
-    legal_page,
-    partners_page,
-    resources_page,
-    login_view,
-    signup_view,
-    staff_control_mfa_setup,
-    staff_control_verify,
-    staff_merchants,
-    logout_view,
     merchant_account,
     merchant_checkout,
     merchant_onboarding,
     merchant_setup,
-    play_page,
     qr_preview,
     redeem_session,
-    reward_claim_page,
     reward_delete,
     rewards_list,
     review_configuration,
-    robots_txt,
     toggle_campaign_flag,
-    wallet_configuration,
-    sitemap_xml,
-    wallet_pass_scan,
-    apple_wallet_pass,
-    google_wallet_pass,
 )
+from apps.core.play_views import entry_redirect, play_page, reward_claim_page
+from apps.core.public_views import (
+    api_contact,
+    contact_page,
+    demo_page,
+    home,
+    legal_page,
+    partners_page,
+    resources_page,
+    robots_txt,
+    sitemap_xml,
+)
+from apps.core.staff_views import staff_control_mfa_setup, staff_control_verify, staff_merchants
+from apps.core.wallet_views import apple_wallet_pass, google_wallet_pass, wallet_configuration, wallet_pass_scan
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),
