@@ -1048,33 +1048,13 @@ def wallet_configuration(request):
 @login_required
 @merchant_unlocked_required
 def merchant_setup(request):
+    """Legacy QR setup route kept for existing dashboard links.
+
+    The QR setup screen was merged into the main game configuration page, which
+    now owns campaign, reward and entry-point setup. Keep /admin/setup/
+    functional as a narrow compatibility redirect without unreachable code.
+    """
     return redirect('game-configuration')
-    membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
-    merchant = membership.merchant if membership else None
-    if merchant is None:
-        messages.error(request, 'Aucun commerce lié à ce compte.')
-        return redirect('admin-dashboard')
-
-    campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
-    if campaign is None:
-        campaign, entry_point, reward = _ensure_default_growlee_setup(merchant)
-    entry_point = EntryPoint.objects.filter(merchant=merchant, campaign=campaign).order_by('-created_at', '-id').first() if campaign else EntryPoint.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
-    if entry_point is None:
-        entry_point, _ = EntryPoint.objects.get_or_create(
-            merchant=merchant,
-            campaign=campaign,
-            code=f'{merchant.slug}-qr-main',
-            defaults={'name': 'QR principal', 'channel': 'qr', 'placement': 'counter'},
-        )
-
-    created = request.GET.get('created') == '1'
-    qr_entry_code = request.GET.get('entry') or (entry_point.code if entry_point else '')
-
-    return render(request, 'admin/merchant/setup.html', {
-        'merchant': merchant,
-        'created': created,
-        'qr_entry_code': qr_entry_code,
-    })
 
 
 @login_required
