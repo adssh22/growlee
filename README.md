@@ -52,6 +52,7 @@ docker compose up --build
 - Flow client demo: http://localhost:8000/play/demo-bistro/
 - Growlee Control: http://localhost:8000/growlee-control/merchants/
 - Admin Django: http://localhost:8000/django-admin/
+- Healthcheck: http://localhost:8000/healthz/
 
 ## Compte de démo
 
@@ -64,7 +65,16 @@ Sécurité: la commande refuse de s’exécuter quand `DJANGO_DEBUG=0`, sauf si 
 
 ## Configuration production
 
-Copier `.env.example`, puis renseigner les variables utiles.
+Copier `.env.prod.example` vers `.env.prod` sur le VPS, puis renseigner les variables utiles. `docker-compose.prod.yml` accepte l’absence locale de `.env.prod` pour permettre `docker compose -f docker-compose.prod.yml config`, mais le déploiement réel nécessite notamment `POSTGRES_PASSWORD` et `DJANGO_SECRET_KEY`.
+
+### Observabilité / healthcheck
+
+Growlee expose un endpoint JSON minimal sur `/healthz/`.
+
+- réponse nominale: `200 {"status":"ok"}`
+- si la base de données ne répond pas: `503 {"status":"unhealthy"}`
+
+L’endpoint ne retourne aucun détail interne. En production, `docker-compose.prod.yml` utilise ce endpoint comme `healthcheck` du service `web`.
 
 ### Cache Redis / rate-limit
 

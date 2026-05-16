@@ -1,3 +1,5 @@
+from django.db import OperationalError, connection
+
 from apps.core.common_views import *  # noqa: F401,F403
 from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
@@ -18,6 +20,16 @@ from apps.core.common_views import (  # noqa: F401
     _staff_mfa_qr_context,
     _unique_merchant_slug,
 )
+
+def healthz(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+            cursor.fetchone()
+    except OperationalError:
+        return JsonResponse({'status': 'unhealthy'}, status=503)
+    return JsonResponse({'status': 'ok'})
+
 
 def home(request):
     return render(request, 'public/home.html', {'seo_base_url': settings.APP_BASE_URL})

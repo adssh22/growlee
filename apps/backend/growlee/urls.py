@@ -31,6 +31,7 @@ from apps.core.public_views import (
     api_contact,
     contact_page,
     demo_page,
+    healthz,
     home,
     legal_page,
     partners_page,
@@ -43,6 +44,7 @@ from apps.core.wallet_views import apple_wallet_pass, google_wallet_pass, wallet
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),
+    path('healthz/', healthz, name='healthz'),
     path('', home, name='home'),
     path('demo/', demo_page, name='demo-page'),
     path('ressources/', resources_page, name='resources-page'),

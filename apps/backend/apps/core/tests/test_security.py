@@ -1,7 +1,9 @@
 from io import BytesIO
+from unittest import mock
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.db import OperationalError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from PIL import Image
@@ -15,6 +17,22 @@ TEST_STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
+
+
+class HealthcheckTests(TestCase):
+    def test_healthz_returns_ok_when_database_responds(self):
+        response = self.client.get('/healthz/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+
+    def test_healthz_returns_503_without_internal_details_when_database_fails(self):
+        with mock.patch('apps.core.public_views.connection.cursor', side_effect=OperationalError('secret database detail')):
+            response = self.client.get('/healthz/')
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json(), {'status': 'unhealthy'})
+        self.assertNotIn('secret database detail', response.content.decode())
 
 
 @override_settings(STORAGES=TEST_STORAGES)
