@@ -3,6 +3,8 @@ from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
     _control_access_granted,
     _current_merchant,
+    can_manage_campaigns,
+    can_use_employee_mode,
     _employee_mode_block_response,
     _ensure_default_growlee_setup,
     _ensure_spin_defaults,
@@ -14,12 +16,14 @@ from apps.core.common_views import (  # noqa: F401
     _merchant_is_unlocked,
     _merchant_logo_for_svg,
     _pricing_plans,
+    merchant_role_required,
     _staff_mfa_for_user,
     _staff_mfa_qr_context,
     _unique_merchant_slug,
 )
 
 @login_required
+@merchant_role_required(can_use_employee_mode)
 def wallet_pass_scan(request, scan_code):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -58,7 +62,7 @@ def wallet_pass_scan(request, scan_code):
     })
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_campaigns)
 def wallet_configuration(request):
     context = _merchant_context_for_user(request.user)
     return render(request, 'admin/wallet.html', context)

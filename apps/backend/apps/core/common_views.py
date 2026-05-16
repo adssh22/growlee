@@ -2,6 +2,7 @@ import csv
 import io
 import base64
 import mimetypes
+from functools import wraps
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 
@@ -40,12 +41,54 @@ from apps.customers.wallet import build_wallet_payload, issue_wallet_pass_placeh
 from apps.merchants.models import Merchant, Subscription
 from apps.rewards.models import Reward
 
+def current_membership(request):
+    if not request.user.is_authenticated:
+        return None
+    return MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
+
+
 def _current_merchant(request):
-    membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
+    membership = current_membership(request)
     return membership.merchant if membership else None
 
 def _first_membership(user):
     return MerchantMembership.objects.select_related('merchant').filter(user=user).first()
+
+
+def can_manage_campaigns(membership):
+    return bool(membership and membership.role in {'owner', 'manager'})
+
+
+def can_manage_customers(membership):
+    return bool(membership and membership.role in {'owner', 'manager'})
+
+
+def can_manage_billing(membership):
+    return bool(membership and membership.role == 'owner')
+
+
+def can_use_employee_mode(membership):
+    return bool(membership and membership.role in {'owner', 'manager', 'staff'})
+
+
+def merchant_role_required(check, *, fallback='admin-dashboard'):
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            blocked = _admin_access_block_response(request)
+            if blocked is not None:
+                return blocked
+            membership = current_membership(request)
+            allowed = check(membership) if callable(check) else bool(membership and membership.role in set(check))
+            if not allowed:
+                if membership and membership.role == 'staff':
+                    messages.error(request, 'Accès réservé aux responsables du commerce.')
+                    return redirect('employee-mode')
+                messages.error(request, 'Accès non autorisé.')
+                return redirect(fallback)
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
 
 def _default_subscription_status_for_merchant(merchant):
     return Subscription.STATUS_ACTIVE if merchant and merchant.is_active else Subscription.STATUS_SUSPENDED
@@ -136,6 +179,8 @@ def _admin_access_block_response(request, merchant=None):
     if merchant is None:
         messages.error(request, 'Aucun commerce n’est rattaché à ce compte.')
         return redirect('logout')
+    if membership.role == 'staff' and request.path not in {'/admin/employee/', '/admin/employee/exit/', '/logout/'}:
+        return redirect('employee-mode')
     onboarding_allowed = {
         '/admin/account/',
         '/admin/onboarding/',

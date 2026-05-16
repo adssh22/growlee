@@ -15,7 +15,7 @@ from apps.customers.forms import ClaimRewardForm
 from apps.customers.models import Customer, GameSession
 from apps.core.forms import EntryPointForm, MerchantForm
 from apps.core.totp import generate_secret
-from apps.merchants.models import Merchant
+from apps.merchants.models import Merchant, Subscription
 
 TEST_STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
@@ -228,6 +228,53 @@ class UploadValidationTests(TestCase):
         form = MerchantForm(data={'name': 'Shop'}, files={'logo': self.image_upload(size=(3200, 3200))})
         self.assertFalse(form.is_valid())
         self.assertIn('logo', form.errors)
+
+
+@override_settings(STORAGES=TEST_STORAGES, EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class MerchantRolePermissionTests(TestCase):
+    def setUp(self):
+        self.merchant = Merchant.objects.create(name='Role Shop', slug='role-shop', is_active=True, onboarding_completed=True, onboarding_fee_paid=True, flyer_style='premium', flyer_visual_approved=True)
+        Subscription.objects.create(merchant=self.merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+        self.campaign = Campaign.objects.create(merchant=self.merchant, name='Role Campaign', is_active=True)
+        self.owner = User.objects.create_user('role-owner', email='owner@example.test', password='secret-12345')
+        self.manager = User.objects.create_user('role-manager', email='manager@example.test', password='secret-12345')
+        self.staff = User.objects.create_user('role-staff', email='staff@example.test', password='secret-12345')
+        MerchantMembership.objects.create(user=self.owner, merchant=self.merchant, role='owner')
+        MerchantMembership.objects.create(user=self.manager, merchant=self.merchant, role='manager')
+        MerchantMembership.objects.create(user=self.staff, merchant=self.merchant, role='staff')
+
+    def test_staff_is_redirected_from_full_dashboard_but_can_use_employee_mode(self):
+        self.client.force_login(self.staff)
+
+        dashboard_response = self.client.get('/admin/')
+        employee_response = self.client.get('/admin/employee/')
+        customers_response = self.client.get('/admin/customers/')
+
+        self.assertEqual(dashboard_response.status_code, 302)
+        self.assertEqual(dashboard_response['Location'], '/admin/employee/')
+        self.assertEqual(employee_response.status_code, 200)
+        self.assertEqual(customers_response.status_code, 302)
+        self.assertEqual(customers_response['Location'], '/admin/employee/')
+
+    def test_manager_can_manage_campaigns_customers_and_analytics_but_not_billing_or_members(self):
+        self.client.force_login(self.manager)
+
+        self.assertEqual(self.client.get('/admin/game/').status_code, 200)
+        self.assertEqual(self.client.get('/admin/customers/').status_code, 200)
+        self.assertEqual(self.client.get('/admin/analytics/').status_code, 200)
+        self.assertEqual(self.client.get('/admin/members/').status_code, 302)
+        self.assertEqual(self.client.get('/admin/checkout/').status_code, 302)
+
+    def test_owner_can_add_member_by_email_without_sending_real_invitation(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.post('/admin/members/', {'email': 'new-manager@example.test', 'role': 'manager'})
+
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(email='new-manager@example.test')
+        membership = MerchantMembership.objects.get(user=user, merchant=self.merchant)
+        self.assertEqual(membership.role, 'manager')
+        self.assertFalse(user.has_usable_password())
 
 
 class TenantIsolationTests(TestCase):

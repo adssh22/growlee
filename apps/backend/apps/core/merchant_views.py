@@ -4,6 +4,10 @@ from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
     _control_access_granted,
     _current_merchant,
+    can_manage_billing,
+    can_manage_campaigns,
+    can_manage_customers,
+    current_membership,
     _employee_mode_block_response,
     _ensure_default_growlee_setup,
     _ensure_spin_defaults,
@@ -15,6 +19,7 @@ from apps.core.common_views import (  # noqa: F401
     _merchant_is_unlocked,
     _merchant_logo_for_svg,
     _pricing_plans,
+    merchant_role_required,
     _staff_mfa_for_user,
     _staff_mfa_qr_context,
     _unique_merchant_slug,
@@ -36,7 +41,7 @@ def admin_dashboard(request):
     return render(request, 'admin/dashboard.html', context)
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_billing)
 def merchant_checkout(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -50,7 +55,7 @@ def merchant_checkout(request):
     return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_billing)
 def merchant_onboarding(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -149,7 +154,47 @@ merchant_account = merchant_onboarding
 
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_billing)
+def merchant_members(request):
+    membership = current_membership(request)
+    merchant = membership.merchant if membership else None
+    if request.method == 'POST':
+        email = (request.POST.get('email') or '').strip().lower()
+        role = (request.POST.get('role') or 'staff').strip()
+        if role not in {'manager', 'staff'}:
+            messages.error(request, 'Rôle invalide. Un owner ne peut pas être créé depuis cette page.')
+            return redirect('merchant-members')
+        if not email:
+            messages.error(request, 'Email obligatoire.')
+            return redirect('merchant-members')
+        user = User.objects.filter(email__iexact=email).first()
+        created_user = False
+        if user is None:
+            base_username = slugify(email.split('@')[0]) or 'membre'
+            username = base_username[:120]
+            counter = 2
+            while User.objects.filter(username=username).exists():
+                suffix = f'-{counter}'
+                username = f'{base_username[:120-len(suffix)]}{suffix}'
+                counter += 1
+            user = User(username=username, email=email, is_active=True)
+            user.set_unusable_password()
+            user.save()
+            created_user = True
+        membership_obj, created_membership = MerchantMembership.objects.update_or_create(
+            user=user,
+            merchant=merchant,
+            defaults={'role': role},
+        )
+        log_audit_event(request, 'merchant.member.upsert', target=membership_obj, merchant=merchant, metadata={'email': email, 'role': role, 'created_user': created_user, 'created_membership': created_membership})
+        messages.success(request, f'Membre {"créé" if created_membership else "mis à jour"} : {email} · {role}. Aucun email réel envoyé automatiquement.')
+        return redirect('merchant-members')
+    members = MerchantMembership.objects.select_related('user').filter(merchant=merchant).order_by('role', 'user__email', 'user__username')
+    return render(request, 'admin/members.html', {'merchant': merchant, 'members': members})
+
+
+@login_required
+@merchant_role_required(can_manage_campaigns)
 def game_configuration(request):
     context = _merchant_context_for_user(request.user)
     merchant = context['merchant']
@@ -206,7 +251,7 @@ def game_configuration(request):
     return render(request, 'admin/game_config.html', context)
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_campaigns)
 def review_configuration(request):
     context = _merchant_context_for_user(request.user)
     merchant = context['merchant']
@@ -219,7 +264,7 @@ def review_configuration(request):
     return render(request, 'admin/review.html', context)
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_campaigns)
 def toggle_campaign_flag(request):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
@@ -254,7 +299,7 @@ def toggle_campaign_flag(request):
     return redirect(request.POST.get('next') or 'merchant-onboarding')
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_campaigns)
 def merchant_setup(request):
     """Legacy QR setup route kept for existing dashboard links.
 
@@ -267,8 +312,8 @@ def merchant_setup(request):
 @login_required
 def qr_preview(request, code):
     entry_point = get_object_or_404(EntryPoint.objects.select_related('merchant'), code=code)
-    if not request.user.is_superuser and not MerchantMembership.objects.filter(user=request.user, merchant=entry_point.merchant).exists():
-        messages.error(request, 'Ce QR ne correspond pas à votre commerce.')
+    if not request.user.is_superuser and not MerchantMembership.objects.filter(user=request.user, merchant=entry_point.merchant, role__in=['owner', 'manager']).exists():
+        messages.error(request, 'Accès QR réservé aux responsables du commerce.')
         return redirect('admin-dashboard')
     url = f"{settings.APP_BASE_URL}/go/{entry_point.code}/"
     logo_url = _merchant_logo_for_svg(entry_point.merchant)
@@ -282,7 +327,7 @@ def qr_preview(request, code):
     return HttpResponse(svg, content_type='image/svg+xml')
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_customers)
 def customers_list(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -308,7 +353,7 @@ def customers_list(request):
     })
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_customers)
 def customer_detail(request, customer_id):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -320,7 +365,7 @@ def customer_detail(request, customer_id):
     })
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_customers)
 def delete_customer(request, customer_id):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
@@ -336,7 +381,7 @@ def delete_customer(request, customer_id):
     return redirect('customers-list')
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_customers)
 def customers_export_csv(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
@@ -358,7 +403,7 @@ def customers_export_csv(request):
     return response
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_campaigns)
 def rewards_list(request):
     if request.method == 'GET':
         return redirect('game-configuration')
@@ -386,7 +431,7 @@ def rewards_list(request):
     return render(request, 'admin/rewards.html', context)
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_campaigns)
 def reward_delete(request, reward_id):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
@@ -398,13 +443,13 @@ def reward_delete(request, reward_id):
     return redirect('game-configuration')
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(lambda membership: bool(membership and membership.role in {'owner', 'manager'}))
 def analytics_view(request):
     context = _merchant_context_for_user(request.user)
     return render(request, 'admin/analytics.html', context)
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_campaigns)
 def automations_view(request):
     context = _merchant_context_for_user(request.user)
     campaign = context['campaign']
@@ -425,7 +470,7 @@ def automations_view(request):
     return render(request, 'admin/automations.html', context)
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_manage_customers)
 def redeem_session(request, session_id):
     if request.method != 'POST':
         return redirect('admin-dashboard')

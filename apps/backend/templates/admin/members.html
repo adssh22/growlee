@@ -1,0 +1,50 @@
+{% extends 'admin/base.html' %}
+{% block title %}Équipe · Growlee{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Commerce</p>
+      <h1>Gestion des membres</h1>
+      <p class="muted">Ajoutez un manager ou un staff au commerce {{ merchant.name }}.</p>
+    </div>
+  </div>
+
+  <section class="card">
+    <h2>Ajouter / inviter un membre</h2>
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+      <div>
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="membre@example.com">
+      </div>
+      <div>
+        <label>Rôle</label>
+        <select name="role">
+          <option value="manager">Manager · campagnes, clients, analytics</option>
+          <option value="staff">Staff · mode employé uniquement</option>
+        </select>
+      </div>
+      <button class="btn" type="submit">Ajouter</button>
+    </form>
+    <p class="small">Sécurité : aucun email réel n’est envoyé automatiquement. Si l’utilisateur n’existe pas, un compte sans mot de passe est créé.</p>
+  </section>
+
+  <section class="card" style="margin-top:18px">
+    <h2>Membres actuels</h2>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Utilisateur</th><th>Email</th><th>Rôle</th><th>Depuis</th></tr></thead>
+      <tbody>
+      {% for membership in members %}
+        <tr>
+          <td>{{ membership.user.username }}</td>
+          <td>{{ membership.user.email|default:'—' }}</td>
+          <td><span class="badge {% if membership.role == 'owner' %}on{% elif membership.role == 'manager' %}warn{% else %}off{% endif %}">{{ membership.get_role_display }}</span></td>
+          <td>{{ membership.created_at|date:'d/m/Y H:i' }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">Aucun membre.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+{% endblock %}

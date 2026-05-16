@@ -3,6 +3,7 @@ from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
     _control_access_granted,
     _current_merchant,
+    can_use_employee_mode,
     _employee_mode_block_response,
     _ensure_default_growlee_setup,
     _ensure_spin_defaults,
@@ -14,13 +15,14 @@ from apps.core.common_views import (  # noqa: F401
     _merchant_is_unlocked,
     _merchant_logo_for_svg,
     _pricing_plans,
+    merchant_role_required,
     _staff_mfa_for_user,
     _staff_mfa_qr_context,
     _unique_merchant_slug,
 )
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_use_employee_mode)
 def employee_mode(request):
     merchant = _current_merchant(request)
     if merchant is None:
@@ -57,7 +59,7 @@ def employee_mode(request):
     })
 
 @login_required
-@merchant_unlocked_required
+@merchant_role_required(can_use_employee_mode)
 def employee_exit(request):
     merchant = _current_merchant(request)
     form = AuthenticationForm(request, data=request.POST or None)
