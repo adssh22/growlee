@@ -95,7 +95,7 @@
       <div class="card">
         <h2 style="margin:0 0 14px;letter-spacing:-.04em">Commerçants existants</h2>
         <div class="table-wrap"><table class="table">
-          <thead><tr><th>Commerce</th><th>Owner</th><th>Modules</th><th>Clients</th><th>Statut</th><th></th></tr></thead>
+          <thead><tr><th>Commerce</th><th>Owner</th><th>Modules</th><th>Clients</th><th>Statut</th><th>Abonnement</th><th></th></tr></thead>
           <tbody>
           {% for row in rows %}
             <tr>
@@ -110,6 +110,7 @@
               </td>
               <td>{{ row.customers_count }}</td>
               <td><span class="badge {% if row.merchant.is_active %}on{% else %}off{% endif %}">{% if row.merchant.is_active %}Actif{% else %}Désactivé{% endif %}</span>{% if row.merchant.is_demo %}<br><span class="badge warn" title="Expire {{ row.merchant.demo_expires_at|date:'d/m/Y' }}">Démo</span>{% endif %}{% if row.merchant.onboarding_fee_paid %}<br><span class="badge on" title="{{ row.merchant.billing_payment_reference|default:'Paiement validé' }}">Payé / direct</span>{% endif %}</td>
+              <td><span class="badge {% if row.subscription.status == 'active' or row.subscription.status == 'trialing' %}on{% elif row.subscription.status == 'past_due' or row.subscription.status == 'suspended' %}warn{% else %}off{% endif %}">{{ row.subscription.get_status_display }}</span><div class="small">{{ row.subscription.get_plan_display }} · {{ row.subscription.get_provider_display }}</div>{% if row.subscription.current_period_end %}<div class="small">Fin période : {{ row.subscription.current_period_end|date:'d/m/Y' }}</div>{% endif %}</td>
               <td><div class="row-actions">
                 <a class="btn secondary" href="/play/{{ row.merchant.slug }}/" target="_blank">Parcours</a>
                 <form class="inline" method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><input type="hidden" name="merchant_id" value="{{ row.merchant.id }}"><button class="btn {% if row.merchant.is_active %}warn{% else %}secondary{% endif %}" type="submit">{% if row.merchant.is_active %}Désactiver{% else %}Activer commerce{% endif %}</button></form>
@@ -121,7 +122,7 @@
               </div></td>
             </tr>
           {% empty %}
-            <tr><td colspan="6">Aucun commerçant.</td></tr>
+            <tr><td colspan="7">Aucun commerçant.</td></tr>
           {% endfor %}
           </tbody>
         </table></div>

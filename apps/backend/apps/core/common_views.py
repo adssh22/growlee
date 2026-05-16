@@ -37,7 +37,7 @@ from apps.customers.forms import ClaimRewardForm
 from apps.customers.models import Customer, GameSession, WalletPass
 from apps.customers.services import claim_reward, reward_claim_url, send_reward_notifications
 from apps.customers.wallet import build_wallet_payload, issue_wallet_pass_placeholder, wallet_config_status
-from apps.merchants.models import Merchant
+from apps.merchants.models import Merchant, Subscription
 from apps.rewards.models import Reward
 
 def _current_merchant(request):
@@ -47,10 +47,34 @@ def _current_merchant(request):
 def _first_membership(user):
     return MerchantMembership.objects.select_related('merchant').filter(user=user).first()
 
+def _default_subscription_status_for_merchant(merchant):
+    return Subscription.STATUS_ACTIVE if merchant and merchant.is_active else Subscription.STATUS_SUSPENDED
+
+
+def _ensure_subscription_for_merchant(merchant, *, provider=None, status=None):
+    if merchant is None:
+        return None
+    defaults = {
+        'plan': Subscription.PLAN_STARTER,
+        'status': status or _default_subscription_status_for_merchant(merchant),
+        'provider': provider or (Subscription.PROVIDER_DIRECT if merchant.billing_payment_type == 'direct' else Subscription.PROVIDER_MANUAL),
+    }
+    subscription, created = Subscription.objects.get_or_create(merchant=merchant, defaults=defaults)
+    return subscription
+
+
 def _merchant_is_unlocked(merchant):
     if merchant and merchant.is_demo and merchant.demo_expires_at and merchant.demo_expires_at < timezone.now():
         return False
-    return bool(merchant and merchant.is_active)
+    if not merchant:
+        return False
+    try:
+        subscription = merchant.subscription
+    except Subscription.DoesNotExist:
+        # Compatibility window: pre-subscription merchants keep the legacy
+        # merchant.is_active behaviour until the data migration/backfill exists.
+        return bool(merchant.is_active)
+    return bool(merchant.is_active and subscription.unlocks_paid_features)
 
 def _merchant_logo_for_svg(merchant):
     """Return an embeddable logo URI for QR SVGs.
@@ -121,7 +145,7 @@ def _admin_access_block_response(request, merchant=None):
     if not _merchant_is_unlocked(merchant) and request.path not in onboarding_allowed:
         return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
     if request.path not in onboarding_allowed:
-        billing_validated = merchant.is_active and merchant.onboarding_fee_paid
+        billing_validated = _merchant_is_unlocked(merchant) and merchant.onboarding_fee_paid
         if not billing_validated:
             if not merchant.onboarding_completed:
                 messages.info(request, 'Complétez l’onboarding commerçant pour personnaliser votre interface Growlee.')

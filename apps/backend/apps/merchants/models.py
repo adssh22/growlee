@@ -58,3 +58,68 @@ class Merchant(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Subscription(models.Model):
+    PLAN_STARTER = 'starter'
+    PLAN_PRO = 'pro'
+    PLAN_PREMIUM = 'premium'
+    PLAN_CUSTOM = 'custom'
+    PLAN_CHOICES = [
+        (PLAN_STARTER, 'Starter'),
+        (PLAN_PRO, 'Pro'),
+        (PLAN_PREMIUM, 'Premium'),
+        (PLAN_CUSTOM, 'Custom'),
+    ]
+
+    STATUS_TRIALING = 'trialing'
+    STATUS_ACTIVE = 'active'
+    STATUS_PAST_DUE = 'past_due'
+    STATUS_CANCELED = 'canceled'
+    STATUS_SUSPENDED = 'suspended'
+    STATUS_CHOICES = [
+        (STATUS_TRIALING, 'Trialing'),
+        (STATUS_ACTIVE, 'Active'),
+        (STATUS_PAST_DUE, 'Past due'),
+        (STATUS_CANCELED, 'Canceled'),
+        (STATUS_SUSPENDED, 'Suspended'),
+    ]
+    UNLOCKED_STATUSES = {STATUS_TRIALING, STATUS_ACTIVE}
+
+    PROVIDER_MANUAL = 'manual'
+    PROVIDER_STRIPE = 'stripe'
+    PROVIDER_DIRECT = 'direct'
+    PROVIDER_CHOICES = [
+        (PROVIDER_MANUAL, 'Manual'),
+        (PROVIDER_STRIPE, 'Stripe'),
+        (PROVIDER_DIRECT, 'Direct'),
+    ]
+
+    merchant = models.OneToOneField(Merchant, on_delete=models.CASCADE, related_name='subscription')
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default=PLAN_STARTER)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default=PROVIDER_MANUAL)
+    provider_customer_id = models.CharField(max_length=255, blank=True, default='')
+    provider_subscription_id = models.CharField(max_length=255, blank=True, default='')
+    current_period_start = models.DateTimeField(blank=True, null=True)
+    current_period_end = models.DateTimeField(blank=True, null=True)
+    trial_ends_at = models.DateTimeField(blank=True, null=True)
+    canceled_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['merchant__name']
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['provider']),
+            models.Index(fields=['provider_customer_id']),
+            models.Index(fields=['provider_subscription_id']),
+        ]
+
+    def __str__(self):
+        return f'{self.merchant} · {self.plan} · {self.status}'
+
+    @property
+    def unlocks_paid_features(self):
+        return self.status in self.UNLOCKED_STATUSES

@@ -6,6 +6,7 @@ from apps.core.common_views import (  # noqa: F401
     _employee_mode_block_response,
     _ensure_default_growlee_setup,
     _ensure_spin_defaults,
+    _ensure_subscription_for_merchant,
     _first_membership,
     _font_stack,
     _get_active_campaign_for_merchant,
@@ -102,6 +103,9 @@ def staff_merchants(request):
             merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
             merchant.is_active = not merchant.is_active
             merchant.save(update_fields=['is_active'])
+            subscription = _ensure_subscription_for_merchant(merchant)
+            subscription.status = Subscription.STATUS_ACTIVE if merchant.is_active else Subscription.STATUS_SUSPENDED
+            subscription.save(update_fields=['status', 'updated_at'])
             messages.success(request, f'{merchant.name} est maintenant {"actif" if merchant.is_active else "désactivé"}.')
             return redirect('staff-merchants')
         if action == 'toggle_demo':
@@ -110,6 +114,10 @@ def staff_merchants(request):
             merchant.demo_expires_at = timezone.now() + timedelta(days=14) if merchant.is_demo else None
             merchant.is_active = True if merchant.is_demo else merchant.is_active
             merchant.save(update_fields=['is_demo', 'demo_expires_at', 'is_active'])
+            subscription = _ensure_subscription_for_merchant(merchant)
+            if merchant.is_demo and subscription.status not in Subscription.UNLOCKED_STATUSES:
+                subscription.status = Subscription.STATUS_TRIALING
+                subscription.save(update_fields=['status', 'updated_at'])
             messages.success(request, f'Accès démo {"activé" if merchant.is_demo else "désactivé"} pour {merchant.name}.')
             return redirect('staff-merchants')
         if action == 'activate_direct_billing':
@@ -127,6 +135,10 @@ def staff_merchants(request):
             merchant.billing_payment_type = 'direct'
             merchant.billing_payment_reference = (request.POST.get('billing_reference') or '').strip()[:120] or 'Activation manuelle staff'
             merchant.save(update_fields=['is_active', 'is_demo', 'demo_expires_at', 'onboarding_fee_paid', 'onboarding_completed', 'flyer_visual_approved', 'flyer_order_status', 'flyer_style', 'payment_method', 'billing_payment_type', 'billing_payment_reference'])
+            subscription = _ensure_subscription_for_merchant(merchant, provider=Subscription.PROVIDER_DIRECT, status=Subscription.STATUS_ACTIVE)
+            subscription.provider = Subscription.PROVIDER_DIRECT
+            subscription.status = Subscription.STATUS_ACTIVE
+            subscription.save(update_fields=['provider', 'status', 'updated_at'])
             campaign, _, _ = _ensure_default_growlee_setup(merchant)
             campaign.is_active = True
             campaign.review_enabled = True
@@ -188,16 +200,19 @@ def staff_merchants(request):
                     demo_expires_at=(timezone.now() + timedelta(days=form.cleaned_data.get('demo_days') or 14)) if form.cleaned_data.get('is_demo') else None,
                 )
                 MerchantMembership.objects.create(user=user, merchant=merchant, role='owner')
+                _ensure_subscription_for_merchant(merchant)
                 _ensure_default_growlee_setup(merchant)
             messages.success(request, f'Commerce créé : {merchant.name}. Propriétaire : {user.username}')
             return redirect('staff-merchants')
 
-    merchants = Merchant.objects.prefetch_related('memberships__user').order_by('-created_at')
+    merchants = Merchant.objects.select_related('subscription').prefetch_related('memberships__user').order_by('-created_at')
     rows = []
     for merchant in merchants:
         campaigns = Campaign.objects.filter(merchant=merchant)
+        subscription = _ensure_subscription_for_merchant(merchant)
         rows.append({
             'merchant': merchant,
+            'subscription': subscription,
             'owners': [m for m in merchant.memberships.all() if m.role == 'owner'],
             'campaigns_count': campaigns.count(),
             'customers_count': Customer.objects.filter(merchant=merchant).count(),
