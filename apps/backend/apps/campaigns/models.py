@@ -42,6 +42,9 @@ class Campaign(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['merchant', 'created_at']),
+        ]
 
     def __str__(self):
         return f'{self.merchant.name} · {self.name}'

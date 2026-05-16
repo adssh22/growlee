@@ -1,3 +1,4 @@
+import csv
 from unittest import mock
 
 from django.contrib.auth.models import User
@@ -364,6 +365,27 @@ class AuditLogActionTests(TestCase):
         self.customer = Customer.objects.create(merchant=self.merchant, phone='+33644444444', email='audit@example.test')
         self.session = GameSession.objects.create(customer=self.customer, campaign=self.campaign, reward_label='Dessert offert', is_winner=True)
         self.client.force_login(self.owner)
+
+    def test_customers_list_is_paginated_and_shows_latest_session(self):
+        for index in range(30):
+            customer = Customer.objects.create(merchant=self.merchant, phone=f'+33655555{index:03d}', email=f'client{index}@example.test')
+            GameSession.objects.create(customer=customer, campaign=self.campaign, reward_label=f'Gain {index}', is_winner=True)
+
+        response = self.client.get('/admin/customers/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['customers']), 25)
+        self.assertTrue(response.context['page_obj'].has_next())
+        self.assertContains(response, 'Gain 29')
+        self.assertContains(response, 'Suivant')
+
+    def test_customers_export_csv_uses_annotated_session_count(self):
+        response = self.client.get('/admin/customers/export/')
+
+        self.assertEqual(response.status_code, 200)
+        rows = list(csv.DictReader(response.content.decode().splitlines()))
+        row = next(row for row in rows if row['phone'] == self.customer.phone)
+        self.assertEqual(row['sessions_count'], '1')
 
     def test_delete_customer_soft_deletes_and_creates_audit_log(self):
         response = self.client.post(f'/admin/customers/{self.customer.id}/delete/')

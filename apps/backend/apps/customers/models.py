@@ -20,6 +20,9 @@ class Customer(models.Model):
     class Meta:
         unique_together = ('merchant', 'phone')
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['merchant', 'deleted_at', 'created_at']),
+        ]
 
     @property
     def is_deleted(self):
@@ -49,6 +52,10 @@ class GameSession(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['customer', 'created_at']),
+            models.Index(fields=['campaign', 'created_at']),
+        ]
 
     def __str__(self):
         return f'{self.customer.phone} · {self.reward_label}'

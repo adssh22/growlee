@@ -1,4 +1,6 @@
 import stripe
+from django.core.paginator import Paginator
+from django.db.models import Count, OuterRef, Prefetch, Subquery
 
 from apps.core.common_views import *  # noqa: F401,F403
 from apps.core.audit import log_audit_event
@@ -354,19 +356,36 @@ def customers_list(request):
         return redirect('admin-dashboard')
 
     query = (request.GET.get('q') or '').strip()
-    customers = Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).order_by('-created_at')
+    latest_session_ids = GameSession.objects.filter(customer=OuterRef('pk')).order_by('-created_at', '-id').values('id')[:1]
+    customers = (
+        Customer.objects.filter(merchant=merchant, deleted_at__isnull=True)
+        .annotate(sessions_count=Count('game_sessions'), latest_session_id=Subquery(latest_session_ids))
+        .prefetch_related(
+            Prefetch(
+                'game_sessions',
+                queryset=GameSession.objects.select_related('reward').order_by('-created_at', '-id'),
+                to_attr='prefetched_sessions',
+            )
+        )
+        .order_by('-created_at')
+    )
     if query:
         customers = customers.filter(
             Q(phone__icontains=query) |
             Q(email__icontains=query) |
             Q(first_name__icontains=query)
         )
-    customers = customers[:100]
-    for customer in customers:
-        customer.latest_session = customer.game_sessions.select_related('reward').order_by('-created_at').first()
+    paginator = Paginator(customers, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    for customer in page_obj.object_list:
+        customer.latest_session = customer.prefetched_sessions[0] if customer.prefetched_sessions else None
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
     return render(request, 'admin/customers.html', {
         'merchant': merchant,
-        'customers': customers,
+        'customers': page_obj.object_list,
+        'page_obj': page_obj,
+        'querystring': query_params.urlencode(),
         'query': query,
     })
 
@@ -410,13 +429,18 @@ def customers_export_csv(request):
     response['Content-Disposition'] = f'attachment; filename="growlee-customers-{merchant.slug}.csv"'
     writer = csv.writer(response)
     writer.writerow(['phone', 'first_name', 'email', 'created_at', 'sessions_count'])
-    for customer in Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).order_by('-created_at'):
+    customers = (
+        Customer.objects.filter(merchant=merchant, deleted_at__isnull=True)
+        .annotate(sessions_count=Count('game_sessions'))
+        .order_by('-created_at')
+    )
+    for customer in customers:
         writer.writerow([
             customer.phone,
             customer.first_name,
             customer.email,
             customer.created_at.isoformat(),
-            customer.game_sessions.count(),
+            customer.sessions_count,
         ])
     return response
 

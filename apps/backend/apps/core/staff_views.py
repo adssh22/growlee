@@ -1,5 +1,6 @@
 from apps.core.common_views import *  # noqa: F401,F403
 from django.core.paginator import Paginator
+from django.db.models import Count, OuterRef, Prefetch, Subquery
 from apps.core.audit import log_audit_event
 from apps.core.models import AuditLog
 from apps.core.common_views import (  # noqa: F401
@@ -248,7 +249,18 @@ def staff_merchants(request):
             messages.success(request, f'Commerce créé : {merchant.name}. Propriétaire : {user.username}')
             return redirect('staff-merchants')
 
-    merchants = Merchant.objects.select_related('subscription').prefetch_related('memberships__user').order_by('-created_at')
+    latest_campaign_ids = Campaign.objects.filter(merchant=OuterRef('pk')).order_by('-created_at', '-id').values('id')[:1]
+    owner_memberships = MerchantMembership.objects.select_related('user').filter(role='owner')
+    merchants = (
+        Merchant.objects.select_related('subscription')
+        .prefetch_related(Prefetch('memberships', queryset=owner_memberships, to_attr='owner_memberships'))
+        .annotate(
+            campaigns_count=Count('campaigns', distinct=True),
+            customers_count=Count('customers', distinct=True),
+            active_campaign_id=Subquery(latest_campaign_ids),
+        )
+        .order_by('-created_at')
+    )
     all_merchants = merchants.filter(deleted_at__isnull=True)
     q = (request.GET.get('q') or '').strip()
     active_filter = request.GET.get('active') or ''
@@ -276,17 +288,20 @@ def staff_merchants(request):
 
     paginator = Paginator(merchants, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
+    active_campaigns = {
+        campaign.id: campaign
+        for campaign in Campaign.objects.filter(id__in=[merchant.active_campaign_id for merchant in page_obj.object_list if merchant.active_campaign_id])
+    }
     rows = []
     for merchant in page_obj.object_list:
-        campaigns = Campaign.objects.filter(merchant=merchant)
         subscription = _ensure_subscription_for_merchant(merchant)
         rows.append({
             'merchant': merchant,
             'subscription': subscription,
-            'owners': [m for m in merchant.memberships.all() if m.role == 'owner'],
-            'campaigns_count': campaigns.count(),
-            'customers_count': Customer.objects.filter(merchant=merchant).count(),
-            'active_campaign': campaigns.order_by('-created_at', '-id').first(),
+            'owners': list(getattr(merchant, 'owner_memberships', [])),
+            'campaigns_count': merchant.campaigns_count,
+            'customers_count': merchant.customers_count,
+            'active_campaign': active_campaigns.get(merchant.active_campaign_id),
         })
     query_params = request.GET.copy()
     query_params.pop('page', None)

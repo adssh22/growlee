@@ -22,7 +22,7 @@
   {% for customer in customers %}
   <div style="display:grid; grid-template-columns:1.2fr 100px 1.1fr 1fr 110px; padding:12px 16px; border-bottom:0.5px solid var(--color-border-tertiary); align-items:center; gap:8px;">
     <div style="font-size:13px; color:var(--color-text-primary);">{{ customer.first_name|default:'Client' }} · {{ customer.phone }}<div class="mini">{{ customer.email|default:'-' }}</div></div>
-    <div style="font-size:12px; color:var(--color-text-secondary);">{{ customer.game_sessions.count }}</div>
+    <div style="font-size:12px; color:var(--color-text-secondary);">{{ customer.sessions_count }}</div>
     <div style="font-size:12px; color:var(--color-text-secondary);">{% if customer.latest_session %}{{ customer.latest_session.reward_label }}<div class="mini">{% if customer.latest_session.redeemed %}Utilisé{% else %}À utiliser{% endif %}</div>{% else %}-{% endif %}</div>
     <div style="font-size:12px; color:var(--color-text-secondary);">{% if customer.latest_session %}{{ customer.latest_session.created_at }}{% else %}{{ customer.created_at }}{% endif %}</div>
     <div><a class="btn secondary" href="/admin/customers/{{ customer.id }}/">Voir</a></div>
@@ -31,4 +31,13 @@
   <div style="padding:16px;" class="mini">Aucun client.</div>
   {% endfor %}
 </div>
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:12px; flex-wrap:wrap;" class="mini">
+  <div>{{ page_obj.paginator.count }} client(s) · page {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</div>
+  <div style="display:flex; gap:8px;">
+    {% if page_obj.has_previous %}<a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a>{% endif %}
+    {% if page_obj.has_next %}<a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a>{% endif %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}
