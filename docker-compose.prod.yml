@@ -73,6 +73,39 @@ services:
     volumes:
       - media_data:/app/media
 
+  notification-worker:
+    build: ./apps/backend
+    restart: unless-stopped
+    env_file:
+      - path: .env.prod
+        required: false
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/1}
+      DJANGO_DEBUG: "0"
+      APP_BASE_URL: https://growlee.fr
+      DJANGO_ALLOWED_HOSTS: growlee.fr,www.growlee.fr
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://growlee.fr,https://www.growlee.fr
+      NOTIFICATION_WORKER_INTERVAL_SECONDS: ${NOTIFICATION_WORKER_INTERVAL_SECONDS:-60}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c '
+        echo "[notification-worker] starting Growlee notification worker";
+        while true; do
+          echo "[notification-worker] processing pending/failed notification jobs";
+          python manage.py process_notification_jobs --limit 100 --include-failed;
+          echo "[notification-worker] sleeping $${NOTIFICATION_WORKER_INTERVAL_SECONDS:-60}s";
+          sleep "$${NOTIFICATION_WORKER_INTERVAL_SECONDS:-60}";
+        done
+      '
+    volumes:
+      - media_data:/app/media
+
 volumes:
   postgres_data:
   redis_data:

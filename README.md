@@ -96,6 +96,29 @@ EMAIL_HOST_PASSWORD=...
 EMAIL_USE_TLS=1
 ```
 
+### Notifications email/SMS asynchrones
+
+En production, `docker-compose.prod.yml` lance un service `notification-worker` sans port exposé. Il utilise la même image que `web` et traite les `NotificationJob` en boucle:
+
+```bash
+python manage.py process_notification_jobs --limit 100 --include-failed
+```
+
+Intervalle configurable dans `.env.prod`:
+
+```env
+NOTIFICATION_WORKER_INTERVAL_SECONDS=60
+```
+
+Vérifier le worker et les jobs:
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f notification-worker
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec web python manage.py process_notification_jobs --limit 20 --include-failed
+```
+
+Les jobs échoués restent en `failed` avec `last_error` et sont relançables par la commande ci-dessus ou via l’admin Django.
+
 ### SMS
 
 Providers supportés:
