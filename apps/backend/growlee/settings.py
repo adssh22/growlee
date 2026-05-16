@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
     'apps.core',
     'apps.accounts',
     'apps.merchants',
@@ -228,12 +229,31 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_STORAGE = os.getenv('DJANGO_MEDIA_STORAGE', 'local').strip().lower() or 'local'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
 }
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+if MEDIA_STORAGE == 's3':
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '').strip()
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '').strip()
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', '').strip()
+    AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL', '').strip() or None
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', '').strip() or None
+    AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN', '').strip()
+    AWS_QUERYSTRING_AUTH = env_bool('AWS_QUERYSTRING_AUTH', False)
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    if not (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME):
+        raise RuntimeError('DJANGO_MEDIA_STORAGE=s3 requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME.')
+    STORAGES['default'] = {'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage'}
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN.rstrip("/")}/'
+    elif AWS_S3_ENDPOINT_URL:
+        MEDIA_URL = f'{AWS_S3_ENDPOINT_URL.rstrip("/")}/{AWS_STORAGE_BUCKET_NAME}/'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/admin/'
 LOGOUT_REDIRECT_URL = '/'

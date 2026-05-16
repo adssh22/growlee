@@ -8,3 +8,5 @@ requests==2.32.3
 django-redis==5.4.0
 phonenumbers==8.13.47
 stripe==11.1.0
+django-storages==1.14.4
+boto3==1.35.42

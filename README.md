@@ -120,6 +120,30 @@ https://growlee.fr/webhooks/stripe/
 
 Événements suivis: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.payment_succeeded`.
 
+### Stockage médias S3 compatible
+
+Par défaut, les uploads restent locaux dans le volume Docker `media_data`. Ne pas supprimer ce volume: il reste le mode par défaut et servira à la migration manuelle des anciens médias.
+
+Activer S3 compatible uniquement en configurant:
+
+```env
+DJANGO_MEDIA_STORAGE=s3
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_STORAGE_BUCKET_NAME=growlee-media
+AWS_S3_ENDPOINT_URL=https://s3.<region>.io.cloud.ovh.net
+AWS_S3_REGION_NAME=<region>
+AWS_S3_CUSTOM_DOMAIN=
+```
+
+Exemples d’endpoints:
+
+- OVH Object Storage: `https://s3.<region>.io.cloud.ovh.net`
+- Scaleway Object Storage: `https://s3.<region>.scw.cloud`
+- MinIO: `https://minio.example.com` ou `http://minio:9000` en réseau privé
+
+Si `AWS_S3_CUSTOM_DOMAIN` est défini, `MEDIA_URL` utilise ce domaine. Sinon, Django construit une URL depuis `AWS_S3_ENDPOINT_URL` + bucket. Aucune clé ne doit être commitée; remplir uniquement `.env.prod` sur le serveur.
+
 ### Email
 
 En dev, les emails sortent en console. En prod, configurer un backend SMTP Django:
