@@ -1,11 +1,13 @@
 from datetime import timedelta
 
-from django.test import TestCase
+from django.core import mail
+from django.core.management import call_command
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.campaigns.models import Campaign, WheelSegment
-from apps.customers.models import Customer, GameSession
-from apps.customers.services import claim_reward
+from apps.customers.models import Customer, GameSession, NotificationJob
+from apps.customers.services import claim_reward, enqueue_reward_notifications
 from apps.merchants.models import Merchant
 from apps.rewards.models import Reward
 
@@ -77,6 +79,57 @@ class CustomerConsentTests(TestCase):
         self.assertIsNone(restored_customer.deleted_at)
         self.assertIsNone(restored_customer.deleted_by)
         self.assertEqual(session.customer, customer)
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', SMS_PROVIDER='console')
+class NotificationJobTests(TestCase):
+    def setUp(self):
+        self.merchant = Merchant.objects.create(name='Notify Shop', slug='notify-shop', is_active=True)
+        self.campaign = Campaign.objects.create(merchant=self.merchant, name='Notify campaign', game_type='quiz', is_active=True)
+
+    def test_enqueue_reward_notifications_creates_pending_email_and_sms_jobs(self):
+        customer, session, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000009',
+            email='notify@example.test',
+        )
+
+        jobs = enqueue_reward_notifications(session)
+
+        self.assertEqual(len(jobs), 2)
+        self.assertEqual(NotificationJob.objects.filter(game_session=session, status=NotificationJob.STATUS_PENDING).count(), 2)
+        self.assertTrue(NotificationJob.objects.filter(channel=NotificationJob.CHANNEL_EMAIL, customer=customer).exists())
+        self.assertTrue(NotificationJob.objects.filter(channel=NotificationJob.CHANNEL_SMS, customer=customer).exists())
+
+    def test_process_notification_jobs_command_marks_jobs_sent(self):
+        _customer, session, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000010',
+            email='sent@example.test',
+        )
+        enqueue_reward_notifications(session)
+
+        call_command('process_notification_jobs')
+
+        self.assertEqual(NotificationJob.objects.filter(status=NotificationJob.STATUS_SENT).count(), 2)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(NotificationJob.objects.filter(sent_at__isnull=False).exists())
+
+    @override_settings(NOTIFICATION_SEND_SYNC=True)
+    def test_sync_dev_mode_processes_fresh_jobs_immediately(self):
+        _customer, session, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000011',
+        )
+
+        enqueue_reward_notifications(session)
+
+        job = NotificationJob.objects.get(game_session=session)
+        self.assertEqual(job.status, NotificationJob.STATUS_SENT)
+        self.assertEqual(job.attempts, 1)
 
 
 class RewardQuotaTests(TestCase):

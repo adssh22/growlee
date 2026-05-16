@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.campaigns.models import WheelSegment
-from apps.customers.models import Customer, GameSession
+from apps.customers.models import Customer, GameSession, NotificationJob
 from apps.rewards.models import Reward
 
 
@@ -170,40 +170,132 @@ def send_sms(to_phone: str, body: str) -> bool:
     return False
 
 
-def send_reward_notifications(session):
-    """Envoie le lien unique du gain par email et prépare le canal SMS.
+def _email_provider():
+    return getattr(settings, 'EMAIL_PROVIDER', '') or settings.EMAIL_BACKEND.rsplit('.', 1)[-1]
 
-    En dev, l'email sort sur console par défaut. Le SMS reste volontairement
-    en console tant qu'un provider (Twilio/Brevo/OVH) n'est pas branché.
+
+def _notification_provider(channel):
+    if channel == NotificationJob.CHANNEL_EMAIL:
+        return _email_provider()
+    if channel == NotificationJob.CHANNEL_SMS:
+        return getattr(settings, 'SMS_PROVIDER', 'console') or 'console'
+    return ''
+
+
+def enqueue_reward_notifications(session, *, scheduled_at=None):
+    """Create durable notification jobs for a reward session.
+
+    Celery/RQ can later enqueue this function's pending jobs; for now the
+    management command owns dispatch. In local/dev, set NOTIFICATION_SEND_SYNC=1
+    to process the freshly-created jobs immediately.
     """
     if not session.is_winner:
-        return
+        return []
+    session = GameSession.objects.select_related('customer', 'campaign__merchant').get(pk=session.pk)
     customer = session.customer
-    url = reward_claim_url(session)
     merchant = session.campaign.merchant
+    scheduled_at = scheduled_at or timezone.now()
+    jobs = []
+    channels = []
     if customer.email:
-        subject = f"Votre gain chez {merchant.name}"
-        text = (
-            f"Bonjour {customer.first_name or ''},\n\n"
-            f"Votre gain : {session.reward_label}.\n"
-            f"Il est valable jusqu'au {session.reward_expires_at:%d/%m/%Y}.\n"
-            f"Ouvrez votre lien unique : {url}\n\n"
-            "Quand vous cliquerez sur “Récupérer mon gain”, il sera disponible 15 minutes en point de vente."
-        )
-        html = f"""
-        <div style="font-family:Inter,Arial,sans-serif;background:#f7f6ff;padding:28px;color:#17152b">
-          <div style="max-width:560px;margin:auto;background:#fff;border-radius:28px;padding:30px;box-shadow:0 24px 70px rgba(39,32,91,.12)">
-            <div style="font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#534ab7">Growlee · Votre gain</div>
-            <h1 style="font-size:34px;line-height:1.05;margin:14px 0 10px">{session.reward_label}</h1>
-            <p style="color:#69647f;font-size:16px;line-height:1.55">Valable jusqu'au <strong>{session.reward_expires_at:%d/%m/%Y}</strong> chez {merchant.name}.</p>
-            <a href="{url}" style="display:block;text-align:center;background:#534ab7;color:white;text-decoration:none;border-radius:18px;padding:16px 20px;font-weight:900;margin:24px 0">Voir mon gain</a>
-            <p style="font-size:13px;color:#69647f;line-height:1.5">Attention : après avoir cliqué sur “Récupérer mon gain”, le gain sera disponible seulement 15 minutes. Présentez-le directement au point de vente.</p>
-            <p style="font-size:12px;color:#9a94b3">Code gain : {session.claim_code}</p>
-          </div>
-        </div>
-        """
-        msg = EmailMultiAlternatives(subject, text, settings.DEFAULT_FROM_EMAIL, [customer.email])
-        msg.attach_alternative(html, 'text/html')
-        msg.send(fail_silently=True)
+        channels.append(NotificationJob.CHANNEL_EMAIL)
     if customer.phone:
-        send_sms(customer.phone, f"Votre gain {session.reward_label} chez {merchant.name}: {url} - activez-le seulement au point de vente (15 min).")
+        channels.append(NotificationJob.CHANNEL_SMS)
+    for channel in channels:
+        job, _ = NotificationJob.objects.get_or_create(
+            game_session=session,
+            channel=channel,
+            defaults={
+                'merchant': merchant,
+                'customer': customer,
+                'provider': _notification_provider(channel),
+                'scheduled_at': scheduled_at,
+            },
+        )
+        jobs.append(job)
+    if getattr(settings, 'NOTIFICATION_SEND_SYNC', False):
+        for job in jobs:
+            process_notification_job(job)
+    return jobs
+
+
+def _reward_email_payload(session):
+    customer = session.customer
+    merchant = session.campaign.merchant
+    url = reward_claim_url(session)
+    subject = f"Votre gain chez {merchant.name}"
+    text = (
+        f"Bonjour {customer.first_name or ''},\n\n"
+        f"Votre gain : {session.reward_label}.\n"
+        f"Il est valable jusqu'au {session.reward_expires_at:%d/%m/%Y}.\n"
+        f"Ouvrez votre lien unique : {url}\n\n"
+        "Quand vous cliquerez sur “Récupérer mon gain”, il sera disponible 15 minutes en point de vente."
+    )
+    html = f"""
+    <div style="font-family:Inter,Arial,sans-serif;background:#f7f6ff;padding:28px;color:#17152b">
+      <div style="max-width:560px;margin:auto;background:#fff;border-radius:28px;padding:30px;box-shadow:0 24px 70px rgba(39,32,91,.12)">
+        <div style="font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#534ab7">Growlee · Votre gain</div>
+        <h1 style="font-size:34px;line-height:1.05;margin:14px 0 10px">{session.reward_label}</h1>
+        <p style="color:#69647f;font-size:16px;line-height:1.55">Valable jusqu'au <strong>{session.reward_expires_at:%d/%m/%Y}</strong> chez {merchant.name}.</p>
+        <a href="{url}" style="display:block;text-align:center;background:#534ab7;color:white;text-decoration:none;border-radius:18px;padding:16px 20px;font-weight:900;margin:24px 0">Voir mon gain</a>
+        <p style="font-size:13px;color:#69647f;line-height:1.5">Attention : après avoir cliqué sur “Récupérer mon gain”, le gain sera disponible seulement 15 minutes. Présentez-le directement au point de vente.</p>
+        <p style="font-size:12px;color:#9a94b3">Code gain : {session.claim_code}</p>
+      </div>
+    </div>
+    """
+    return subject, text, html
+
+
+def _send_reward_email(session):
+    if not session.customer.email:
+        return False
+    subject, text, html = _reward_email_payload(session)
+    msg = EmailMultiAlternatives(subject, text, settings.DEFAULT_FROM_EMAIL, [session.customer.email])
+    msg.attach_alternative(html, 'text/html')
+    return bool(msg.send(fail_silently=False))
+
+
+def _send_reward_sms(session):
+    if not session.customer.phone:
+        return False
+    merchant = session.campaign.merchant
+    url = reward_claim_url(session)
+    return send_sms(session.customer.phone, f"Votre gain {session.reward_label} chez {merchant.name}: {url} - activez-le seulement au point de vente (15 min).")
+
+
+def process_notification_job(job):
+    job = NotificationJob.objects.select_related('game_session__customer', 'game_session__campaign__merchant').get(pk=job.pk)
+    if job.status == NotificationJob.STATUS_SENT:
+        return job
+    job.attempts = F('attempts') + 1
+    job.provider = job.provider or _notification_provider(job.channel)
+    job.save(update_fields=['attempts', 'provider', 'updated_at'])
+    job.refresh_from_db()
+    try:
+        if job.channel == NotificationJob.CHANNEL_EMAIL:
+            ok = _send_reward_email(job.game_session)
+        elif job.channel == NotificationJob.CHANNEL_SMS:
+            ok = _send_reward_sms(job.game_session)
+        else:
+            raise ValueError(f'Unknown notification channel: {job.channel}')
+        if not ok:
+            raise RuntimeError('Provider returned false')
+        job.status = NotificationJob.STATUS_SENT
+        job.sent_at = timezone.now()
+        job.last_error = ''
+    except Exception as exc:
+        job.status = NotificationJob.STATUS_FAILED
+        job.last_error = str(exc)[:2000]
+    job.save(update_fields=['status', 'sent_at', 'last_error', 'provider', 'updated_at'])
+    return job
+
+
+def send_reward_notifications(session):
+    """Compatibility/direct sender. Prefer enqueue_reward_notifications()."""
+    if not session.is_winner:
+        return
+    session = GameSession.objects.select_related('customer', 'campaign__merchant').get(pk=session.pk)
+    if session.customer.email:
+        _send_reward_email(session)
+    if session.customer.phone:
+        _send_reward_sms(session)

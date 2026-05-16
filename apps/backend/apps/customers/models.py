@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.campaigns.models import Campaign
 from apps.merchants.models import Merchant
@@ -51,6 +52,50 @@ class GameSession(models.Model):
 
     def __str__(self):
         return f'{self.customer.phone} · {self.reward_label}'
+
+
+class NotificationJob(models.Model):
+    CHANNEL_EMAIL = 'email'
+    CHANNEL_SMS = 'sms'
+    CHANNEL_CHOICES = [
+        (CHANNEL_EMAIL, 'Email'),
+        (CHANNEL_SMS, 'SMS'),
+    ]
+    STATUS_PENDING = 'pending'
+    STATUS_SENT = 'sent'
+    STATUS_FAILED = 'failed'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_SENT, 'Sent'),
+        (STATUS_FAILED, 'Failed'),
+    ]
+
+    merchant = models.ForeignKey(Merchant, on_delete=models.CASCADE, related_name='notification_jobs')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='notification_jobs')
+    game_session = models.ForeignKey(GameSession, on_delete=models.CASCADE, related_name='notification_jobs')
+    channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    provider = models.CharField(max_length=80, blank=True, default='')
+    attempts = models.PositiveIntegerField(default=0)
+    last_error = models.TextField(blank=True, default='')
+    scheduled_at = models.DateTimeField(default=timezone.now, db_index=True)
+    sent_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['scheduled_at', 'id']
+        indexes = [
+            models.Index(fields=['status', 'scheduled_at']),
+            models.Index(fields=['channel']),
+            models.Index(fields=['provider']),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['game_session', 'channel'], name='uniq_notification_job_session_channel'),
+        ]
+
+    def __str__(self):
+        return f'{self.get_channel_display()} · {self.game_session_id} · {self.status}'
 
 
 class WalletPass(models.Model):

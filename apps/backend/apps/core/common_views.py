@@ -36,7 +36,7 @@ from apps.core.utils import build_qr_svg, generate_qr_data_uri
 from apps.core.security import rate_limit
 from apps.customers.forms import ClaimRewardForm
 from apps.customers.models import Customer, GameSession, WalletPass
-from apps.customers.services import claim_reward, reward_claim_url, send_reward_notifications
+from apps.customers.services import claim_reward, enqueue_reward_notifications, reward_claim_url, send_reward_notifications
 from apps.customers.wallet import build_wallet_payload, issue_wallet_pass_placeholder, wallet_config_status
 from apps.merchants.models import Merchant, Subscription
 from apps.rewards.models import Reward

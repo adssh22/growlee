@@ -102,7 +102,7 @@ def play_page(request, slug):
                 consent_marketing=form.cleaned_data.get('consent_marketing', False),
             )
             request.session[f'growlee_last_session_{merchant.slug}'] = session.id
-            send_reward_notifications(session)
+            enqueue_reward_notifications(session)
             next_step = 'reward' if game_enabled else ('review' if review_enabled else ('wallet' if wallet_enabled else 'landing'))
             return redirect(f"/play/{slug}/?step={next_step}")
         step = 'collect'
