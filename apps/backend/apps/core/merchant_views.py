@@ -1,4 +1,5 @@
 from apps.core.common_views import *  # noqa: F401,F403
+from apps.core.audit import log_audit_event
 from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
     _control_access_granted,
@@ -184,6 +185,7 @@ def game_configuration(request):
             campaign = campaign_form.save(commit=False)
             campaign.merchant = merchant
             campaign.save()
+            log_audit_event(request, 'merchant.campaign.update', target=campaign, merchant=merchant, metadata={'game_type': campaign.game_type, 'is_active': campaign.is_active, 'review_enabled': campaign.review_enabled, 'wallet_enabled': campaign.wallet_enabled})
             if campaign.game_type in {'spin', 'scratch'}:
                 _ensure_spin_defaults(campaign)
             messages.success(request, 'Configuration mini jeu mise à jour.')
@@ -245,6 +247,7 @@ def toggle_campaign_flag(request):
         next_value = desired if desired is not None else (not current)
         setattr(campaign, flag, next_value)
         campaign.save(update_fields=[flag])
+        log_audit_event(request, 'merchant.campaign.module_toggle', target=campaign, merchant=merchant, metadata={'flag': flag, 'enabled': next_value})
         messages.success(request, f'Module {labels[flag]} {"activé" if next_value else "désactivé"}.')
     else:
         messages.error(request, 'Option inconnue.')
@@ -325,6 +328,7 @@ def delete_customer(request, customer_id):
     merchant = membership.merchant if membership else None
     customer = get_object_or_404(Customer, id=customer_id, merchant=merchant)
     phone = customer.phone
+    log_audit_event(request, 'merchant.customer.delete', target=customer, merchant=merchant, metadata={'phone': phone})
     customer.delete()
     messages.success(request, f'Client supprimé: {phone}.')
     return redirect('customers-list')
@@ -429,6 +433,7 @@ def redeem_session(request, session_id):
     if not session.redeemed:
         session.redeemed = True
         session.save(update_fields=['redeemed'])
+        log_audit_event(request, 'merchant.session.redeem', target=session, merchant=merchant, metadata={'customer_id': session.customer_id, 'reward_label': session.reward_label})
         messages.success(request, f'Gain marqué comme utilisé pour {session.customer.phone}.')
     return redirect('customer-detail', customer_id=session.customer_id)
 

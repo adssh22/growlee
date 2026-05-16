@@ -48,6 +48,11 @@
           <h2 style="margin:0 0 12px;letter-spacing:-.04em">Dernières sessions</h2>
           <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Gain</th><th>Statut</th><th>Date</th></tr></thead><tbody>{% for session in latest_sessions %}<tr><td>{{ session.customer.phone }}</td><td>{{ session.reward_label }}</td><td>{% if session.redeemed %}<span class="badge on">Récupéré</span>{% elif session.is_winner %}<span class="badge warn">À récupérer</span>{% else %}<span class="badge off">Perdu</span>{% endif %}</td><td>{{ session.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4">Aucune session.</td></tr>{% endfor %}</tbody></table></div>
         </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Derniers événements audit</h2>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Action</th><th>Cible</th><th>Acteur</th><th>Date</th></tr></thead><tbody>{% for log in latest_audit_logs %}<tr><td>{{ log.action }}<br><span class="small">{{ log.metadata }}</span></td><td>{{ log.target_type|default:'—' }}{% if log.target_id %} #{{ log.target_id }}{% endif %}</td><td>{% if log.actor %}{{ log.actor.username }}{% else %}Système{% endif %}</td><td>{{ log.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4">Aucun événement audit.</td></tr>{% endfor %}</tbody></table></div>
+        </div>
       </div>
 
       <div class="stack">

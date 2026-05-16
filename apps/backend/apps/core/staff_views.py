@@ -1,5 +1,7 @@
 from apps.core.common_views import *  # noqa: F401,F403
 from django.core.paginator import Paginator
+from apps.core.audit import log_audit_event
+from apps.core.models import AuditLog
 from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
     _control_access_granted,
@@ -38,6 +40,7 @@ def _run_staff_merchant_action(request, merchant, action):
         subscription = _ensure_subscription_for_merchant(merchant)
         subscription.status = Subscription.STATUS_ACTIVE if merchant.is_active else Subscription.STATUS_SUSPENDED
         subscription.save(update_fields=['status', 'updated_at'])
+        log_audit_event(request, 'staff.merchant.toggle_active', target=merchant, merchant=merchant, metadata={'is_active': merchant.is_active})
         messages.success(request, f'{merchant.name} est maintenant {"actif" if merchant.is_active else "désactivé"}.')
         return True
     if action == 'toggle_demo':
@@ -49,6 +52,7 @@ def _run_staff_merchant_action(request, merchant, action):
         if merchant.is_demo and subscription.status not in Subscription.UNLOCKED_STATUSES:
             subscription.status = Subscription.STATUS_TRIALING
             subscription.save(update_fields=['status', 'updated_at'])
+        log_audit_event(request, 'staff.merchant.toggle_demo', target=merchant, merchant=merchant, metadata={'is_demo': merchant.is_demo, 'demo_expires_at': merchant.demo_expires_at.isoformat() if merchant.demo_expires_at else None})
         messages.success(request, f'Accès démo {"activé" if merchant.is_demo else "désactivé"} pour {merchant.name}.')
         return True
     if action == 'activate_direct_billing':
@@ -74,6 +78,7 @@ def _run_staff_merchant_action(request, merchant, action):
         campaign.review_enabled = True
         campaign.wallet_enabled = True
         campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
+        log_audit_event(request, 'staff.billing.activate_direct', target=merchant, merchant=merchant, metadata={'subscription_provider': subscription.provider, 'subscription_status': subscription.status, 'billing_reference': merchant.billing_payment_reference})
         messages.success(request, f'{merchant.name} est activé en facturation directe. Le commerçant peut accéder à son compte sans paiement via le site.')
         return True
     if action == 'module_toggle':
@@ -94,6 +99,7 @@ def _run_staff_merchant_action(request, merchant, action):
         elif flag == 'wallet':
             campaign.wallet_enabled = not campaign.wallet_enabled
             campaign.save(update_fields=['wallet_enabled'])
+        log_audit_event(request, 'staff.campaign.module_toggle', target=campaign, merchant=merchant, metadata={'flag': flag, 'is_active': campaign.is_active, 'review_enabled': campaign.review_enabled, 'wallet_enabled': campaign.wallet_enabled})
         messages.success(request, f'Module mis à jour pour {merchant.name}.')
         return True
     if action == 'delete_merchant':
@@ -103,6 +109,7 @@ def _run_staff_merchant_action(request, merchant, action):
             return False
         merchant_name = merchant.name
         owner_users = [membership.user for membership in merchant.memberships.select_related('user').all()]
+        log_audit_event(request, 'staff.merchant.delete', target=merchant, merchant=merchant, metadata={'merchant_name': merchant.name, 'merchant_slug': merchant.slug})
         merchant.delete()
         for user in owner_users:
             if not user.is_staff and not user.merchant_memberships.exists():
@@ -178,6 +185,7 @@ def staff_merchants(request):
             target_mfa.secret = generate_secret()
             target_mfa.enabled = False
             target_mfa.save(update_fields=['secret', 'enabled', 'updated_at'])
+            log_audit_event(request, 'staff.mfa.reset', target=target_user, metadata={'target_username': target_user.username})
             messages.success(request, f'2FA réinitialisée pour {target_user.username}. Il devra scanner un nouveau QR au prochain accès.')
             return redirect('staff-merchants')
         if action == 'mfa_enable':
@@ -313,4 +321,5 @@ def staff_merchant_detail(request, merchant_id):
         'active_campaign': active_campaign,
         'modules': modules,
         'active_modules_count': int(modules['game']) + int(modules['review']) + int(modules['wallet']),
+        'latest_audit_logs': AuditLog.objects.select_related('actor').filter(merchant=merchant).order_by('-created_at')[:10],
     })

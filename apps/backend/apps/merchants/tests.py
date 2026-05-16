@@ -4,9 +4,10 @@ from django.test import TestCase, override_settings
 from apps.campaigns.models import Campaign
 from apps.core.common_views import _merchant_is_unlocked
 from apps.customers.models import Customer, GameSession
+from apps.core.models import AuditLog
 from apps.core.totp import generate_secret
 from apps.merchants.models import Merchant, Subscription
-from apps.accounts.models import StaffMFA
+from apps.accounts.models import MerchantMembership, StaffMFA
 
 
 TEST_STORAGES = {
@@ -94,6 +95,7 @@ class GrowleeControlSubscriptionTests(TestCase):
         self.assertTrue(merchant.is_active)
         self.assertEqual(subscription.status, Subscription.STATUS_ACTIVE)
         self.assertEqual(subscription.provider, Subscription.PROVIDER_DIRECT)
+        self.assertTrue(AuditLog.objects.filter(action='staff.billing.activate_direct', merchant=merchant).exists())
 
     def test_control_list_supports_search_and_subscription_filter(self):
         visible = Merchant.objects.create(name='Alpha Bakery', slug='alpha-bakery', is_active=True)
@@ -124,6 +126,7 @@ class GrowleeControlSubscriptionTests(TestCase):
         campaign = Campaign.objects.create(merchant=merchant, name='Detail Campaign', is_active=True, review_enabled=True, wallet_enabled=False)
         customer = Customer.objects.create(merchant=merchant, phone='+33633333333', email='detail@example.test', first_name='Ada')
         GameSession.objects.create(customer=customer, campaign=campaign, reward_label='Café offert', is_winner=True)
+        AuditLog.objects.create(actor=self.user, merchant=merchant, action='staff.merchant.toggle_demo', target_type='Merchant', target_id=str(merchant.id), metadata={'is_demo': True})
 
         response = self.client.get(f'/growlee-control/merchants/{merchant.id}/')
 
@@ -134,3 +137,95 @@ class GrowleeControlSubscriptionTests(TestCase):
         self.assertContains(response, 'Café offert')
         self.assertContains(response, 'Pro · Manual')
         self.assertContains(response, '2/3')
+        self.assertContains(response, 'staff.merchant.toggle_demo')
+
+    def test_staff_toggle_active_demo_and_module_create_audit_logs(self):
+        merchant = Merchant.objects.create(name='Staff Audit Shop', slug='staff-audit-shop', is_active=True)
+        Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+        Campaign.objects.create(merchant=merchant, name='Staff Audit Campaign', is_active=True)
+
+        self.client.post(f'/growlee-control/merchants/{merchant.id}/', {'action': 'toggle'})
+        self.client.post(f'/growlee-control/merchants/{merchant.id}/', {'action': 'toggle_demo'})
+        self.client.post(f'/growlee-control/merchants/{merchant.id}/', {'action': 'module_toggle', 'flag': 'game'})
+
+        self.assertTrue(AuditLog.objects.filter(action='staff.merchant.toggle_active', merchant=merchant).exists())
+        self.assertTrue(AuditLog.objects.filter(action='staff.merchant.toggle_demo', merchant=merchant).exists())
+        self.assertTrue(AuditLog.objects.filter(action='staff.campaign.module_toggle', merchant=merchant).exists())
+
+    def test_staff_reset_mfa_creates_audit_log(self):
+        other_staff = User.objects.create_superuser('other-staff', 'other@example.test', 'secret-12345')
+        StaffMFA.objects.create(user=other_staff, secret=generate_secret(), enabled=True)
+
+        response = self.client.post('/growlee-control/merchants/', {'action': 'reset_staff_mfa', 'user_id': other_staff.id})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(AuditLog.objects.filter(action='staff.mfa.reset', actor=self.user, target_type='User', target_id=str(other_staff.id)).exists())
+
+    def test_staff_delete_merchant_creates_audit_log(self):
+        merchant = Merchant.objects.create(name='Delete Audit Shop', slug='delete-audit-shop', is_active=True)
+        Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+        merchant_id = merchant.id
+
+        response = self.client.post(f'/growlee-control/merchants/{merchant.id}/', {'action': 'delete_merchant', 'confirm_name': merchant.name})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(AuditLog.objects.filter(action='staff.merchant.delete', target_type='Merchant', target_id=str(merchant_id)).exists())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AuditLogActionTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('merchant-owner', password='secret-12345')
+        self.merchant = Merchant.objects.create(
+            name='Audit Shop',
+            slug='audit-shop',
+            is_active=True,
+            onboarding_completed=True,
+            onboarding_fee_paid=True,
+            flyer_style='premium',
+            flyer_visual_approved=True,
+        )
+        Subscription.objects.create(merchant=self.merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+        MerchantMembership.objects.create(user=self.owner, merchant=self.merchant, role='owner')
+        self.campaign = Campaign.objects.create(merchant=self.merchant, name='Audit Campaign', is_active=True)
+        self.customer = Customer.objects.create(merchant=self.merchant, phone='+33644444444', email='audit@example.test')
+        self.session = GameSession.objects.create(customer=self.customer, campaign=self.campaign, reward_label='Dessert offert', is_winner=True)
+        self.client.force_login(self.owner)
+
+    def test_delete_customer_creates_audit_log(self):
+        response = self.client.post(f'/admin/customers/{self.customer.id}/delete/')
+
+        self.assertEqual(response.status_code, 302)
+        log = AuditLog.objects.get(action='merchant.customer.delete')
+        self.assertEqual(log.actor, self.owner)
+        self.assertEqual(log.merchant, self.merchant)
+        self.assertEqual(log.target_type, 'Customer')
+        self.assertEqual(log.target_id, str(self.customer.id))
+        self.assertEqual(log.metadata['phone'], '+33644444444')
+
+    def test_redeem_session_creates_audit_log(self):
+        response = self.client.post(f'/admin/sessions/{self.session.id}/redeem/')
+
+        self.assertEqual(response.status_code, 302)
+        log = AuditLog.objects.get(action='merchant.session.redeem')
+        self.assertEqual(log.actor, self.owner)
+        self.assertEqual(log.merchant, self.merchant)
+        self.assertEqual(log.target_type, 'GameSession')
+        self.assertEqual(log.target_id, str(self.session.id))
+        self.assertEqual(log.metadata['reward_label'], 'Dessert offert')
+
+    def test_toggle_campaign_module_creates_audit_log(self):
+        response = self.client.post('/admin/campaign/toggle/', {
+            'campaign_id': self.campaign.id,
+            'flag': 'wallet_enabled',
+            'value': '0',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        log = AuditLog.objects.get(action='merchant.campaign.module_toggle')
+        self.assertEqual(log.actor, self.owner)
+        self.assertEqual(log.merchant, self.merchant)
+        self.assertEqual(log.target_type, 'Campaign')
+        self.assertEqual(log.target_id, str(self.campaign.id))
+        self.assertEqual(log.metadata['flag'], 'wallet_enabled')
+        self.assertFalse(log.metadata['enabled'])
