@@ -1,5 +1,10 @@
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import models
+
+
+def default_employee_pin_hash():
+    return make_password('123456')
 
 
 class Merchant(models.Model):
@@ -47,7 +52,7 @@ class Merchant(models.Model):
     heading_font = models.CharField(max_length=40, choices=FONT_CHOICES, default='inter')
     body_font = models.CharField(max_length=40, choices=FONT_CHOICES, default='inter')
     google_review_url = models.URLField(blank=True, null=True)
-    employee_pin = models.CharField(max_length=12, default='1234')
+    employee_pin_hash = models.CharField(max_length=128, default=default_employee_pin_hash)
     is_demo = models.BooleanField(default=False)
     onboarding_completed = models.BooleanField(default=False)
     demo_expires_at = models.DateTimeField(blank=True, null=True)
@@ -62,6 +67,12 @@ class Merchant(models.Model):
     @property
     def is_archived(self):
         return self.deleted_at is not None
+
+    def set_employee_pin(self, raw_pin):
+        self.employee_pin_hash = make_password(raw_pin)
+
+    def check_employee_pin(self, raw_pin):
+        return bool(raw_pin and self.employee_pin_hash and check_password(raw_pin, self.employee_pin_hash))
 
     def __str__(self):
         return self.name

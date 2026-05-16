@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+from apps.core.security import validate_qr_redirect_url
 from apps.merchants.models import Merchant
 
 
@@ -59,13 +60,18 @@ class EntryPoint(models.Model):
     code = models.CharField(max_length=120, unique=True)
     channel = models.CharField(max_length=20, choices=CHANNELS, default='qr')
     placement = models.CharField(max_length=120, default='counter')
-    redirect_url = models.URLField(blank=True, null=True)
+    redirect_url = models.CharField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def target_url(self):
         if self.redirect_url:
-            return self.redirect_url
+            return validate_qr_redirect_url(self.redirect_url)
         return f'/play/{self.merchant.slug}/'
+
+    def clean(self):
+        super().clean()
+        if self.redirect_url:
+            self.redirect_url = validate_qr_redirect_url(self.redirect_url)
 
     class Meta:
         ordering = ['name']

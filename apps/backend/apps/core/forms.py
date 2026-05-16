@@ -6,13 +6,15 @@ import re
 from apps.campaigns.models import Campaign, EntryPoint
 from apps.merchants.models import Merchant
 from apps.rewards.models import Reward
-from apps.core.security import validate_uploaded_image
+from apps.core.security import validate_qr_redirect_url, validate_uploaded_image
 
 
 class MerchantForm(forms.ModelForm):
+    employee_pin = forms.RegexField(regex=r'^\d{6,}$', required=False, label='PIN retour mode employeur', help_text='6 chiffres minimum. Laissez vide pour conserver le PIN actuel.')
+
     class Meta:
         model = Merchant
-        fields = ['name', 'address', 'business_sector', 'contact_email', 'contact_phone', 'tagline', 'short_bio', 'payment_method', 'billing_payment_type', 'billing_payment_reference', 'flyer_style', 'flyer_offer', 'logo', 'inspiration_image', 'design_theme', 'primary_color', 'accent_color', 'surface_color', 'text_color', 'heading_font', 'body_font', 'google_review_url', 'employee_pin']
+        fields = ['name', 'address', 'business_sector', 'contact_email', 'contact_phone', 'tagline', 'short_bio', 'payment_method', 'billing_payment_type', 'billing_payment_reference', 'flyer_style', 'flyer_offer', 'logo', 'inspiration_image', 'design_theme', 'primary_color', 'accent_color', 'surface_color', 'text_color', 'heading_font', 'body_font', 'google_review_url']
         labels = {
             'name': 'Nom du commerce',
             'address': 'Adresse',
@@ -36,7 +38,6 @@ class MerchantForm(forms.ModelForm):
             'heading_font': 'Typo titres',
             'body_font': 'Typo textes',
             'google_review_url': 'Lien Google de l’établissement',
-            'employee_pin': 'PIN retour mode employeur',
         }
         help_texts = {
             'tagline': 'Facultatif. Exemple : “Le coffee shop qui donne le sourire.”',
@@ -45,7 +46,6 @@ class MerchantForm(forms.ModelForm):
             'design_theme': 'Exemple : premium sombre, coffee shop chaleureux, street-food coloré, minimal chic…',
             'billing_payment_reference': 'Ne stockez pas le numéro complet : indiquez “CB finissant par 1234” ou “IBAN finissant par FR76”.',
             'google_review_url': 'Exemple : lien Google Maps / Google Reviews de votre établissement.',
-            'employee_pin': 'Utilisé pour quitter le mode employé sur tablette / caisse.',
         }
         widgets = {
             'short_bio': forms.Textarea(attrs={'rows': 4}),
@@ -58,6 +58,10 @@ class MerchantForm(forms.ModelForm):
             'surface_color': forms.TextInput(attrs={'type': 'color'}),
             'text_color': forms.TextInput(attrs={'type': 'color'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['employee_pin'].widget.attrs.update({'inputmode': 'numeric', 'autocomplete': 'new-password', 'placeholder': '6 chiffres minimum'})
 
     def clean_billing_payment_reference(self):
         reference = (self.cleaned_data.get('billing_payment_reference') or '').strip()
@@ -89,6 +93,16 @@ class MerchantForm(forms.ModelForm):
             max_height=5000,
             label='Image d’inspiration',
         )
+
+    def save(self, commit=True):
+        merchant = super().save(commit=False)
+        pin = self.cleaned_data.get('employee_pin')
+        if pin:
+            merchant.set_employee_pin(pin)
+        if commit:
+            merchant.save()
+            self.save_m2m()
+        return merchant
 
 
 class MerchantReviewForm(forms.ModelForm):
@@ -127,6 +141,9 @@ class CampaignForm(forms.ModelForm):
 
 
 class EntryPointForm(forms.ModelForm):
+    def clean_redirect_url(self):
+        return validate_qr_redirect_url(self.cleaned_data.get('redirect_url'))
+
     class Meta:
         model = EntryPoint
         fields = ['name', 'code', 'channel', 'placement', 'redirect_url']

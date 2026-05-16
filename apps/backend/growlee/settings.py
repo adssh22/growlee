@@ -20,6 +20,7 @@ if not DEBUG and (not _SECRET_KEY_ENV or _SECRET_KEY_ENV == 'dev-secret-key'):
 SECRET_KEY = _SECRET_KEY_ENV or 'dev-secret-key'
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,growlee.fr,www.growlee.fr')
 APP_BASE_URL = os.getenv('APP_BASE_URL', 'http://localhost:8000' if DEBUG else 'https://growlee.fr').rstrip('/')
+QR_REDIRECT_ALLOWED_HOSTS = env_list('QR_REDIRECT_ALLOWED_HOSTS', '')
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://growlee.fr,https://www.growlee.fr')
 for host in ALLOWED_HOSTS:
     if host in {'*', 'localhost', '127.0.0.1'} or host.startswith('.'):
@@ -72,6 +73,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'apps.core.middleware.StaffAdminMfaMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 

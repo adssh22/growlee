@@ -63,7 +63,7 @@ def employee_exit(request):
     form = AuthenticationForm(request, data=request.POST or None)
     if request.method == 'POST':
         unlock_pin = (request.POST.get('unlock_pin') or '').strip()
-        if unlock_pin and merchant and unlock_pin == merchant.employee_pin:
+        if unlock_pin and merchant and merchant.check_employee_pin(unlock_pin):
             request.session.pop('growlee_employee_mode', None)
             messages.success(request, 'Mode employeur réouvert par PIN.')
             return redirect('admin-dashboard')

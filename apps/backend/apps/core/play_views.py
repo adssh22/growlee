@@ -1,4 +1,8 @@
+from django.core.exceptions import ValidationError
+from django.http import Http404
+
 from apps.core.common_views import *  # noqa: F401,F403
+from apps.core.security import validate_qr_redirect_url
 from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
     _control_access_granted,
@@ -22,6 +26,10 @@ from apps.core.common_views import (  # noqa: F401
 def entry_redirect(request, code):
     entry_point = get_object_or_404(EntryPoint.objects.select_related('merchant'), code=code, merchant__deleted_at__isnull=True, merchant__is_active=True)
     target = entry_point.redirect_url or f'/play/{entry_point.merchant.slug}/'
+    try:
+        target = validate_qr_redirect_url(target)
+    except ValidationError as exc:
+        raise Http404('Redirection QR invalide') from exc
     return redirect(target)
 
 @rate_limit('reward_claim', limit=20, limit_setting='RATELIMIT_GAIN_ATTEMPTS', window=3600)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import imghdr
 from functools import wraps
 from io import BytesIO
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.cache import cache
@@ -57,6 +58,34 @@ def rate_limit(scope: str, limit: int, window: int, *, key_by: str = 'ip', metho
 
 ALLOWED_IMAGE_FORMATS = {'PNG', 'JPEG', 'WEBP'}
 ALLOWED_IMAGE_MIME_PREFIX = {'png': 'image/png', 'jpeg': 'image/jpeg', 'webp': 'image/webp'}
+
+
+def allowed_qr_redirect_hosts():
+    hosts = set(getattr(settings, 'QR_REDIRECT_ALLOWED_HOSTS', []))
+    app_host = urlparse(getattr(settings, 'APP_BASE_URL', '')).netloc
+    if app_host:
+        hosts.add(app_host)
+    hosts.update(host for host in getattr(settings, 'ALLOWED_HOSTS', []) if host not in {'*', ''})
+    return {host.lower() for host in hosts}
+
+
+def validate_qr_redirect_url(value):
+    value = (value or '').strip()
+    if not value:
+        return ''
+    lowered = value.lower()
+    if lowered.startswith(('javascript:', 'data:', 'file:')):
+        raise ValidationError('Schéma de redirection interdit.')
+    if value.startswith('/'):
+        if value.startswith('//') or value.startswith('/\\'):
+            raise ValidationError('URL relative invalide.')
+        return value
+    parsed = urlparse(value)
+    if parsed.scheme not in {'http', 'https'} or not parsed.netloc:
+        raise ValidationError('Utilisez une URL relative ou une URL http(s) autorisée.')
+    if parsed.netloc.lower() not in allowed_qr_redirect_hosts():
+        raise ValidationError('Domaine de redirection non autorisé.')
+    return value
 
 
 def validate_uploaded_image(uploaded_file, *, max_size_mb: int, max_width: int, max_height: int, label: str = 'Image'):
