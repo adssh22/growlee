@@ -1,10 +1,11 @@
 import random
 import secrets
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 import requests
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.db.models import F, Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -13,22 +14,66 @@ from apps.customers.models import Customer, GameSession
 from apps.rewards.models import Reward
 
 
+def _today_bounds():
+    current_tz = timezone.get_current_timezone()
+    today = timezone.localdate()
+    start = timezone.make_aware(datetime.combine(today, time.min), current_tz)
+    return start, start + timedelta(days=1)
+
+
+def _distributed_today_query():
+    start, end = _today_bounds()
+    return GameSession.objects.filter(created_at__gte=start, created_at__lt=end)
+
+
+def _reward_quota_available(reward):
+    if reward is None:
+        return True
+    if reward.daily_quota <= 0:
+        return False
+    distributed_today = _distributed_today_query().filter(reward=reward).count()
+    return distributed_today < reward.daily_quota
+
+
+def _segment_quota_available(segment):
+    if segment.daily_quota <= 0:
+        return False
+    distributed_today = _distributed_today_query().filter(campaign=segment.campaign, reward_label=segment.label).count()
+    return distributed_today < segment.daily_quota and _reward_quota_available(segment.reward)
+
+
+def _weighted_choice(items, weight_attr='probability_weight'):
+    weighted_items = [item for item in items if getattr(item, weight_attr) > 0]
+    if not weighted_items:
+        return None
+    return random.choices(weighted_items, weights=[getattr(item, weight_attr) for item in weighted_items], k=1)[0]
+
+
 def _pick_reward_for_campaign(*, merchant, campaign):
     if campaign.game_type in {'spin', 'scratch'}:
         segments = list(
             WheelSegment.objects.filter(campaign=campaign, active=True).select_related('reward').order_by('display_order', 'id')
         )
         weighted_segments = [segment for segment in segments if segment.probability_weight > 0]
+        available_segments = [segment for segment in weighted_segments if _segment_quota_available(segment)]
+        chosen = _weighted_choice(available_segments)
+        if chosen:
+            return chosen.reward, chosen.label, chosen, True
         if weighted_segments:
-            chosen = random.choices(weighted_segments, weights=[segment.probability_weight for segment in weighted_segments], k=1)[0]
-            return chosen.reward, chosen.label, chosen
+            return None, 'Aucun gain disponible aujourd’hui', None, False
 
-    reward = Reward.objects.filter(merchant=merchant, active=True).filter(campaign=campaign).order_by('-probability_weight', 'id').first()
-    if reward is None:
-        reward = Reward.objects.filter(merchant=merchant, active=True, campaign__isnull=True).order_by('-probability_weight', 'id').first()
+    rewards = list(
+        Reward.objects.filter(merchant=merchant, active=True)
+        .filter(Q(campaign=campaign) | Q(campaign__isnull=True))
+        .order_by('-probability_weight', 'id')
+    )
+    available_rewards = [reward for reward in rewards if _reward_quota_available(reward)]
+    reward = _weighted_choice(available_rewards)
     if reward:
-        return reward, reward.description, None
-    return None, campaign.reward_label, None
+        return reward, reward.description, None, True
+    if rewards:
+        return None, 'Aucun gain disponible aujourd’hui', None, False
+    return None, campaign.reward_label, None, True
 
 
 def claim_reward(*, merchant, campaign, phone: str, email: str = '', first_name: str = '', consent: bool = False):
@@ -56,7 +101,7 @@ def claim_reward(*, merchant, campaign, phone: str, email: str = '', first_name:
     if updated:
         customer.save(update_fields=['email', 'first_name', 'consent_marketing'])
 
-    reward, reward_label, segment = _pick_reward_for_campaign(merchant=merchant, campaign=campaign)
+    reward, reward_label, segment, is_winner = _pick_reward_for_campaign(merchant=merchant, campaign=campaign)
 
     session = GameSession.objects.create(
         customer=customer,
@@ -65,13 +110,12 @@ def claim_reward(*, merchant, campaign, phone: str, email: str = '', first_name:
         reward=reward,
         claim_code=secrets.token_hex(4).upper(),
         claim_token=secrets.token_urlsafe(32),
-        is_winner=True,
+        is_winner=is_winner,
         redeemed=False,
         reward_expires_at=timezone.now() + timedelta(hours=(reward.expires_in_hours if reward else 168)),
     )
-    if reward:
-        reward.total_distributed += 1
-        reward.save(update_fields=['total_distributed'])
+    if reward and is_winner:
+        Reward.objects.filter(pk=reward.pk).update(total_distributed=F('total_distributed') + 1)
     return customer, session, segment
 
 
@@ -125,6 +169,8 @@ def send_reward_notifications(session):
     En dev, l'email sort sur console par défaut. Le SMS reste volontairement
     en console tant qu'un provider (Twilio/Brevo/OVH) n'est pas branché.
     """
+    if not session.is_winner:
+        return
     customer = session.customer
     url = reward_claim_url(session)
     merchant = session.campaign.merchant
