@@ -1,7 +1,9 @@
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 
+from apps.campaigns.models import Campaign
 from apps.core.common_views import _merchant_is_unlocked
+from apps.customers.models import Customer, GameSession
 from apps.core.totp import generate_secret
 from apps.merchants.models import Merchant, Subscription
 from apps.accounts.models import StaffMFA
@@ -81,9 +83,8 @@ class GrowleeControlSubscriptionTests(TestCase):
     def test_direct_billing_action_creates_active_direct_subscription(self):
         merchant = Merchant.objects.create(name='Direct Shop', slug='direct-shop', is_active=False)
 
-        response = self.client.post('/growlee-control/merchants/', {
+        response = self.client.post(f'/growlee-control/merchants/{merchant.id}/', {
             'action': 'activate_direct_billing',
-            'merchant_id': merchant.id,
             'billing_reference': 'Facturation directe test',
         })
 
@@ -93,3 +94,43 @@ class GrowleeControlSubscriptionTests(TestCase):
         self.assertTrue(merchant.is_active)
         self.assertEqual(subscription.status, Subscription.STATUS_ACTIVE)
         self.assertEqual(subscription.provider, Subscription.PROVIDER_DIRECT)
+
+    def test_control_list_supports_search_and_subscription_filter(self):
+        visible = Merchant.objects.create(name='Alpha Bakery', slug='alpha-bakery', is_active=True)
+        hidden = Merchant.objects.create(name='Beta Gym', slug='beta-gym', is_active=True)
+        Subscription.objects.create(merchant=visible, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+        Subscription.objects.create(merchant=hidden, status=Subscription.STATUS_SUSPENDED, provider=Subscription.PROVIDER_MANUAL)
+
+        response = self.client.get('/growlee-control/merchants/?q=alpha&subscription=active')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Alpha Bakery')
+        self.assertNotContains(response, 'Beta Gym')
+
+    def test_control_list_is_paginated(self):
+        for index in range(12):
+            merchant = Merchant.objects.create(name=f'Paged Shop {index:02d}', slug=f'paged-shop-{index:02d}', is_active=True)
+            Subscription.objects.create(merchant=merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+
+        response = self.client.get('/growlee-control/merchants/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Suivant')
+        self.assertEqual(len(response.context['rows']), 10)
+
+    def test_merchant_detail_displays_saas_backoffice_data(self):
+        merchant = Merchant.objects.create(name='Detail Shop', slug='detail-shop', is_active=True, is_demo=True)
+        Subscription.objects.create(merchant=merchant, plan=Subscription.PLAN_PRO, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+        campaign = Campaign.objects.create(merchant=merchant, name='Detail Campaign', is_active=True, review_enabled=True, wallet_enabled=False)
+        customer = Customer.objects.create(merchant=merchant, phone='+33633333333', email='detail@example.test', first_name='Ada')
+        GameSession.objects.create(customer=customer, campaign=campaign, reward_label='Café offert', is_winner=True)
+
+        response = self.client.get(f'/growlee-control/merchants/{merchant.id}/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Detail Shop')
+        self.assertContains(response, 'Ada')
+        self.assertContains(response, '+33633333333')
+        self.assertContains(response, 'Café offert')
+        self.assertContains(response, 'Pro · Manual')
+        self.assertContains(response, '2/3')

@@ -1,4 +1,5 @@
 from apps.core.common_views import *  # noqa: F401,F403
+from django.core.paginator import Paginator
 from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
     _control_access_granted,
@@ -19,6 +20,96 @@ from apps.core.common_views import (  # noqa: F401
     _staff_mfa_qr_context,
     _unique_merchant_slug,
 )
+
+
+def _staff_control_gate(request):
+    mfa = _staff_mfa_for_user(request.user)
+    if not mfa.enabled:
+        return redirect('staff-control-mfa-setup')
+    if mfa.enabled and not _control_access_granted(request):
+        return redirect(f'/growlee-control/verify/?next={request.path}')
+    return None
+
+
+def _run_staff_merchant_action(request, merchant, action):
+    if action == 'toggle':
+        merchant.is_active = not merchant.is_active
+        merchant.save(update_fields=['is_active'])
+        subscription = _ensure_subscription_for_merchant(merchant)
+        subscription.status = Subscription.STATUS_ACTIVE if merchant.is_active else Subscription.STATUS_SUSPENDED
+        subscription.save(update_fields=['status', 'updated_at'])
+        messages.success(request, f'{merchant.name} est maintenant {"actif" if merchant.is_active else "désactivé"}.')
+        return True
+    if action == 'toggle_demo':
+        merchant.is_demo = not merchant.is_demo
+        merchant.demo_expires_at = timezone.now() + timedelta(days=14) if merchant.is_demo else None
+        merchant.is_active = True if merchant.is_demo else merchant.is_active
+        merchant.save(update_fields=['is_demo', 'demo_expires_at', 'is_active'])
+        subscription = _ensure_subscription_for_merchant(merchant)
+        if merchant.is_demo and subscription.status not in Subscription.UNLOCKED_STATUSES:
+            subscription.status = Subscription.STATUS_TRIALING
+            subscription.save(update_fields=['status', 'updated_at'])
+        messages.success(request, f'Accès démo {"activé" if merchant.is_demo else "désactivé"} pour {merchant.name}.')
+        return True
+    if action == 'activate_direct_billing':
+        merchant.is_active = True
+        merchant.is_demo = False
+        merchant.demo_expires_at = None
+        merchant.onboarding_fee_paid = True
+        merchant.onboarding_completed = True
+        merchant.flyer_visual_approved = True
+        merchant.flyer_order_status = 'visual_approved_waiting_payment'
+        if not merchant.flyer_style:
+            merchant.flyer_style = 'premium'
+        merchant.payment_method = 'Facturation directe'
+        merchant.billing_payment_type = 'direct'
+        merchant.billing_payment_reference = (request.POST.get('billing_reference') or '').strip()[:120] or 'Activation manuelle staff'
+        merchant.save(update_fields=['is_active', 'is_demo', 'demo_expires_at', 'onboarding_fee_paid', 'onboarding_completed', 'flyer_visual_approved', 'flyer_order_status', 'flyer_style', 'payment_method', 'billing_payment_type', 'billing_payment_reference'])
+        subscription = _ensure_subscription_for_merchant(merchant, provider=Subscription.PROVIDER_DIRECT, status=Subscription.STATUS_ACTIVE)
+        subscription.provider = Subscription.PROVIDER_DIRECT
+        subscription.status = Subscription.STATUS_ACTIVE
+        subscription.save(update_fields=['provider', 'status', 'updated_at'])
+        campaign, _, _ = _ensure_default_growlee_setup(merchant)
+        campaign.is_active = True
+        campaign.review_enabled = True
+        campaign.wallet_enabled = True
+        campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
+        messages.success(request, f'{merchant.name} est activé en facturation directe. Le commerçant peut accéder à son compte sans paiement via le site.')
+        return True
+    if action == 'module_toggle':
+        campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
+        if campaign is None:
+            campaign, _, _ = _ensure_default_growlee_setup(merchant)
+            campaign.is_active = False
+            campaign.review_enabled = False
+            campaign.wallet_enabled = False
+            campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
+        flag = request.POST.get('flag')
+        if flag == 'game':
+            campaign.is_active = not campaign.is_active
+            campaign.save(update_fields=['is_active'])
+        elif flag == 'review':
+            campaign.review_enabled = not campaign.review_enabled
+            campaign.save(update_fields=['review_enabled'])
+        elif flag == 'wallet':
+            campaign.wallet_enabled = not campaign.wallet_enabled
+            campaign.save(update_fields=['wallet_enabled'])
+        messages.success(request, f'Module mis à jour pour {merchant.name}.')
+        return True
+    if action == 'delete_merchant':
+        confirm = (request.POST.get('confirm_name') or '').strip()
+        if confirm != merchant.name:
+            messages.error(request, f'Suppression annulée : tape exactement le nom du commerce ({merchant.name}).')
+            return False
+        merchant_name = merchant.name
+        owner_users = [membership.user for membership in merchant.memberships.select_related('user').all()]
+        merchant.delete()
+        for user in owner_users:
+            if not user.is_staff and not user.merchant_memberships.exists():
+                user.delete()
+        messages.success(request, f'Commerce supprimé : {merchant_name}.')
+        return True
+    return False
 
 @superuser_required
 def staff_control_mfa_setup(request):
@@ -70,10 +161,9 @@ def staff_control_verify(request):
 @superuser_required
 def staff_merchants(request):
     mfa = _staff_mfa_for_user(request.user)
-    if not mfa.enabled:
-        return redirect('staff-control-mfa-setup')
-    if mfa.enabled and not _control_access_granted(request):
-        return redirect(f'/growlee-control/verify/?next={request.path}')
+    gated = _staff_control_gate(request)
+    if gated is not None:
+        return gated
 
     form = StaffMerchantCreateForm(request.POST or None)
     mfa_error = None
@@ -99,87 +189,11 @@ def staff_merchants(request):
                 messages.success(request, '2FA téléphone activée pour ce compte staff.')
                 return redirect('staff-merchants')
             mfa_error = 'Code 2FA invalide. Vérifie l’heure du téléphone et réessaie.'
-        if action == 'toggle':
+        if action in {'toggle', 'toggle_demo', 'activate_direct_billing', 'delete_merchant', 'module_toggle'}:
             merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
-            merchant.is_active = not merchant.is_active
-            merchant.save(update_fields=['is_active'])
-            subscription = _ensure_subscription_for_merchant(merchant)
-            subscription.status = Subscription.STATUS_ACTIVE if merchant.is_active else Subscription.STATUS_SUSPENDED
-            subscription.save(update_fields=['status', 'updated_at'])
-            messages.success(request, f'{merchant.name} est maintenant {"actif" if merchant.is_active else "désactivé"}.')
-            return redirect('staff-merchants')
-        if action == 'toggle_demo':
-            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
-            merchant.is_demo = not merchant.is_demo
-            merchant.demo_expires_at = timezone.now() + timedelta(days=14) if merchant.is_demo else None
-            merchant.is_active = True if merchant.is_demo else merchant.is_active
-            merchant.save(update_fields=['is_demo', 'demo_expires_at', 'is_active'])
-            subscription = _ensure_subscription_for_merchant(merchant)
-            if merchant.is_demo and subscription.status not in Subscription.UNLOCKED_STATUSES:
-                subscription.status = Subscription.STATUS_TRIALING
-                subscription.save(update_fields=['status', 'updated_at'])
-            messages.success(request, f'Accès démo {"activé" if merchant.is_demo else "désactivé"} pour {merchant.name}.')
-            return redirect('staff-merchants')
-        if action == 'activate_direct_billing':
-            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
-            merchant.is_active = True
-            merchant.is_demo = False
-            merchant.demo_expires_at = None
-            merchant.onboarding_fee_paid = True
-            merchant.onboarding_completed = True
-            merchant.flyer_visual_approved = True
-            merchant.flyer_order_status = 'visual_approved_waiting_payment'
-            if not merchant.flyer_style:
-                merchant.flyer_style = 'premium'
-            merchant.payment_method = 'Facturation directe'
-            merchant.billing_payment_type = 'direct'
-            merchant.billing_payment_reference = (request.POST.get('billing_reference') or '').strip()[:120] or 'Activation manuelle staff'
-            merchant.save(update_fields=['is_active', 'is_demo', 'demo_expires_at', 'onboarding_fee_paid', 'onboarding_completed', 'flyer_visual_approved', 'flyer_order_status', 'flyer_style', 'payment_method', 'billing_payment_type', 'billing_payment_reference'])
-            subscription = _ensure_subscription_for_merchant(merchant, provider=Subscription.PROVIDER_DIRECT, status=Subscription.STATUS_ACTIVE)
-            subscription.provider = Subscription.PROVIDER_DIRECT
-            subscription.status = Subscription.STATUS_ACTIVE
-            subscription.save(update_fields=['provider', 'status', 'updated_at'])
-            campaign, _, _ = _ensure_default_growlee_setup(merchant)
-            campaign.is_active = True
-            campaign.review_enabled = True
-            campaign.wallet_enabled = True
-            campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
-            messages.success(request, f'{merchant.name} est activé en facturation directe. Le commerçant peut accéder à son compte sans paiement via le site.')
-            return redirect('staff-merchants')
-        if action == 'delete_merchant':
-            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
-            confirm = (request.POST.get('confirm_name') or '').strip()
-            if confirm != merchant.name:
-                messages.error(request, f'Suppression annulée : tape exactement le nom du commerce ({merchant.name}).')
+            handled = _run_staff_merchant_action(request, merchant, action)
+            if action == 'delete_merchant' and handled:
                 return redirect('staff-merchants')
-            merchant_name = merchant.name
-            owner_users = [membership.user for membership in merchant.memberships.select_related('user').all()]
-            merchant.delete()
-            for user in owner_users:
-                if not user.is_staff and not user.merchant_memberships.exists():
-                    user.delete()
-            messages.success(request, f'Commerce supprimé : {merchant_name}.')
-            return redirect('staff-merchants')
-        if action == 'module_toggle':
-            merchant = get_object_or_404(Merchant, id=request.POST.get('merchant_id'))
-            campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
-            if campaign is None:
-                campaign, _, _ = _ensure_default_growlee_setup(merchant)
-                campaign.is_active = False
-                campaign.review_enabled = False
-                campaign.wallet_enabled = False
-                campaign.save(update_fields=['is_active', 'review_enabled', 'wallet_enabled'])
-            flag = request.POST.get('flag')
-            if flag == 'game':
-                campaign.is_active = not campaign.is_active
-                campaign.save(update_fields=['is_active'])
-            elif flag == 'review':
-                campaign.review_enabled = not campaign.review_enabled
-                campaign.save(update_fields=['review_enabled'])
-            elif flag == 'wallet':
-                campaign.wallet_enabled = not campaign.wallet_enabled
-                campaign.save(update_fields=['wallet_enabled'])
-            messages.success(request, f'Module mis à jour pour {merchant.name}.')
             return redirect('staff-merchants')
         if action == 'create' and form.is_valid():
             with transaction.atomic():
@@ -206,8 +220,30 @@ def staff_merchants(request):
             return redirect('staff-merchants')
 
     merchants = Merchant.objects.select_related('subscription').prefetch_related('memberships__user').order_by('-created_at')
+    all_merchants = merchants
+    q = (request.GET.get('q') or '').strip()
+    active_filter = request.GET.get('active') or ''
+    demo_filter = request.GET.get('demo') or ''
+    subscription_filter = request.GET.get('subscription') or ''
+    if q:
+        merchants = merchants.filter(Q(name__icontains=q) | Q(slug__icontains=q) | Q(contact_email__icontains=q) | Q(memberships__user__email__icontains=q) | Q(memberships__user__username__icontains=q)).distinct()
+    if active_filter == 'active':
+        merchants = merchants.filter(is_active=True)
+    elif active_filter == 'inactive':
+        merchants = merchants.filter(is_active=False)
+    if demo_filter == 'yes':
+        merchants = merchants.filter(is_demo=True)
+    elif demo_filter == 'no':
+        merchants = merchants.filter(is_demo=False)
+    if subscription_filter == 'active':
+        merchants = merchants.filter(subscription__status__in=[Subscription.STATUS_ACTIVE, Subscription.STATUS_TRIALING])
+    elif subscription_filter == 'suspended':
+        merchants = merchants.filter(subscription__status__in=[Subscription.STATUS_PAST_DUE, Subscription.STATUS_SUSPENDED, Subscription.STATUS_CANCELED])
+
+    paginator = Paginator(merchants, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
     rows = []
-    for merchant in merchants:
+    for merchant in page_obj.object_list:
         campaigns = Campaign.objects.filter(merchant=merchant)
         subscription = _ensure_subscription_for_merchant(merchant)
         rows.append({
@@ -218,16 +254,63 @@ def staff_merchants(request):
             'customers_count': Customer.objects.filter(merchant=merchant).count(),
             'active_campaign': campaigns.order_by('-created_at', '-id').first(),
         })
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
     mfa_context = _staff_mfa_qr_context(request.user, mfa)
     staff_mfa_users = User.objects.filter(is_active=True, is_superuser=True).order_by('username')
     return render(request, 'admin/staff_merchants.html', {
         'form': form,
         'rows': rows,
+        'page_obj': page_obj,
+        'querystring': query_params.urlencode(),
+        'filters': {'q': q, 'active': active_filter, 'demo': demo_filter, 'subscription': subscription_filter},
         'staff_mfa_users': staff_mfa_users,
-        'total_merchants': merchants.count(),
-        'active_merchants': merchants.filter(is_active=True).count(),
+        'total_merchants': all_merchants.count(),
+        'active_merchants': all_merchants.filter(is_active=True).count(),
+        'filtered_merchants': merchants.count(),
         'total_users': User.objects.count(),
         'mfa_error': mfa_error,
         **mfa_context,
     })
 
+
+@superuser_required
+def staff_merchant_detail(request, merchant_id):
+    gated = _staff_control_gate(request)
+    if gated is not None:
+        return gated
+
+    merchant = get_object_or_404(Merchant.objects.prefetch_related('memberships__user'), id=merchant_id)
+    subscription = _ensure_subscription_for_merchant(merchant)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        handled = _run_staff_merchant_action(request, merchant, action)
+        if action == 'delete_merchant' and handled:
+            return redirect('staff-merchants')
+        return redirect('staff-merchant-detail', merchant_id=merchant.id)
+
+    campaigns = Campaign.objects.filter(merchant=merchant)
+    active_campaign = campaigns.order_by('-created_at', '-id').first()
+    customers = Customer.objects.filter(merchant=merchant).order_by('-created_at')
+    sessions = GameSession.objects.filter(campaign__merchant=merchant).select_related('customer', 'campaign', 'reward').order_by('-created_at')
+    owners = [membership for membership in merchant.memberships.all() if membership.role == 'owner']
+    modules = {
+        'game': bool(active_campaign and active_campaign.is_active),
+        'review': bool(active_campaign and active_campaign.review_enabled),
+        'wallet': bool(active_campaign and active_campaign.wallet_enabled),
+    }
+
+    return render(request, 'admin/staff_merchant_detail.html', {
+        'merchant': merchant,
+        'subscription': subscription,
+        'owners': owners,
+        'customers_count': customers.count(),
+        'sessions_count': sessions.count(),
+        'latest_customers': customers[:8],
+        'latest_sessions': sessions[:8],
+        'campaigns_count': campaigns.count(),
+        'active_campaign': active_campaign,
+        'modules': modules,
+        'active_modules_count': int(modules['game']) + int(modules['review']) + int(modules['wallet']),
+    })

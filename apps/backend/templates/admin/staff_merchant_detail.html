@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Growlee Control · {{ merchant.name }}</title>
+  <style>
+    :root{--purple:#4e3db7;--green:#3f9d87;--ink:#17152b;--muted:#6f6b86;--line:#eceaf7;--bg:#f7f6ff;--card:#fff;--danger:#b42318}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 10% 0,rgba(159,154,243,.28),transparent 28%),linear-gradient(180deg,#fff,#f7f6ff);color:var(--ink);min-height:100vh}.wrap{width:min(1180px,calc(100% - 36px));margin:0 auto;padding:26px 0 60px}.top,.hero{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px}.brand img{height:48px}.pill{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:13px}.btn{border:0;border-radius:999px;background:linear-gradient(135deg,var(--purple),#7367dc);color:#fff;font-weight:850;padding:12px 18px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.warn{background:#fff;color:var(--danger);border:1px solid #fee4e2}.btn.danger{background:var(--danger);color:#fff;border:1px solid var(--danger)}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:900;color:var(--green);margin-bottom:8px}h1{font-size:42px;letter-spacing:-.06em;margin:0}.muted{color:var(--muted);line-height:1.55}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.stat,.card{background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.9);box-shadow:0 22px 58px rgba(39,32,91,.08);border-radius:26px;padding:22px}.stat strong{display:block;font-size:32px;letter-spacing:-.06em}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;align-items:start}.stack{display:flex;flex-direction:column;gap:14px}.badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:850}.badge.on{background:#ecfdf3;color:#067647}.badge.off{background:#f2f4f7;color:#667085}.badge.warn{background:#fff1f0;color:#b42318}.small{font-size:12px;color:var(--muted)}.row-actions{display:flex;gap:8px;flex-wrap:wrap}.messages{display:grid;gap:8px;margin-bottom:14px}.message{background:#ecfdf3;border:1px solid #abefc6;color:#067647;border-radius:16px;padding:12px 14px}.table{width:100%;border-collapse:separate;border-spacing:0 10px}th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:0 12px}td{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 12px;font-size:14px;vertical-align:middle}td:first-child{border-left:1px solid var(--line);border-radius:18px 0 0 18px}td:last-child{border-right:1px solid var(--line);border-radius:0 18px 18px 0}label{display:block;margin:14px 0 7px;font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:850;color:var(--muted)}input{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 14px;font-size:14px}.delete-toggle:not(:checked)+.delete-box{display:none}.delete-box{gap:8px;align-items:center;margin-top:8px}@media(max-width:950px){.grid,.stats{grid-template-columns:1fr}.hero{display:block}.table-wrap{overflow:auto}.top{align-items:flex-start}.brand img{height:40px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="brand" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
+      <div class="row-actions" style="justify-content:flex-end"><a class="btn secondary" href="/growlee-control/merchants/">← Liste merchants</a><a class="btn secondary" href="/logout/">Déconnexion</a></div>
+    </div>
+    {% if messages %}<div class="messages">{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}</div>{% endif %}
+
+    <div class="hero">
+      <div><div class="eyebrow">Growlee Control · merchant detail</div><h1>{{ merchant.name }}</h1><p class="muted">/{{ merchant.slug }}/ · créé le {{ merchant.created_at|date:'d/m/Y H:i' }}</p></div>
+      <div class="row-actions"><a class="btn secondary" href="/play/{{ merchant.slug }}/" target="_blank">Parcours client</a></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><strong>{{ customers_count }}</strong><span class="small">clients</span></div>
+      <div class="stat"><strong>{{ sessions_count }}</strong><span class="small">sessions jeu</span></div>
+      <div class="stat"><strong>{{ campaigns_count }}</strong><span class="small">campagnes</span></div>
+      <div class="stat"><strong>{{ active_modules_count }}/3</strong><span class="small">modules jeu/avis/wallet</span></div>
+    </div>
+
+    <div class="grid">
+      <div class="stack">
+        <div class="card">
+          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Informations commerce</h2>
+          <p><strong>Adresse :</strong> {{ merchant.address|default:'—' }}</p>
+          <p><strong>Secteur :</strong> {{ merchant.business_sector|default:'—' }}</p>
+          <p><strong>Email :</strong> {{ merchant.contact_email|default:'—' }} · <strong>Téléphone :</strong> {{ merchant.contact_phone|default:'—' }}</p>
+          <p><strong>Baseline :</strong> {{ merchant.tagline|default:'—' }}</p>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Derniers clients</h2>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Contact</th><th>Inscription</th></tr></thead><tbody>{% for customer in latest_customers %}<tr><td>{{ customer.first_name|default:'Client' }}</td><td>{{ customer.phone }}<br><span class="small">{{ customer.email|default:'—' }}</span></td><td>{{ customer.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="3">Aucun client.</td></tr>{% endfor %}</tbody></table></div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Dernières sessions</h2>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Gain</th><th>Statut</th><th>Date</th></tr></thead><tbody>{% for session in latest_sessions %}<tr><td>{{ session.customer.phone }}</td><td>{{ session.reward_label }}</td><td>{% if session.redeemed %}<span class="badge on">Récupéré</span>{% elif session.is_winner %}<span class="badge warn">À récupérer</span>{% else %}<span class="badge off">Perdu</span>{% endif %}</td><td>{{ session.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4">Aucune session.</td></tr>{% endfor %}</tbody></table></div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card">
+          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Statuts</h2>
+          <p><span class="badge {% if merchant.is_active %}on{% else %}off{% endif %}">{% if merchant.is_active %}Commerce actif{% else %}Commerce inactif{% endif %}</span> {% if merchant.is_demo %}<span class="badge warn">Démo{% if merchant.demo_expires_at %} · expire {{ merchant.demo_expires_at|date:'d/m/Y' }}{% endif %}</span>{% endif %}</p>
+          <p><span class="badge {% if subscription.status == 'active' or subscription.status == 'trialing' %}on{% elif subscription.status == 'past_due' or subscription.status == 'suspended' %}warn{% else %}off{% endif %}">{{ subscription.get_status_display }}</span></p>
+          <p class="small">{{ subscription.get_plan_display }} · {{ subscription.get_provider_display }}{% if subscription.provider_customer_id %}<br>{{ subscription.provider_customer_id }}{% endif %}{% if subscription.provider_subscription_id %}<br>{{ subscription.provider_subscription_id }}{% endif %}</p>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Propriétaires</h2>
+          {% for owner in owners %}<p><strong>{{ owner.user.username }}</strong><br><span class="small">{{ owner.user.email }}</span></p>{% empty %}<p class="small">Aucun propriétaire.</p>{% endfor %}
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Modules actifs</h2>
+          <div class="row-actions">
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="game"><button class="badge {% if modules.game %}on{% else %}off{% endif %}" type="submit">Jeu</button></form>
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="review"><button class="badge {% if modules.review %}on{% else %}off{% endif %}" type="submit">Avis</button></form>
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="wallet"><button class="badge {% if modules.wallet %}on{% else %}off{% endif %}" type="submit">Wallet</button></form>
+          </div>
+          <p class="small">Ces actions modifient la dernière campagne du commerce.</p>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Actions sensibles</h2>
+          <div class="row-actions">
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><button class="btn {% if merchant.is_active %}warn{% else %}secondary{% endif %}" type="submit">{% if merchant.is_active %}Désactiver{% else %}Activer commerce{% endif %}</button></form>
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_demo"><button class="btn secondary" type="submit">{% if merchant.is_demo %}Stop démo{% else %}Accès démo{% endif %}</button></form>
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="activate_direct_billing"><input type="hidden" name="billing_reference" value="Facturation directe validée par {{ request.user.username }}"><button class="btn" type="submit">Activer facturation directe</button></form>
+          </div>
+          <label class="btn warn" for="delete-merchant" style="cursor:pointer;margin-top:18px">Supprimer ce commerce</label>
+          <input class="delete-toggle" id="delete-merchant" type="checkbox" style="display:none">
+          <form class="delete-box" method="post">{% csrf_token %}<input type="hidden" name="action" value="delete_merchant"><input name="confirm_name" placeholder="Tapez: {{ merchant.name }}" required><button class="btn danger" type="submit">Confirmer suppression</button></form>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
