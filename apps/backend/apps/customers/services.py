@@ -76,30 +76,33 @@ def _pick_reward_for_campaign(*, merchant, campaign):
     return None, campaign.reward_label, None, True
 
 
-def claim_reward(*, merchant, campaign, phone: str, email: str = '', first_name: str = '', consent: bool = False):
+def claim_reward(*, merchant, campaign, phone: str, email: str = '', first_name: str = '', consent_marketing: bool = False):
     normalized_phone = ''.join(ch for ch in phone if ch.isdigit() or ch == '+').strip()
+    consent_marketing_at = timezone.now() if consent_marketing else None
     customer, _ = Customer.objects.get_or_create(
         merchant=merchant,
         phone=normalized_phone,
         defaults={
             'email': email or None,
             'first_name': first_name or '',
-            'consent_marketing': consent,
+            'consent_marketing': consent_marketing,
+            'consent_marketing_at': consent_marketing_at,
         },
     )
 
-    updated = False
+    update_fields = []
     if email and customer.email != email:
         customer.email = email
-        updated = True
+        update_fields.append('email')
     if first_name and customer.first_name != first_name:
         customer.first_name = first_name
-        updated = True
-    if consent and not customer.consent_marketing:
+        update_fields.append('first_name')
+    if consent_marketing and not customer.consent_marketing:
         customer.consent_marketing = True
-        updated = True
-    if updated:
-        customer.save(update_fields=['email', 'first_name', 'consent_marketing'])
+        customer.consent_marketing_at = consent_marketing_at or timezone.now()
+        update_fields.extend(['consent_marketing', 'consent_marketing_at'])
+    if update_fields:
+        customer.save(update_fields=update_fields)
 
     reward, reward_label, segment, is_winner = _pick_reward_for_campaign(merchant=merchant, campaign=campaign)
 

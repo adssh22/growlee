@@ -10,6 +10,7 @@ class Customer(models.Model):
     email = models.EmailField(blank=True, null=True)
     first_name = models.CharField(max_length=80, blank=True)
     consent_marketing = models.BooleanField(default=False)
+    consent_marketing_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

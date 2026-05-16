@@ -91,7 +91,7 @@ def play_page(request, slug):
                 phone=form.cleaned_data['phone'],
                 email=form.cleaned_data.get('email', ''),
                 first_name=form.cleaned_data.get('first_name', ''),
-                consent=form.cleaned_data.get('consent', False),
+                consent_marketing=form.cleaned_data.get('consent_marketing', False),
             )
             request.session[f'growlee_last_session_{merchant.slug}'] = session.id
             send_reward_notifications(session)

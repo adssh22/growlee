@@ -10,6 +10,8 @@ from PIL import Image
 
 from apps.accounts.models import MerchantMembership
 from apps.campaigns.models import Campaign
+from apps.customers.forms import ClaimRewardForm
+from apps.customers.models import Customer, GameSession
 from apps.core.forms import MerchantForm
 from apps.merchants.models import Merchant
 
@@ -17,6 +19,58 @@ TEST_STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
 }
+
+
+class ClaimRewardFormConsentTests(TestCase):
+    def test_marketing_consent_is_optional_and_false_by_default(self):
+        form = ClaimRewardForm(data={'phone': '+33600000000', 'email': 'client@example.test'})
+
+        self.assertTrue(form.is_valid())
+        self.assertFalse(form.cleaned_data['consent_marketing'])
+
+    def test_marketing_consent_can_be_checked_explicitly(self):
+        form = ClaimRewardForm(data={
+            'phone': '+33600000000',
+            'email': 'client@example.test',
+            'consent_marketing': 'on',
+        })
+
+        self.assertTrue(form.is_valid())
+        self.assertTrue(form.cleaned_data['consent_marketing'])
+
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', SMS_PROVIDER='console')
+class PublicPlayConsentTests(TestCase):
+    def setUp(self):
+        self.merchant = Merchant.objects.create(name='Play Consent Shop', slug='play-consent-shop', is_active=True)
+        self.campaign = Campaign.objects.create(merchant=self.merchant, name='Play Consent Campaign', is_active=True)
+
+    def test_public_claim_without_marketing_consent_still_creates_reward(self):
+        response = self.client.post('/play/play-consent-shop/?step=collect', {
+            'phone': '+33610000001',
+            'email': 'noconsent@example.test',
+            'first_name': 'No',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        customer = Customer.objects.get(merchant=self.merchant, phone='+33610000001')
+        self.assertFalse(customer.consent_marketing)
+        self.assertIsNone(customer.consent_marketing_at)
+        self.assertTrue(GameSession.objects.filter(customer=customer).exists())
+
+    def test_public_claim_with_marketing_consent_stores_opt_in(self):
+        response = self.client.post('/play/play-consent-shop/?step=collect', {
+            'phone': '+33610000002',
+            'email': 'consent@example.test',
+            'first_name': 'Yes',
+            'consent_marketing': 'on',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        customer = Customer.objects.get(merchant=self.merchant, phone='+33610000002')
+        self.assertTrue(customer.consent_marketing)
+        self.assertIsNotNone(customer.consent_marketing_at)
+        self.assertTrue(GameSession.objects.filter(customer=customer).exists())
 
 
 class HealthcheckTests(TestCase):

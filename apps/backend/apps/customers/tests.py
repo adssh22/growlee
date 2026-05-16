@@ -10,6 +10,57 @@ from apps.merchants.models import Merchant
 from apps.rewards.models import Reward
 
 
+class CustomerConsentTests(TestCase):
+    def setUp(self):
+        self.merchant = Merchant.objects.create(name='Consent Shop', slug='consent-shop', is_active=True)
+        self.campaign = Campaign.objects.create(merchant=self.merchant, name='Consent campaign', game_type='quiz', is_active=True)
+
+    def test_marketing_consent_is_false_by_default_and_reward_is_created(self):
+        customer, session, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000001',
+            email='client@example.test',
+        )
+
+        self.assertFalse(customer.consent_marketing)
+        self.assertIsNone(customer.consent_marketing_at)
+        self.assertEqual(session.customer, customer)
+
+    def test_marketing_consent_is_stored_only_when_checked(self):
+        customer, session, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000002',
+            email='optin@example.test',
+            consent_marketing=True,
+        )
+
+        self.assertTrue(customer.consent_marketing)
+        self.assertIsNotNone(customer.consent_marketing_at)
+        self.assertEqual(session.customer, customer)
+
+    def test_existing_marketing_consent_is_not_removed_by_later_claim_without_checkbox(self):
+        customer, _, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000003',
+            consent_marketing=True,
+        )
+        consented_at = customer.consent_marketing_at
+
+        customer, session, _ = claim_reward(
+            merchant=self.merchant,
+            campaign=self.campaign,
+            phone='+33600000003',
+            consent_marketing=False,
+        )
+
+        self.assertTrue(customer.consent_marketing)
+        self.assertEqual(customer.consent_marketing_at, consented_at)
+        self.assertEqual(session.customer, customer)
+
+
 class RewardQuotaTests(TestCase):
     def setUp(self):
         self.merchant = Merchant.objects.create(name='Quota Shop', slug='quota-shop', is_active=True)
