@@ -93,18 +93,23 @@ def play_page(request, slug):
     if request.method == 'POST':
         form = ClaimRewardForm(request.POST)
         if form.is_valid():
-            customer, session, segment = claim_reward(
-                merchant=merchant,
-                campaign=campaign,
-                phone=form.cleaned_data['phone'],
-                email=form.cleaned_data.get('email', ''),
-                first_name=form.cleaned_data.get('first_name', ''),
-                consent_marketing=form.cleaned_data.get('consent_marketing', False),
-            )
-            request.session[f'growlee_last_session_{merchant.slug}'] = session.id
-            enqueue_reward_notifications(session)
-            next_step = 'reward' if game_enabled else ('review' if review_enabled else ('wallet' if wallet_enabled else 'landing'))
-            return redirect(f"/play/{slug}/?step={next_step}")
+            try:
+                customer, session, segment = claim_reward(
+                    merchant=merchant,
+                    campaign=campaign,
+                    phone=form.cleaned_data['phone'],
+                    email=form.cleaned_data.get('email', ''),
+                    first_name=form.cleaned_data.get('first_name', ''),
+                    consent_marketing=form.cleaned_data.get('consent_marketing', False),
+                )
+            except ValidationError as exc:
+                form.add_error('phone', exc.messages[0] if exc.messages else 'Impossible de valider ce numéro.')
+                step = 'collect'
+            else:
+                request.session[f'growlee_last_session_{merchant.slug}'] = session.id
+                enqueue_reward_notifications(session)
+                next_step = 'reward' if game_enabled else ('review' if review_enabled else ('wallet' if wallet_enabled else 'landing'))
+                return redirect(f"/play/{slug}/?step={next_step}")
         step = 'collect'
     else:
         form = ClaimRewardForm()

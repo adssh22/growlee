@@ -1,17 +1,19 @@
 from datetime import timedelta
 
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.campaigns.models import Campaign, WheelSegment
 from apps.customers.models import Customer, GameSession, NotificationJob
-from apps.customers.services import claim_reward, enqueue_reward_notifications
+from apps.customers.services import claim_reward, enqueue_reward_notifications, normalize_phone
 from apps.merchants.models import Merchant
 from apps.rewards.models import Reward
 
 
+@override_settings(GROWLEE_PLAY_COOLDOWN_HOURS=0)
 class CustomerConsentTests(TestCase):
     def setUp(self):
         self.merchant = Merchant.objects.create(name='Consent Shop', slug='consent-shop', is_active=True)
@@ -79,6 +81,55 @@ class CustomerConsentTests(TestCase):
         self.assertIsNone(restored_customer.deleted_at)
         self.assertIsNone(restored_customer.deleted_by)
         self.assertEqual(session.customer, customer)
+
+
+@override_settings(GROWLEE_DEFAULT_PHONE_REGION='FR')
+class PhoneNormalizationAndCooldownTests(TestCase):
+    def setUp(self):
+        self.merchant = Merchant.objects.create(name='Phone Shop', slug='phone-shop', is_active=True)
+        self.other_merchant = Merchant.objects.create(name='Other Phone Shop', slug='other-phone-shop', is_active=True)
+        self.campaign = Campaign.objects.create(merchant=self.merchant, name='Phone campaign', game_type='quiz', is_active=True)
+        self.other_campaign = Campaign.objects.create(merchant=self.other_merchant, name='Other campaign', game_type='quiz', is_active=True)
+
+    def test_phone_formats_normalize_to_same_e164_number(self):
+        self.assertEqual(normalize_phone('0612345678'), '+33612345678')
+        self.assertEqual(normalize_phone('+33612345678'), '+33612345678')
+        self.assertEqual(normalize_phone('0033612345678'), '+33612345678')
+
+    def test_claim_reward_stores_e164_phone(self):
+        customer, _session, _segment = claim_reward(merchant=self.merchant, campaign=self.campaign, phone='06 12 34 56 78')
+
+        self.assertEqual(customer.phone, '+33612345678')
+
+    def test_second_play_with_same_phone_and_merchant_is_refused_during_cooldown(self):
+        claim_reward(merchant=self.merchant, campaign=self.campaign, phone='0612345678')
+
+        with self.assertRaisesMessage(ValidationError, 'Ce numéro a déjà joué récemment chez ce commerce.'):
+            claim_reward(merchant=self.merchant, campaign=self.campaign, phone='+33612345678')
+
+    def test_same_phone_can_play_for_another_merchant(self):
+        claim_reward(merchant=self.merchant, campaign=self.campaign, phone='0612345678')
+
+        customer, session, _segment = claim_reward(merchant=self.other_merchant, campaign=self.other_campaign, phone='0033612345678')
+
+        self.assertEqual(customer.merchant, self.other_merchant)
+        self.assertEqual(session.customer, customer)
+
+    def test_play_is_allowed_after_cooldown_expires(self):
+        _customer, session, _segment = claim_reward(merchant=self.merchant, campaign=self.campaign, phone='0612345678')
+        GameSession.objects.filter(pk=session.pk).update(created_at=timezone.now() - timedelta(hours=25))
+
+        _customer, second_session, _segment = claim_reward(merchant=self.merchant, campaign=self.campaign, phone='+33612345678')
+
+        self.assertNotEqual(second_session.pk, session.pk)
+
+    @override_settings(GROWLEE_PLAY_COOLDOWN_HOURS=0)
+    def test_zero_cooldown_disables_abuse_rule(self):
+        claim_reward(merchant=self.merchant, campaign=self.campaign, phone='0612345678')
+
+        _customer, second_session, _segment = claim_reward(merchant=self.merchant, campaign=self.campaign, phone='+33612345678')
+
+        self.assertIsNotNone(second_session.pk)
 
 
 @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend', SMS_PROVIDER='console')

@@ -2,8 +2,10 @@ import random
 import secrets
 from datetime import datetime, time, timedelta
 
+import phonenumbers
 import requests
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
 from django.db.models import F, Q
 from django.urls import reverse
@@ -76,8 +78,43 @@ def _pick_reward_for_campaign(*, merchant, campaign):
     return None, campaign.reward_label, None, True
 
 
+def normalize_phone(phone: str) -> str:
+    raw_phone = (phone or '').strip()
+    if raw_phone.startswith('00'):
+        raw_phone = f'+{raw_phone[2:]}'
+    try:
+        parsed_phone = phonenumbers.parse(raw_phone, getattr(settings, 'GROWLEE_DEFAULT_PHONE_REGION', 'FR'))
+    except phonenumbers.NumberParseException as exc:
+        raise ValidationError('Numéro de téléphone invalide.') from exc
+    if not phonenumbers.is_valid_number(parsed_phone):
+        raise ValidationError('Numéro de téléphone invalide.')
+    return phonenumbers.format_number(parsed_phone, phonenumbers.PhoneNumberFormat.E164)
+
+
+def _play_cooldown_delta():
+    cooldown_hours = int(getattr(settings, 'GROWLEE_PLAY_COOLDOWN_HOURS', 24) or 0)
+    if cooldown_hours <= 0:
+        return None
+    return timedelta(hours=cooldown_hours)
+
+
+def _ensure_phone_can_play(*, merchant, normalized_phone):
+    cooldown = _play_cooldown_delta()
+    if cooldown is None:
+        return
+    cutoff = timezone.now() - cooldown
+    played_recently = GameSession.objects.filter(
+        customer__merchant=merchant,
+        customer__phone=normalized_phone,
+        created_at__gte=cutoff,
+    ).exists()
+    if played_recently:
+        raise ValidationError('Ce numéro a déjà joué récemment chez ce commerce. Réessaie plus tard.')
+
+
 def claim_reward(*, merchant, campaign, phone: str, email: str = '', first_name: str = '', consent_marketing: bool = False):
-    normalized_phone = ''.join(ch for ch in phone if ch.isdigit() or ch == '+').strip()
+    normalized_phone = normalize_phone(phone)
+    _ensure_phone_can_play(merchant=merchant, normalized_phone=normalized_phone)
     consent_marketing_at = timezone.now() if consent_marketing else None
     customer, _ = Customer.objects.get_or_create(
         merchant=merchant,

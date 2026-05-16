@@ -22,6 +22,8 @@ ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,growlee.fr
 APP_BASE_URL = os.getenv('APP_BASE_URL', 'http://localhost:8000' if DEBUG else 'https://growlee.fr').rstrip('/')
 QR_REDIRECT_ALLOWED_HOSTS = env_list('QR_REDIRECT_ALLOWED_HOSTS', '')
 NOTIFICATION_SEND_SYNC = env_bool('NOTIFICATION_SEND_SYNC', False)
+GROWLEE_DEFAULT_PHONE_REGION = os.getenv('GROWLEE_DEFAULT_PHONE_REGION', 'FR').strip().upper() or 'FR'
+GROWLEE_PLAY_COOLDOWN_HOURS = int(os.getenv('GROWLEE_PLAY_COOLDOWN_HOURS', '24') or 24)
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS', 'https://growlee.fr,https://www.growlee.fr')
 for host in ALLOWED_HOSTS:
     if host in {'*', 'localhost', '127.0.0.1'} or host.startswith('.'):

@@ -82,6 +82,22 @@ En production, `docker-compose.prod.yml` lance un service Redis interne non expo
 
 Sans `REDIS_URL`, Django retombe sur `LocMemCache`, acceptable en développement mais non partagé entre workers.
 
+### Téléphones / anti-abus jeu
+
+Les numéros sont normalisés en E.164 avec `phonenumbers`. La région par défaut est configurable:
+
+```env
+GROWLEE_DEFAULT_PHONE_REGION=FR
+```
+
+Un même numéro ne peut rejouer dans le même commerce qu’après le cooldown configuré:
+
+```env
+GROWLEE_PLAY_COOLDOWN_HOURS=24
+```
+
+Mettre `GROWLEE_PLAY_COOLDOWN_HOURS=0` désactive cette règle pour dev/démo. Le même numéro reste autorisé chez un autre commerce.
+
 ### Email
 
 En dev, les emails sortent en console. En prod, configurer un backend SMTP Django:

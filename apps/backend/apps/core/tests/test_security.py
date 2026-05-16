@@ -74,6 +74,22 @@ class PublicPlayConsentTests(TestCase):
         self.assertIsNotNone(customer.consent_marketing_at)
         self.assertTrue(GameSession.objects.filter(customer=customer).exists())
 
+    def test_public_claim_duplicate_phone_returns_form_error(self):
+        self.client.post('/play/play-consent-shop/?step=collect', {
+            'phone': '0610000003',
+            'email': 'first@example.test',
+        })
+
+        response = self.client.post('/play/play-consent-shop/?step=collect', {
+            'phone': '+33610000003',
+            'email': 'second@example.test',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Ce numéro a déjà joué récemment chez ce commerce.')
+        customer = Customer.objects.get(merchant=self.merchant, phone='+33610000003')
+        self.assertEqual(GameSession.objects.filter(customer=customer).count(), 1)
+
 
 class HealthcheckTests(TestCase):
     def test_healthz_returns_ok_when_database_responds(self):
