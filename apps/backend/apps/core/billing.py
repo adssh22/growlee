@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import transaction
 
 from apps.core.audit import log_audit_event
+from apps.core.logging_utils import short_identifier
 from apps.merchants.models import Merchant, Subscription
 
 logger = logging.getLogger(__name__)
@@ -109,7 +110,7 @@ def _mark_paid_merchant(merchant):
 def handle_checkout_session_completed(session, request=None):
     merchant = _find_merchant_from_stripe_object(session)
     if merchant is None:
-        logger.warning('Stripe checkout.session.completed without matching merchant: %s', _get_value(session, 'id'))
+        logger.error('Stripe webhook merchant not found event_type=checkout.session.completed object_id=%s', short_identifier(_get_value(session, 'id')))
         return None
 
     with transaction.atomic():
@@ -133,7 +134,7 @@ def handle_checkout_session_completed(session, request=None):
 def handle_stripe_subscription_event(subscription_obj, request=None):
     merchant = _find_merchant_from_stripe_object(subscription_obj)
     if merchant is None:
-        logger.warning('Stripe subscription event without matching merchant: %s', _get_value(subscription_obj, 'id'))
+        logger.error('Stripe webhook merchant not found event_type=subscription object_id=%s', short_identifier(_get_value(subscription_obj, 'id')))
         return None
 
     with transaction.atomic():
@@ -152,7 +153,7 @@ def handle_stripe_subscription_event(subscription_obj, request=None):
 def handle_invoice_payment_failed(invoice, request=None):
     merchant = _find_merchant_from_stripe_object(invoice)
     if merchant is None:
-        logger.warning('Stripe invoice.payment_failed without matching merchant: %s', _get_value(invoice, 'id'))
+        logger.error('Stripe webhook merchant not found event_type=invoice.payment_failed object_id=%s', short_identifier(_get_value(invoice, 'id')))
         return None
 
     with transaction.atomic():
@@ -173,7 +174,7 @@ def handle_invoice_payment_failed(invoice, request=None):
 def handle_invoice_payment_succeeded(invoice, request=None):
     merchant = _find_merchant_from_stripe_object(invoice)
     if merchant is None:
-        logger.warning('Stripe invoice.payment_succeeded without matching merchant: %s', _get_value(invoice, 'id'))
+        logger.error('Stripe webhook merchant not found event_type=invoice.payment_succeeded object_id=%s', short_identifier(_get_value(invoice, 'id')))
         return None
 
     with transaction.atomic():
@@ -205,5 +206,5 @@ def handle_stripe_event(event, request=None):
         return handle_invoice_payment_failed(obj, request=request)
     if event_type == 'invoice.payment_succeeded':
         return handle_invoice_payment_succeeded(obj, request=request)
-    logger.info('Ignoring unsupported Stripe event type=%s', event_type)
+    logger.info('Stripe webhook ignored unsupported event_type=%s', event_type)
     return None

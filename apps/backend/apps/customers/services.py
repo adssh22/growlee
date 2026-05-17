@@ -1,3 +1,4 @@
+import logging
 import random
 import secrets
 from datetime import datetime, time, timedelta
@@ -12,8 +13,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.campaigns.models import WheelSegment
+from apps.core.logging_utils import stable_hash
 from apps.customers.models import Customer, GameSession, NotificationJob
 from apps.rewards.models import Reward
+
+logger = logging.getLogger(__name__)
 
 
 def _today_bounds():
@@ -112,6 +116,12 @@ def _ensure_phone_can_play(*, merchant, normalized_phone):
         created_at__gte=cutoff,
     ).exists()
     if played_recently:
+        logger.info(
+            'claim_reward refused by cooldown merchant_id=%s phone_hash=%s cooldown_hours=%s',
+            merchant.id,
+            stable_hash(normalized_phone),
+            int(cooldown.total_seconds() // 3600),
+        )
         raise ValidationError('Ce numéro a déjà joué récemment chez ce commerce. Réessaie plus tard.')
 
 
@@ -176,11 +186,11 @@ def send_sms(to_phone: str, body: str) -> bool:
     if not to_phone:
         return False
     if provider in {'console', 'debug'}:
-        print(f"[Growlee SMS] À {to_phone}: {body}")
+        logger.info('SMS console provider accepted message phone_hash=%s body_length=%s', stable_hash(to_phone), len(body or ''))
         return True
     if provider == 'twilio':
         if not (settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_FROM_NUMBER):
-            print('[Growlee SMS] Twilio non configuré: SID/TOKEN/FROM manquant')
+            logger.warning('SMS Twilio not configured: missing required SID/token/from values')
             return False
         response = requests.post(
             f'https://api.twilio.com/2010-04-01/Accounts/{settings.TWILIO_ACCOUNT_SID}/Messages.json',
@@ -189,12 +199,12 @@ def send_sms(to_phone: str, body: str) -> bool:
             timeout=10,
         )
         if response.status_code >= 300:
-            print(f'[Growlee SMS] Twilio erreur {response.status_code}: {response.text[:300]}')
+            logger.warning('SMS Twilio provider error status_code=%s', response.status_code)
             return False
         return True
     if provider == 'brevo':
         if not settings.BREVO_API_KEY:
-            print('[Growlee SMS] Brevo non configuré: BREVO_API_KEY manquant')
+            logger.warning('SMS Brevo not configured: missing API key')
             return False
         response = requests.post(
             'https://api.brevo.com/v3/transactionalSMS/sms',
@@ -203,10 +213,10 @@ def send_sms(to_phone: str, body: str) -> bool:
             timeout=10,
         )
         if response.status_code >= 300:
-            print(f'[Growlee SMS] Brevo erreur {response.status_code}: {response.text[:300]}')
+            logger.warning('SMS Brevo provider error status_code=%s', response.status_code)
             return False
         return True
-    print(f'[Growlee SMS] Provider inconnu: {provider}')
+    logger.warning('SMS provider unknown provider=%s', provider)
     return False
 
 
@@ -326,6 +336,15 @@ def process_notification_job(job):
     except Exception as exc:
         job.status = NotificationJob.STATUS_FAILED
         job.last_error = str(exc)[:2000]
+        logger.warning(
+            'NotificationJob failed job_id=%s merchant_id=%s channel=%s provider=%s attempts=%s error_type=%s',
+            job.id,
+            job.merchant_id,
+            job.channel,
+            job.provider,
+            job.attempts,
+            exc.__class__.__name__,
+        )
     job.save(update_fields=['status', 'sent_at', 'last_error', 'provider', 'updated_at'])
     return job
 

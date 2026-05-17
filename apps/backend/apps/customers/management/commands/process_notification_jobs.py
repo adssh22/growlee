@@ -1,8 +1,12 @@
+import logging
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.customers.models import NotificationJob
 from apps.customers.services import process_notification_job
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -28,4 +32,12 @@ class Command(BaseCommand):
                 sent += 1
             elif processed.status == NotificationJob.STATUS_FAILED:
                 failed += 1
+        logger.info(
+            'process_notification_jobs summary selected=%s sent=%s failed=%s include_failed=%s channel=%s',
+            len(jobs),
+            sent,
+            failed,
+            options['include_failed'],
+            options.get('channel') or 'all',
+        )
         self.stdout.write(self.style.SUCCESS(f'Processed {len(jobs)} notification job(s): sent={sent}, failed={failed}'))

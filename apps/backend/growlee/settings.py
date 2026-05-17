@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlparse
@@ -12,6 +13,15 @@ def env_bool(name: str, default: bool = False) -> bool:
 def env_list(name: str, default: str = '') -> list[str]:
     return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
 
+
+def env_float(name: str, default: float = 0.0) -> float:
+    try:
+        return float(os.getenv(name, str(default)) or default)
+    except ValueError:
+        return default
+
+
+logger = logging.getLogger(__name__)
 
 DEBUG = env_bool('DJANGO_DEBUG', True)
 _SECRET_KEY_ENV = os.getenv('DJANGO_SECRET_KEY', '').strip()
@@ -57,6 +67,22 @@ TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '').strip()
 TWILIO_FROM_NUMBER = os.getenv('TWILIO_FROM_NUMBER', SMS_FROM).strip()
 BREVO_API_KEY = os.getenv('BREVO_API_KEY', '').strip()
 BREVO_SMS_SENDER = os.getenv('BREVO_SMS_SENDER', SMS_FROM).strip()[:11]
+SENTRY_DSN = os.getenv('SENTRY_DSN', '').strip()
+SENTRY_ENVIRONMENT = os.getenv('SENTRY_ENVIRONMENT', 'production').strip() or 'production'
+SENTRY_TRACES_SAMPLE_RATE = env_float('SENTRY_TRACES_SAMPLE_RATE', 0.0)
+SENTRY_SEND_DEFAULT_PII = env_bool('SENTRY_SEND_DEFAULT_PII', False)
+
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENVIRONMENT,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        send_default_pii=SENTRY_SEND_DEFAULT_PII,
+        integrations=[DjangoIntegration()],
+    )
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -248,6 +274,7 @@ if MEDIA_STORAGE == 's3':
     AWS_DEFAULT_ACL = None
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
     if not (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME):
+        logger.error('S3 media storage configuration error: missing required access key, secret key or bucket name')
         raise RuntimeError('DJANGO_MEDIA_STORAGE=s3 requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME.')
     STORAGES['default'] = {'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage'}
     if AWS_S3_CUSTOM_DOMAIN:

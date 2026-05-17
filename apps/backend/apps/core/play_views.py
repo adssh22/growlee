@@ -1,7 +1,10 @@
+import logging
+
 from django.core.exceptions import ValidationError
 from django.http import Http404
 
 from apps.core.common_views import *  # noqa: F401,F403
+from apps.core.logging_utils import safe_url_summary
 from apps.core.security import validate_qr_redirect_url
 from apps.core.common_views import (  # noqa: F401
     _admin_access_block_response,
@@ -23,12 +26,22 @@ from apps.core.common_views import (  # noqa: F401
     _unique_merchant_slug,
 )
 
+logger = logging.getLogger(__name__)
+
+
 def entry_redirect(request, code):
     entry_point = get_object_or_404(EntryPoint.objects.select_related('merchant'), code=code, merchant__deleted_at__isnull=True, merchant__is_active=True)
     target = entry_point.redirect_url or f'/play/{entry_point.merchant.slug}/'
     try:
         target = validate_qr_redirect_url(target)
     except ValidationError as exc:
+        logger.warning(
+            'QR redirect refused entry_code=%s merchant_id=%s target_summary=%s error=%s',
+            code,
+            entry_point.merchant_id,
+            safe_url_summary(target),
+            exc.__class__.__name__,
+        )
         raise Http404('Redirection QR invalide') from exc
     return redirect(target)
 
