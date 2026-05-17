@@ -77,15 +77,19 @@ DJANGO_SECURE_HSTS_SECONDS=31536000
 
 ## 6. Backups
 
-Script inclus : `ops/backup_postgres.sh`.
+Script backup complet VPS Docker Compose : `ops/backup_full_vps.sh`.
 
-Exemple cron quotidien :
+Il sauvegarde PostgreSQL, `.env.prod`, `deploy/Caddyfile`, les médias locaux `media_data` si disponibles, les volumes Caddy si disponibles, puis génère une archive `.tar.gz` et un SHA256 sous `/var/backups/growlee/full/`.
+
+Exemple cron quotidien recommandé :
 
 ```cron
-17 2 * * * DATABASE_URL='postgresql://...' BACKUP_DIR=/var/backups/growlee/postgres /srv/growlee/ops/backup_postgres.sh >> /var/log/growlee-backup.log 2>&1
+17 2 * * * cd /srv/growlee && FULL_BACKUP_RETENTION_DAYS=30 ./ops/backup_full_vps.sh >> /var/log/growlee-backup-full.log 2>&1
 ```
 
-Tester une restauration avec `ops/restore_check_postgres.sh` sur une base jetable.
+Le script PostgreSQL seul reste disponible : `ops/backup_postgres.sh`.
+
+Tester une restauration PostgreSQL avec `ops/restore_check_postgres.sh` sur une base jetable. Voir aussi `docs/backup.md`.
 
 ## 7. Monitoring minimal
 
