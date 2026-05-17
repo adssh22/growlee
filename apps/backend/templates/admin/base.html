@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Growlee Admin{% endblock %}</title>
   <meta name="robots" content="noindex,nofollow" />
+  <link rel="stylesheet" href="{% static 'css/growlee-design.css' %}">
   <style>
     :root {
       --color-brand: {{ merchant.primary_color|default:'#534ab7' }};
@@ -43,8 +44,6 @@
       --shadow-card: 0 18px 34px rgba(0,0,0,0.24);
       --shell-grad: radial-gradient(circle at top left, color-mix(in srgb, var(--color-brand) 24%, transparent), transparent 30%), radial-gradient(circle at top right, color-mix(in srgb, var(--color-success) 16%, transparent), transparent 22%), linear-gradient(180deg, #0b1020 0%, #060913 100%);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     body { font-family: var(--font-sans); background: var(--shell-grad); color: var(--color-text-primary); min-height: 100vh; overflow-x:hidden; transition: background .25s ease, color .25s ease; }
     {% if merchant.heading_font == 'poppins' or merchant.body_font == 'poppins' %}body{font-family:Poppins,Inter,ui-sans-serif,system-ui,sans-serif}{% elif merchant.heading_font == 'manrope' or merchant.body_font == 'manrope' %}body{font-family:Manrope,Inter,ui-sans-serif,system-ui,sans-serif}{% elif merchant.heading_font == 'dm-sans' or merchant.body_font == 'dm-sans' %}body{font-family:"DM Sans",Inter,ui-sans-serif,system-ui,sans-serif}{% endif %}
     .shell { padding: 18px; }
@@ -158,7 +157,7 @@
     }
   </style>
 </head>
-<body>
+<body class="gw-admin-page">
   <div class="shell">
     <div class="app">
       <aside class="sidebar">
