@@ -89,7 +89,7 @@ Exemple cron quotidien recommandé :
 
 Le script PostgreSQL seul reste disponible : `ops/backup_postgres.sh`.
 
-Tester une restauration PostgreSQL avec `ops/restore_check_postgres.sh` sur une base jetable. Voir aussi `docs/backup.md`.
+Tester une restauration PostgreSQL avec `ops/restore_check_postgres.sh` sur une base jetable. Procédure complète de restauration : `docs/restore.md`. Voir aussi `docs/backup.md`.
 
 ## 7. Monitoring minimal
 
