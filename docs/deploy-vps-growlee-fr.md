@@ -48,9 +48,14 @@ PY
 
 ## 4. Lancer en production
 
+Utiliser le script de déploiement sécurisé :
+
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+chmod +x ops/deploy_vps.sh
+./ops/deploy_vps.sh
 ```
+
+Il lance un backup complet avant mise à jour, valide Docker Compose, déploie avec build, puis vérifie `/healthz/`. Voir `docs/deploy.md` pour les options `--skip-backup` et `--no-pull`.
 
 La stack fait automatiquement :
 
@@ -83,9 +88,22 @@ Attendu :
 
 ## 7. Mises à jour
 
+Toujours passer par le script sécurisé :
+
 ```bash
-git pull
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+./ops/deploy_vps.sh
+```
+
+Pour redéployer le commit local sans `git pull` :
+
+```bash
+./ops/deploy_vps.sh --no-pull
+```
+
+Pour ignorer le backup uniquement si un backup récent et vérifié existe déjà :
+
+```bash
+./ops/deploy_vps.sh --skip-backup
 ```
 
 ## Notes sécurité
