@@ -7,73 +7,86 @@
   <title>Growlee Control · {{ merchant.name }}</title>
   <link rel="stylesheet" href="{% static 'css/growlee-design.css' %}">
   <style>
-    .gw-control-page .stats{grid-template-columns:repeat(4,1fr)}
-    .gw-control-page .grid{grid-template-columns:1.1fr .9fr}
-    @media(max-width:950px){.gw-control-page .grid,.gw-control-page .stats{grid-template-columns:1fr}}
+    .gw-control-page .grid{grid-template-columns:1.15fr .85fr}
+    @media(max-width:950px){.gw-control-page .grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="gw-control-page">
   <div class="wrap">
     <div class="top">
       <a class="brand" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
-      <div class="row-actions" style="justify-content:flex-end"><a class="btn secondary" href="/growlee-control/merchants/">← Liste merchants</a><a class="btn secondary" href="/logout/">Déconnexion</a></div>
+      <div class="row-actions" style="justify-content:flex-end"><a class="btn secondary" href="/growlee-control/merchants/">← Liste merchants</a><a class="btn secondary" href="/growlee-control/support/">Support</a><a class="btn secondary" href="/logout/">Déconnexion</a></div>
     </div>
     {% if messages %}<div class="messages">{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}</div>{% endif %}
 
-    <div class="hero">
-      <div><div class="eyebrow">Growlee Control · merchant detail</div><h1>{{ merchant.name }}</h1><p class="muted">/{{ merchant.slug }}/ · créé le {{ merchant.created_at|date:'d/m/Y H:i' }}</p></div>
-      <div class="row-actions">{% if not merchant.deleted_at %}<a class="btn secondary" href="/play/{{ merchant.slug }}/" target="_blank">Parcours client</a>{% endif %}</div>
-    </div>
+    <section class="control-hero-card">
+      <div class="hero">
+        <div><div class="eyebrow">Growlee Control · merchant</div><h1>{{ merchant.name }}</h1><p class="muted">/{{ merchant.slug }}/ · créé le {{ merchant.created_at|date:'d/m/Y H:i' }}</p></div>
+        <div class="status-stack">
+          {% if merchant.deleted_at %}<span class="badge warn">Archivé</span>{% endif %}
+          <span class="badge {% if merchant.is_active %}on{% else %}off{% endif %}">{% if merchant.is_active %}Actif{% else %}Inactif{% endif %}</span>
+          {% if merchant.is_demo %}<span class="badge warn">Démo{% if merchant.demo_expires_at %} · {{ merchant.demo_expires_at|date:'d/m/Y' }}{% endif %}</span>{% endif %}
+          {% if not merchant.deleted_at %}<a class="btn secondary" href="/play/{{ merchant.slug }}/" target="_blank">Parcours client</a>{% endif %}
+        </div>
+      </div>
+    </section>
 
-    <div class="stats">
-      <div class="stat"><strong>{{ customers_count }}</strong><span class="small">clients</span></div>
-      <div class="stat"><strong>{{ sessions_count }}</strong><span class="small">sessions jeu</span></div>
-      <div class="stat"><strong>{{ campaigns_count }}</strong><span class="small">campagnes</span></div>
-      <div class="stat"><strong>{{ active_modules_count }}/3</strong><span class="small">modules jeu/avis/wallet</span></div>
+    <div class="control-kpis">
+      <div class="kpi"><strong>{{ customers_count }}</strong><span>clients</span></div>
+      <div class="kpi"><strong>{{ sessions_count }}</strong><span>sessions jeu</span></div>
+      <div class="kpi"><strong>{{ campaigns_count }}</strong><span>campagnes</span></div>
+      <div class="kpi"><strong>{{ active_modules_count }}/3</strong><span>modules actifs</span></div>
     </div>
 
     <div class="grid">
-      <div class="stack">
-        <div class="card">
-          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Informations commerce</h2>
-          <p><strong>Adresse :</strong> {{ merchant.address|default:'—' }}</p>
-          <p><strong>Secteur :</strong> {{ merchant.business_sector|default:'—' }}</p>
-          <p><strong>Email :</strong> {{ merchant.contact_email|default:'—' }} · <strong>Téléphone :</strong> {{ merchant.contact_phone|default:'—' }}</p>
-          <p><strong>Baseline :</strong> {{ merchant.tagline|default:'—' }}</p>
-        </div>
+      <main class="stack">
+        <section class="card">
+          <div class="panel-title"><div><h2>Résumé commerce</h2><p class="small">Identité, contact et configuration principale.</p></div></div>
+          <div class="summary-list">
+            <div class="summary-row"><span class="small">Adresse</span><strong>{{ merchant.address|default:'—' }}</strong></div>
+            <div class="summary-row"><span class="small">Secteur</span><strong>{{ merchant.business_sector|default:'—' }}</strong></div>
+            <div class="summary-row"><span class="small">Contact</span><strong>{{ merchant.contact_email|default:'—' }} · {{ merchant.contact_phone|default:'—' }}</strong></div>
+            <div class="summary-row"><span class="small">Baseline</span><strong>{{ merchant.tagline|default:'—' }}</strong></div>
+          </div>
+        </section>
 
-        <div class="card">
-          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Derniers clients</h2>
-          <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Contact</th><th>Inscription</th></tr></thead><tbody>{% for customer in latest_customers %}<tr><td>{{ customer.first_name|default:'Client' }}</td><td>{{ customer.phone }}<br><span class="small">{{ customer.email|default:'—' }}</span></td><td>{{ customer.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="3">Aucun client.</td></tr>{% endfor %}</tbody></table></div>
-        </div>
+        <section class="card">
+          <div class="panel-title"><div><h2>Derniers clients</h2><p class="small">8 derniers clients collectés.</p></div><span class="badge off">{{ customers_count }} total</span></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Contact</th><th>Inscription</th></tr></thead><tbody>{% for customer in latest_customers %}<tr><td><div class="name">{{ customer.first_name|default:'Client' }}</div></td><td>{{ customer.phone }}<br><span class="small">{{ customer.email|default:'—' }}</span></td><td>{{ customer.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="3"><div class="empty-state">Aucun client pour ce commerce.</div></td></tr>{% endfor %}</tbody></table></div>
+        </section>
 
-        <div class="card">
-          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Dernières sessions</h2>
-          <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Gain</th><th>Statut</th><th>Date</th></tr></thead><tbody>{% for session in latest_sessions %}<tr><td>{{ session.customer.phone }}</td><td>{{ session.reward_label }}</td><td>{% if session.redeemed %}<span class="badge on">Récupéré</span>{% elif session.is_winner %}<span class="badge warn">À récupérer</span>{% else %}<span class="badge off">Perdu</span>{% endif %}</td><td>{{ session.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4">Aucune session.</td></tr>{% endfor %}</tbody></table></div>
-        </div>
+        <section class="card">
+          <div class="panel-title"><div><h2>Dernières sessions</h2><p class="small">Gains, statuts et activité récente.</p></div><span class="badge off">{{ sessions_count }} total</span></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Gain</th><th>Statut</th><th>Date</th></tr></thead><tbody>{% for session in latest_sessions %}<tr><td>{{ session.customer.phone }}</td><td>{{ session.reward_label }}</td><td>{% if session.redeemed %}<span class="badge on">Récupéré</span>{% elif session.is_winner %}<span class="badge warn">À récupérer</span>{% else %}<span class="badge off">Perdu</span>{% endif %}</td><td>{{ session.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4"><div class="empty-state">Aucune session de jeu.</div></td></tr>{% endfor %}</tbody></table></div>
+        </section>
 
-        <div class="card">
-          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Derniers événements audit</h2>
-          <div class="table-wrap"><table class="table"><thead><tr><th>Action</th><th>Cible</th><th>Acteur</th><th>Date</th></tr></thead><tbody>{% for log in latest_audit_logs %}<tr><td>{{ log.action }}<br><span class="small">{{ log.metadata }}</span></td><td>{{ log.target_type|default:'—' }}{% if log.target_id %} #{{ log.target_id }}{% endif %}</td><td>{% if log.actor %}{{ log.actor.username }}{% else %}Système{% endif %}</td><td>{{ log.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4">Aucun événement audit.</td></tr>{% endfor %}</tbody></table></div>
-        </div>
-      </div>
+        <section class="card">
+          <div class="panel-title"><div><h2>Audit log</h2><p class="small">Dernières actions sensibles tracées sur ce commerce.</p></div></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Action</th><th>Cible</th><th>Acteur</th><th>Date</th></tr></thead><tbody>{% for log in latest_audit_logs %}<tr><td><span class="audit-action">{{ log.action }}</span><br><span class="small">{{ log.metadata }}</span></td><td>{{ log.target_type|default:'—' }}{% if log.target_id %} #{{ log.target_id }}{% endif %}</td><td>{% if log.actor %}{{ log.actor.username }}{% else %}Système{% endif %}</td><td>{{ log.created_at|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4"><div class="empty-state">Aucun événement audit.</div></td></tr>{% endfor %}</tbody></table></div>
+        </section>
+      </main>
 
-      <div class="stack">
-        <div class="card">
-          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Statuts</h2>
-          <p>{% if merchant.deleted_at %}<span class="badge warn">Archivé · {{ merchant.deleted_at|date:'d/m/Y H:i' }}</span> {% endif %}<span class="badge {% if merchant.is_active %}on{% else %}off{% endif %}">{% if merchant.is_active %}Commerce actif{% else %}Commerce inactif{% endif %}</span> {% if merchant.is_demo %}<span class="badge warn">Démo{% if merchant.demo_expires_at %} · expire {{ merchant.demo_expires_at|date:'d/m/Y' }}{% endif %}</span>{% endif %}</p>
-          <p><span class="badge {% if subscription.status == 'active' or subscription.status == 'trialing' %}on{% elif subscription.status == 'past_due' or subscription.status == 'suspended' %}warn{% else %}off{% endif %}">{{ subscription.get_status_display }}</span></p>
-          <p class="small">{{ subscription.get_plan_display }} · {{ subscription.get_provider_display }}{% if subscription.provider_customer_id %}<br>{{ subscription.provider_customer_id }}{% endif %}{% if subscription.provider_subscription_id %}<br>{{ subscription.provider_subscription_id }}{% endif %}</p>
-        </div>
+      <aside class="stack">
+        <section class="card">
+          <div class="panel-title"><div><h2>Abonnement</h2><p class="small">État billing et provider.</p></div><span class="badge {% if subscription.status == 'active' or subscription.status == 'trialing' %}on{% elif subscription.status == 'past_due' or subscription.status == 'suspended' %}warn{% else %}off{% endif %}">{{ subscription.get_status_display }}</span></div>
+          <p class="muted"><strong>{{ subscription.get_plan_display }} · {{ subscription.get_provider_display }}</strong></p>
+          <div class="summary-list">
+            <div class="summary-row"><span class="small">Plan</span><strong>{{ subscription.get_plan_display }}</strong></div>
+            <div class="summary-row"><span class="small">Provider</span><strong>{{ subscription.get_provider_display }}</strong></div>
+            {% if subscription.current_period_end %}<div class="summary-row"><span class="small">Fin période</span><strong>{{ subscription.current_period_end|date:'d/m/Y' }}</strong></div>{% endif %}
+            {% if subscription.provider_customer_id %}<div class="summary-row"><span class="small">Customer</span><strong>{{ subscription.provider_customer_id }}</strong></div>{% endif %}
+            {% if subscription.provider_subscription_id %}<div class="summary-row"><span class="small">Subscription</span><strong>{{ subscription.provider_subscription_id }}</strong></div>{% endif %}
+          </div>
+        </section>
 
-        <div class="card">
-          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Propriétaires</h2>
-          {% for owner in owners %}<p><strong>{{ owner.user.username }}</strong><br><span class="small">{{ owner.user.email }}</span></p>{% empty %}<p class="small">Aucun propriétaire.</p>{% endfor %}
-        </div>
+        <section class="card">
+          <div class="panel-title"><div><h2>Propriétaires / membres</h2><p class="small">Owners connus du commerce.</p></div></div>
+          {% for owner in owners %}<div class="summary-row"><div><strong>{{ owner.user.username }}</strong><br><span class="small">{{ owner.user.email }}</span></div><span class="badge on">owner</span></div>{% empty %}<div class="empty-state">Aucun propriétaire.</div>{% endfor %}
+        </section>
 
-        <div class="card">
-          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Modules actifs</h2>
-          <div class="row-actions">
+        <section class="card">
+          <div class="panel-title"><div><h2>Modules</h2><p class="small">Dernière campagne du commerce.</p></div></div>
+          <div class="module-badges">
             {% if merchant.deleted_at %}
               <span class="badge {% if modules.game %}on{% else %}off{% endif %}">Jeu</span><span class="badge {% if modules.review %}on{% else %}off{% endif %}">Avis</span><span class="badge {% if modules.wallet %}on{% else %}off{% endif %}">Wallet</span>
             {% else %}
@@ -82,25 +95,31 @@
               <form method="post">{% csrf_token %}<input type="hidden" name="action" value="module_toggle"><input type="hidden" name="flag" value="wallet"><button class="badge {% if modules.wallet %}on{% else %}off{% endif %}" type="submit">Wallet</button></form>
             {% endif %}
           </div>
-          <p class="small">{% if merchant.deleted_at %}Commerce archivé : restaure-le avant de modifier les modules.{% else %}Ces actions modifient la dernière campagne du commerce.{% endif %}</p>
-        </div>
+          <p class="small">{% if merchant.deleted_at %}Commerce archivé : restaure-le avant modification.{% else %}Ces actions modifient la dernière campagne du commerce.{% endif %}</p>
+        </section>
 
-        <div class="card">
-          <h2 style="margin:0 0 12px;letter-spacing:-.04em">Actions sensibles</h2>
+        <section class="card">
+          <div class="panel-title"><div><h2>Actions rapides</h2><p class="small">Actions opérationnelles non destructives.</p></div></div>
           {% if merchant.deleted_at %}
             <form method="post">{% csrf_token %}<input type="hidden" name="action" value="restore_merchant"><button class="btn" type="submit">Restaurer ce commerce</button></form>
           {% else %}
-            <div class="row-actions">
-              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><button class="btn {% if merchant.is_active %}warn{% else %}secondary{% endif %}" type="submit">{% if merchant.is_active %}Désactiver{% else %}Activer commerce{% endif %}</button></form>
+            <div class="quick-links">
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle"><button class="btn {% if merchant.is_active %}warn{% else %}secondary{% endif %}" type="submit">{% if merchant.is_active %}Désactiver{% else %}Activer{% endif %}</button></form>
               <form method="post">{% csrf_token %}<input type="hidden" name="action" value="toggle_demo"><button class="btn secondary" type="submit">{% if merchant.is_demo %}Stop démo{% else %}Accès démo{% endif %}</button></form>
-              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="activate_direct_billing"><input type="hidden" name="billing_reference" value="Facturation directe validée par {{ request.user.username }}"><button class="btn" type="submit">Activer facturation directe</button></form>
+              <form method="post" style="grid-column:1/-1">{% csrf_token %}<input type="hidden" name="action" value="activate_direct_billing"><input type="hidden" name="billing_reference" value="Facturation directe validée par {{ request.user.username }}"><button class="btn" type="submit" style="width:100%">Activer facturation directe</button></form>
             </div>
-            <label class="btn warn" for="archive-merchant" style="cursor:pointer;margin-top:18px">Archiver ce commerce</label>
-            <input class="delete-toggle" id="archive-merchant" type="checkbox" style="display:none">
-            <form class="delete-box" method="post">{% csrf_token %}<input type="hidden" name="action" value="archive_merchant"><input name="confirm_name" placeholder="Tapez: {{ merchant.name }}" required><button class="btn danger" type="submit">Confirmer archivage</button></form>
           {% endif %}
-        </div>
-      </div>
+        </section>
+
+        {% if not merchant.deleted_at %}
+        <section class="card danger-zone">
+          <div class="panel-title"><div><h2>Zone dangereuse</h2><p class="small">Archivage : données préservées, accès public coupé.</p></div></div>
+          <label class="btn warn" for="archive-merchant" style="cursor:pointer;margin-top:0">Archiver ce commerce</label>
+          <input class="delete-toggle" id="archive-merchant" type="checkbox" style="display:none">
+          <form class="delete-box" method="post">{% csrf_token %}<input type="hidden" name="action" value="archive_merchant"><input name="confirm_name" placeholder="Tapez: {{ merchant.name }}" required><button class="btn danger" type="submit">Confirmer archivage</button></form>
+        </section>
+        {% endif %}
+      </aside>
     </div>
   </div>
 </body>

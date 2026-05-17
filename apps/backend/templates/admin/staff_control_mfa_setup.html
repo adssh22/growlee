@@ -5,35 +5,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Growlee Control · Setup 2FA</title>
-  <style>
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 12% 0,rgba(159,154,243,.30),transparent 30%),linear-gradient(180deg,#fff,#f7f6ff);color:#17152b}.card{width:100%;max-width:720px;background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.92);border-radius:32px;padding:30px;box-shadow:0 26px 70px rgba(39,32,91,.12)}.brand{display:flex;justify-content:center;margin-bottom:20px}.brand img{height:54px}h1{font-size:34px;letter-spacing:-.06em;margin:0 0 8px}.muted{color:#6f6b86;line-height:1.55;margin:0 0 22px}.grid{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}.qr{background:#fff;border:1px solid #eceaf7;border-radius:24px;padding:18px;display:grid;place-items:center}.qr svg{width:230px;height:230px}.badge{display:inline-flex;padding:8px 11px;border-radius:999px;background:#f1efff;color:#4e3db7;font-size:12px;font-weight:900;margin-bottom:14px}label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6f6b86;font-weight:900;margin:14px 0 8px}input{width:100%;border:1px solid #eceaf7;border-radius:15px;padding:14px 15px;font-size:20px;letter-spacing:.18em;text-align:center;background:#fff}input:focus{outline:none;border-color:#4e3db7;box-shadow:0 0 0 4px rgba(78,61,183,.10)}button{width:100%;margin-top:18px;border:0;border-radius:999px;padding:14px 18px;background:linear-gradient(135deg,#4e3db7,#7367dc);color:#fff;font-weight:900;cursor:pointer}.secondary{background:#fff;color:#b42318;border:1px solid #fee4e2}.error{background:#fff1f0;border:1px solid #fee4e2;color:#b42318;border-radius:15px;padding:12px;margin-bottom:14px;font-size:14px}.secret{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f8f7ff;border:1px solid #eceaf7;border-radius:14px;padding:12px;word-break:break-all;color:#4e3db7}.steps{margin:0 0 18px;padding-left:20px;color:#6f6b86;line-height:1.6}.link{text-align:center;margin-top:18px}.link a{color:#4e3db7;font-weight:850;text-decoration:none}@media(max-width:760px){.grid{grid-template-columns:1fr}.qr svg{width:220px;height:220px}}
-  </style>
+  <link rel="stylesheet" href="{% static 'css/growlee-design.css' %}">
 </head>
-<body>
-  <div class="card">
+<body class="gw-control-page auth-body">
+  <main class="auth-card wide">
     <a class="brand" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
-    <div class="badge">Configuration téléphone</div>
+    <div class="badge neutral">Configuration téléphone</div>
     <h1>Activer la double authentification</h1>
-    <p class="muted">Scanne ce QR code avec Google Authenticator, Authy, Microsoft Authenticator ou l’app mots de passe de ton téléphone.</p>
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
-    <div class="grid">
+    <p class="muted">Growlee Control donne accès aux abonnements, audits et actions sensibles. Configure une app d’authentification avant d’entrer dans la console.</p>
+    {% if error %}<div class="errors">{{ error }}</div>{% endif %}
+    <div class="auth-grid">
       <div class="qr">{{ qr_svg|safe }}</div>
       <div>
-        <ol class="steps">
-          <li>Ouvre ton application d’authentification.</li>
-          <li>Ajoute un compte avec le QR code.</li>
-          <li>Entre le code à 6 chiffres affiché.</li>
+        <ol class="auth-steps">
+          <li>Ouvre Google Authenticator, Authy, Microsoft Authenticator ou l’app mots de passe du téléphone.</li>
+          <li>Ajoute un compte en scannant le QR code.</li>
+          <li>Entre le code à 6 chiffres affiché pour confirmer l’appareil.</li>
         </ol>
+        <p class="small">Clé de secours si le scan échoue :</p>
         <div class="secret">{{ secret }}</div>
         <form method="post">
           {% csrf_token %}
           <label for="totp_code">Code à 6 chiffres</label>
-          <input id="totp_code" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus required>
-          <button type="submit">Activer et entrer</button>
+          <input class="code-input" id="totp_code" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus required>
+          <button class="btn primary-action" type="submit" style="width:100%;margin-top:18px">Activer et entrer</button>
         </form>
       </div>
     </div>
     <div class="link"><a href="/growlee-control/merchants/">Retour control panel</a></div>
-  </div>
+  </main>
 </body>
 </html>

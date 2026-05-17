@@ -7,18 +7,17 @@
   <title>Growlee Control · Commerçants</title>
   <link rel="stylesheet" href="{% static 'css/growlee-design.css' %}">
   <style>
-    .gw-control-page .stats{grid-template-columns:repeat(3,1fr)}
-    .gw-control-page .grid{grid-template-columns:360px 1fr}
+    .gw-control-page .grid{grid-template-columns:340px 1fr}
     .gw-control-page .delete-box{display:none;width:100%}
-    @media(max-width:950px){.gw-control-page .grid,.gw-control-page .stats{grid-template-columns:1fr}}
+    @media(max-width:950px){.gw-control-page .grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="gw-control-page">
   <div class="wrap">
     <div class="top">
       <a class="brand" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-        <span class="pill">Connecté : {{ request.user.username }}</span>
+      <div class="control-top-actions">
+        <span class="pill">{{ request.user.username }}</span>
         <a class="btn secondary" href="/growlee-control/support/">Support</a>
         <a class="btn secondary" href="/admin/">Admin commerçant</a>
         <a class="btn secondary" href="/logout/">Déconnexion</a>
@@ -27,28 +26,36 @@
 
     {% if messages %}<div class="messages">{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}</div>{% endif %}
 
-    <div class="hero">
-      <div><div class="eyebrow">Page cachée · staff only</div><h1>Administration commerçants</h1><p class="muted">Création, rattachement propriétaire, activation/désactivation et accès rapide aux parcours.</p></div>
-      <span class="pill">URL : /growlee-control/merchants/</span>
-    </div>
+    <section class="control-hero-card">
+      <div class="hero">
+        <div>
+          <div class="eyebrow">Console interne · staff only</div>
+          <h1>Merchants</h1>
+          <p class="muted">Pilotage des commerces, abonnements, modules et accès sensibles.</p>
+        </div>
+        <div class="status-stack">
+          <span class="pill">/growlee-control/merchants/</span>
+          <a class="btn primary-action" href="/growlee-control/support/">Recherche support</a>
+        </div>
+      </div>
+    </section>
 
-    <div class="stats">
-      <div class="stat"><strong>{{ total_merchants }}</strong><span class="small">commerçants</span></div>
-      <div class="stat"><strong>{{ active_merchants }}</strong><span class="small">actifs</span></div>
-      <div class="stat"><strong>{{ total_users }}</strong><span class="small">comptes utilisateurs</span></div>
+    <div class="control-kpis">
+      <div class="kpi"><strong>{{ total_merchants }}</strong><span>commerçants</span></div>
+      <div class="kpi"><strong>{{ active_merchants }}</strong><span>actifs</span></div>
+      <div class="kpi"><strong>{{ filtered_merchants }}</strong><span>résultats filtrés</span></div>
+      <div class="kpi"><strong>{{ total_users }}</strong><span>comptes users</span></div>
     </div>
 
     <div class="grid">
-      <div class="stack">
-        <div class="card">
-          <h2 style="margin:0 0 6px;letter-spacing:-.04em">Sécurité 2FA téléphone</h2>
+      <aside class="stack">
+        <section class="card">
+          <div class="panel-title"><div><h2>Sécurité staff</h2><p class="small">Double authentification téléphone.</p></div>{% if mfa.enabled %}<span class="badge on">2FA OK</span>{% else %}<span class="badge warn">À configurer</span>{% endif %}</div>
           {% if mfa.enabled %}
-            <p><span class="badge on">Activée</span></p>
             <p class="muted">Le control panel demandera un code téléphone à chaque nouvelle session sensible.</p>
             <p class="small">Ta propre 2FA ne peut pas être réinitialisée ici. Seul un autre super utilisateur peut le faire.</p>
           {% else %}
-            <p><span class="badge warn">À configurer</span></p>
-            <p class="muted">Scanne ce QR avec Google Authenticator, Authy, Microsoft Authenticator ou l’app mots de passe de ton téléphone.</p>
+            <p class="muted">Scanne le QR puis confirme le code à 6 chiffres pour protéger les actions internes.</p>
             {% if mfa_error %}<div class="errors">{{ mfa_error }}</div>{% endif %}
             <div class="qr">{{ qr_svg|safe }}</div>
             <div class="secret">{{ secret }}</div>
@@ -59,28 +66,24 @@
               <button class="btn" type="submit" style="width:100%;margin-top:14px">Activer la 2FA</button>
             </form>
           {% endif %}
-        </div>
+        </section>
 
-        <div class="card">
-          <h2 style="margin:0 0 6px;letter-spacing:-.04em">Réinitialiser une 2FA staff</h2>
-          <p class="muted" style="margin-top:0">Chaque super utilisateur peut réinitialiser la 2FA d’un autre super utilisateur, jamais la sienne.</p>
+        <section class="card">
+          <div class="panel-title"><div><h2>Staff MFA</h2><p class="small">Reset d’un autre superuser uniquement.</p></div></div>
           {% for staff_user in staff_mfa_users %}
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)">
+            <div class="summary-row">
               <div><strong>{{ staff_user.username }}</strong><div class="small">{% if staff_user.staff_mfa.enabled %}2FA activée{% else %}2FA à configurer{% endif %}</div></div>
               {% if staff_user.id == request.user.id %}
                 <span class="badge off">toi</span>
               {% else %}
-                <form method="post" class="inline">{% csrf_token %}<input type="hidden" name="action" value="reset_staff_mfa"><input type="hidden" name="user_id" value="{{ staff_user.id }}"><button class="btn warn" type="submit">Reset 2FA</button></form>
+                <form method="post" class="inline">{% csrf_token %}<input type="hidden" name="action" value="reset_staff_mfa"><input type="hidden" name="user_id" value="{{ staff_user.id }}"><button class="btn warn" type="submit">Reset</button></form>
               {% endif %}
             </div>
-          {% empty %}
-            <p class="small">Aucun autre super utilisateur.</p>
-          {% endfor %}
-        </div>
+          {% empty %}<div class="empty-state">Aucun autre super utilisateur.</div>{% endfor %}
+        </section>
 
-        <div class="card">
-          <h2 style="margin:0 0 6px;letter-spacing:-.04em">Créer un commerçant</h2>
-          <p class="muted" style="margin-top:0">Un compte propriétaire + commerce + campagne de bienvenue seront créés.</p>
+        <section class="card">
+          <div class="panel-title"><div><h2>Nouveau commerce</h2><p class="small">Création commerce + propriétaire + campagne initiale.</p></div></div>
           {% if form.errors %}<div class="errors">{{ form.errors }}</div>{% endif %}
           <form method="post">
             {% csrf_token %}<input type="hidden" name="action" value="create">
@@ -91,14 +94,17 @@
             <label class="check">{{ form.is_active }} <span>Commerce actif</span></label>
             <label class="check">{{ form.is_demo }} <span>Accès démo apporteur d’affaires</span></label>
             {{ form.demo_days.label_tag }}{{ form.demo_days }}
-            <button class="btn" type="submit" style="width:100%;margin-top:18px">Créer le commerçant</button>
+            <button class="btn" type="submit" style="width:100%;margin-top:18px">Créer le commerce</button>
           </form>
-        </div>
-      </div>
+        </section>
+      </aside>
 
-      <div class="card">
-        <h2 style="margin:0 0 14px;letter-spacing:-.04em">Commerçants existants</h2>
-        <form class="filters" method="get">
+      <main class="card">
+        <div class="panel-title">
+          <div><h2>Commerçants existants</h2><p class="small">{{ filtered_merchants }} résultat(s) · page {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</p></div>
+          <span class="badge neutral">{{ page_obj.paginator.count }} filtré(s)</span>
+        </div>
+        <form class="filters filters-card" method="get">
           <div><label for="q">Recherche</label><input id="q" name="q" value="{{ filters.q }}" placeholder="Nom, slug, email owner…"></div>
           <div><label for="active">Actif</label><select id="active" name="active"><option value="">Tous</option><option value="active" {% if filters.active == 'active' %}selected{% endif %}>Actifs</option><option value="inactive" {% if filters.active == 'inactive' %}selected{% endif %}>Inactifs</option></select></div>
           <div><label for="demo">Démo</label><select id="demo" name="demo"><option value="">Tous</option><option value="yes" {% if filters.demo == 'yes' %}selected{% endif %}>Démo</option><option value="no" {% if filters.demo == 'no' %}selected{% endif %}>Hors démo</option></select></div>
@@ -106,42 +112,33 @@
           <div><label for="archived">Archive</label><select id="archived" name="archived"><option value="">Non archivés</option><option value="yes" {% if filters.archived == 'yes' %}selected{% endif %}>Archivés</option></select></div>
           <button class="btn" type="submit">Filtrer</button>
         </form>
-        <p class="small">{{ filtered_merchants }} résultat(s) · page {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</p>
+
         <div class="table-wrap"><table class="table">
-          <thead><tr><th>Commerce</th><th>Owner</th><th>Modules</th><th>Clients</th><th>Statut</th><th>Abonnement</th><th></th></tr></thead>
+          <thead><tr><th>Commerce</th><th>Owner</th><th>Modules</th><th>Clients</th><th>Statut</th><th>Abonnement</th><th>Actions</th></tr></thead>
           <tbody>
           {% for row in rows %}
             <tr>
-              <td><div class="name">{{ row.merchant.name }}</div><div class="slug">/{{ row.merchant.slug }}/</div></td>
-              <td>{% for owner in row.owners %}<div class="owner">{{ owner.user.username }}<br>{{ owner.user.email }}</div>{% empty %}<span class="small">Aucun owner</span>{% endfor %}</td>
-              <td>
-                <div class="row-actions" style="justify-content:flex-start">
-                  <span class="badge {% if row.active_campaign and row.active_campaign.is_active %}on{% else %}off{% endif %}">Jeu</span>
-                  <span class="badge {% if row.active_campaign and row.active_campaign.review_enabled %}on{% else %}off{% endif %}">Avis</span>
-                  <span class="badge {% if row.active_campaign and row.active_campaign.wallet_enabled %}on{% else %}off{% endif %}">Wallet</span>
-                </div>
-              </td>
-              <td>{{ row.customers_count }}</td>
-              <td>{% if row.merchant.deleted_at %}<span class="badge warn" title="Archivé le {{ row.merchant.deleted_at|date:'d/m/Y H:i' }}">Archivé</span><br>{% endif %}<span class="badge {% if row.merchant.is_active %}on{% else %}off{% endif %}">{% if row.merchant.is_active %}Actif{% else %}Désactivé{% endif %}</span>{% if row.merchant.is_demo %}<br><span class="badge warn" title="Expire {{ row.merchant.demo_expires_at|date:'d/m/Y' }}">Démo</span>{% endif %}{% if row.merchant.onboarding_fee_paid %}<br><span class="badge on" title="{{ row.merchant.billing_payment_reference|default:'Paiement validé' }}">Payé / direct</span>{% endif %}</td>
-              <td><span class="badge {% if row.subscription.status == 'active' or row.subscription.status == 'trialing' %}on{% elif row.subscription.status == 'past_due' or row.subscription.status == 'suspended' %}warn{% else %}off{% endif %}">{{ row.subscription.get_status_display }}</span><div class="small">{{ row.subscription.get_plan_display }} · {{ row.subscription.get_provider_display }}</div>{% if row.subscription.current_period_end %}<div class="small">Fin période : {{ row.subscription.current_period_end|date:'d/m/Y' }}</div>{% endif %}</td>
-              <td><div class="row-actions">
-                <a class="btn" href="/growlee-control/merchants/{{ row.merchant.id }}/">Détail</a>
-                {% if not row.merchant.deleted_at %}<a class="btn secondary" href="/play/{{ row.merchant.slug }}/" target="_blank">Parcours</a>{% endif %}
-              </div></td>
+              <td class="merchant-name-cell"><div class="name">{{ row.merchant.name }}</div><div class="slug">/{{ row.merchant.slug }}/ · {{ row.campaigns_count }} campagne(s)</div></td>
+              <td>{% for owner in row.owners %}<div class="owner"><strong>{{ owner.user.username }}</strong><br>{{ owner.user.email }}</div>{% empty %}<span class="badge warn">Sans owner</span>{% endfor %}</td>
+              <td><div class="module-badges"><span class="badge {% if row.active_campaign and row.active_campaign.is_active %}on{% else %}off{% endif %}">Jeu</span><span class="badge {% if row.active_campaign and row.active_campaign.review_enabled %}on{% else %}off{% endif %}">Avis</span><span class="badge {% if row.active_campaign and row.active_campaign.wallet_enabled %}on{% else %}off{% endif %}">Wallet</span></div></td>
+              <td><strong>{{ row.customers_count }}</strong></td>
+              <td><div class="status-stack">{% if row.merchant.deleted_at %}<span class="badge warn" title="Archivé le {{ row.merchant.deleted_at|date:'d/m/Y H:i' }}">Archivé</span>{% endif %}<span class="badge {% if row.merchant.is_active %}on{% else %}off{% endif %}">{% if row.merchant.is_active %}Actif{% else %}Inactif{% endif %}</span>{% if row.merchant.is_demo %}<span class="badge warn" title="Expire {{ row.merchant.demo_expires_at|date:'d/m/Y' }}">Démo</span>{% endif %}{% if row.merchant.onboarding_fee_paid %}<span class="badge on" title="{{ row.merchant.billing_payment_reference|default:'Paiement validé' }}">Payé</span>{% endif %}</div></td>
+              <td><span class="badge {% if row.subscription.status == 'active' or row.subscription.status == 'trialing' %}on{% elif row.subscription.status == 'past_due' or row.subscription.status == 'suspended' %}warn{% else %}off{% endif %}">{{ row.subscription.get_status_display }}</span><div class="small">{{ row.subscription.get_plan_display }} · {{ row.subscription.get_provider_display }}</div>{% if row.subscription.current_period_end %}<div class="small">Fin : {{ row.subscription.current_period_end|date:'d/m/Y' }}</div>{% endif %}</td>
+              <td><div class="row-actions"><a class="btn primary-action" href="/growlee-control/merchants/{{ row.merchant.id }}/">Détail</a>{% if not row.merchant.deleted_at %}<a class="btn secondary" href="/play/{{ row.merchant.slug }}/" target="_blank">Parcours</a>{% endif %}</div></td>
             </tr>
           {% empty %}
-            <tr><td colspan="7">Aucun commerçant.</td></tr>
+            <tr><td colspan="7"><div class="empty-state">Aucun commerçant pour ces filtres.</div></td></tr>
           {% endfor %}
           </tbody>
         </table></div>
         <div class="pager">
-          <div class="small">{{ page_obj.paginator.count }} commerçant(s) filtré(s)</div>
+          <div class="small">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} entrée(s)</div>
           <div class="row-actions">
-            {% if page_obj.has_previous %}<a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a>{% endif %}
-            {% if page_obj.has_next %}<a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a>{% endif %}
+            {% if page_obj.has_previous %}<a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">← Précédent</a>{% endif %}
+            {% if page_obj.has_next %}<a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant →</a>{% endif %}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   </div>
 </body>

@@ -6,73 +6,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Growlee Control · Support</title>
   <link rel="stylesheet" href="{% static 'css/growlee-design.css' %}">
-  <style>
-    .gw-control-page .grid{grid-template-columns:1fr 1fr}
-    @media(max-width:950px){.gw-control-page .grid{grid-template-columns:1fr}}
-  </style>
+  <style>.gw-control-page .grid{grid-template-columns:1fr 1fr}@media(max-width:950px){.gw-control-page .grid{grid-template-columns:1fr}}</style>
 </head>
 <body class="gw-control-page">
   <div class="wrap">
     <div class="top">
       <a class="brand" href="/"><img src="{% static 'brand/growlee-logo-full.png' %}" alt="Growlee"></a>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-        <span class="pill">Connecté : {{ request.user.username }}</span>
-        <a class="btn secondary" href="/growlee-control/merchants/">Commerçants</a>
-        <a class="btn secondary" href="/logout/">Déconnexion</a>
+      <div class="control-top-actions"><span class="pill">{{ request.user.username }}</span><a class="btn secondary" href="/growlee-control/merchants/">Commerçants</a><a class="btn secondary" href="/logout/">Déconnexion</a></div>
+    </div>
+
+    <section class="control-hero-card">
+      <div class="hero">
+        <div><div class="eyebrow">Growlee Control · support</div><h1>Recherche support</h1><p class="muted">Retrouver rapidement un commerce, owner, client, session, claim code ou QR.</p></div>
+        <span class="pill">Superuser + 2FA</span>
       </div>
-    </div>
+    </section>
 
-    <div class="hero">
-      <div><div class="eyebrow">Growlee Control · support</div><h1>Recherche support</h1><p class="muted">Retrouver vite un commerce, owner, client, session, claim code ou QR.</p></div>
-      <span class="pill">Superuser + 2FA</span>
-    </div>
-
-    <div class="card">
+    <section class="card support-search-card">
+      <div class="panel-title"><div><h2>Recherche globale</h2><p class="small">Résultats limités à 20 par type. Chaque recherche est auditée.</p></div></div>
       <form class="search" method="get">
         <input name="q" value="{{ q }}" placeholder="Nom commerce, slug, email owner, téléphone client, claim_code, token, code QR…" autofocus>
-        <button class="btn" type="submit">Rechercher</button>
+        <button class="btn primary-action" type="submit">Rechercher</button>
       </form>
-      <p class="small">Résultats limités à 20 par type. Les recherches sont auditables.</p>
-    </div>
+    </section>
 
     {% if q %}
+      <div class="control-kpis">
+        <div class="kpi"><strong>{{ results.merchants|length }}</strong><span>commerces</span></div>
+        <div class="kpi"><strong>{{ results.customers|length }}</strong><span>clients</span></div>
+        <div class="kpi"><strong>{{ results.sessions|length }}</strong><span>sessions</span></div>
+        <div class="kpi"><strong>{{ results.entry_points|length }}</strong><span>QR</span></div>
+      </div>
+
       <div class="grid">
         <section class="card">
-          <h2>Commerces</h2>
-          <div class="table-wrap"><table class="table"><thead><tr><th>Commerce</th><th>Contact</th><th></th></tr></thead><tbody>
+          <div class="result-header"><h2>Commerces</h2><span class="badge off">{{ results.merchants|length }}</span></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Commerce</th><th>Contact</th><th>Liens</th></tr></thead><tbody>
           {% for merchant in results.merchants %}
-            <tr><td><div class="name">{{ merchant.name }}</div><div class="small">/{{ merchant.slug }}/ · {% if merchant.deleted_at %}archivé{% elif merchant.is_active %}actif{% else %}inactif{% endif %}</div></td><td>{{ merchant.contact_email|default:'—' }}</td><td><div class="row-actions"><a class="btn secondary" href="/growlee-control/merchants/{{ merchant.id }}/">Détail</a></div></td></tr>
-          {% empty %}<tr><td colspan="3">Aucun commerce.</td></tr>{% endfor %}
+            <tr><td><div class="name">{{ merchant.name }}</div><div class="small">/{{ merchant.slug }}/ · {% if merchant.deleted_at %}archivé{% elif merchant.is_active %}actif{% else %}inactif{% endif %}</div></td><td>{{ merchant.contact_email|default:'—' }}</td><td><div class="row-actions"><a class="btn secondary" href="/growlee-control/merchants/{{ merchant.id }}/">Détail</a>{% if not merchant.deleted_at %}<a class="btn secondary" href="/play/{{ merchant.slug }}/" target="_blank">Parcours</a>{% endif %}</div></td></tr>
+          {% empty %}<tr><td colspan="3"><div class="empty-state">Aucun commerce trouvé.</div></td></tr>{% endfor %}
           </tbody></table></div>
         </section>
 
         <section class="card">
-          <h2>Clients</h2>
-          <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Commerce</th><th></th></tr></thead><tbody>
+          <div class="result-header"><h2>Clients</h2><span class="badge off">{{ results.customers|length }}</span></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Commerce</th><th>Liens</th></tr></thead><tbody>
           {% for customer in results.customers %}
             <tr><td><div class="name">{{ customer.phone }}</div><div class="small">{{ customer.first_name|default:'—' }} · {{ customer.email|default:'—' }}</div></td><td>{{ customer.merchant.name }}</td><td><div class="row-actions"><a class="btn secondary" href="/growlee-control/merchants/{{ customer.merchant.id }}/">Commerce</a></div></td></tr>
-          {% empty %}<tr><td colspan="3">Aucun client.</td></tr>{% endfor %}
+          {% empty %}<tr><td colspan="3"><div class="empty-state">Aucun client trouvé.</div></td></tr>{% endfor %}
           </tbody></table></div>
         </section>
 
         <section class="card">
-          <h2>Sessions / gains</h2>
-          <div class="table-wrap"><table class="table"><thead><tr><th>Session</th><th>Client</th><th></th></tr></thead><tbody>
+          <div class="result-header"><h2>Sessions / gains</h2><span class="badge off">{{ results.sessions|length }}</span></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Session</th><th>Client</th><th>Liens</th></tr></thead><tbody>
           {% for session in results.sessions %}
             <tr><td><div class="name">{{ session.claim_code|default:'Sans code' }}</div><div class="small">{{ session.reward_label }} · {% if session.redeemed %}utilisé{% else %}non utilisé{% endif %}</div></td><td>{{ session.customer.phone }}<br><span class="small">{{ session.campaign.merchant.name }}</span></td><td><div class="row-actions"><a class="btn secondary" href="/growlee-control/merchants/{{ session.campaign.merchant.id }}/">Commerce</a>{% if session.claim_token %}<a class="btn secondary" href="/gain/{{ session.claim_token }}/" target="_blank">Gain</a>{% endif %}</div></td></tr>
-          {% empty %}<tr><td colspan="3">Aucune session.</td></tr>{% endfor %}
+          {% empty %}<tr><td colspan="3"><div class="empty-state">Aucune session exacte sur claim code/token.</div></td></tr>{% endfor %}
           </tbody></table></div>
         </section>
 
         <section class="card">
-          <h2>QR / points d’entrée</h2>
-          <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Commerce</th><th></th></tr></thead><tbody>
+          <div class="result-header"><h2>QR / points d’entrée</h2><span class="badge off">{{ results.entry_points|length }}</span></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Commerce</th><th>Liens</th></tr></thead><tbody>
           {% for entry in results.entry_points %}
             <tr><td><div class="name">{{ entry.code }}</div><div class="small">{{ entry.get_channel_display }} · {{ entry.placement }}</div></td><td>{{ entry.merchant.name }}</td><td><div class="row-actions"><a class="btn secondary" href="/growlee-control/merchants/{{ entry.merchant.id }}/">Commerce</a><a class="btn secondary" href="/admin/qr/{{ entry.code }}.svg" target="_blank">QR</a></div></td></tr>
-          {% empty %}<tr><td colspan="3">Aucun QR.</td></tr>{% endfor %}
+          {% empty %}<tr><td colspan="3"><div class="empty-state">Aucun QR trouvé.</div></td></tr>{% endfor %}
           </tbody></table></div>
         </section>
       </div>
+    {% else %}
+      <div class="empty-state">Lance une recherche pour afficher les résultats groupés.</div>
     {% endif %}
   </div>
 </body>
