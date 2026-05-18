@@ -1,143 +1,111 @@
 {% extends 'admin/base.html' %}
 {% block title %}Dashboard · Growlee{% endblock %}
 {% block content %}
+<style>
+  .value-hero{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-bottom:16px}.value-card{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:24px;padding:22px;box-shadow:var(--shadow-card)}.value-title{font-size:30px;font-weight:850;letter-spacing:-.055em;color:var(--color-text-primary);margin:0}.value-copy{margin:10px 0 0;color:var(--color-text-secondary);font-size:14px;line-height:1.6}.value-lines{display:grid;gap:10px;margin-top:16px}.value-line{display:flex;gap:10px;align-items:flex-start;padding:12px 13px;border-radius:17px;background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);font-size:13px;color:var(--color-text-primary)}.value-line b{font-weight:850}.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}.kpi-card{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:20px;padding:16px;box-shadow:var(--shadow-card)}.kpi-card strong{display:block;font-size:28px;line-height:1;letter-spacing:-.04em;color:var(--color-text-primary)}.kpi-card span{display:block;margin-top:8px;font-size:11px;font-weight:800;color:var(--color-text-tertiary);letter-spacing:.06em;text-transform:uppercase}.kpi-card em{display:block;margin-top:6px;font-style:normal;font-size:12px;color:var(--color-text-secondary)}.week-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.week-stat{border-radius:16px;background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);padding:13px}.week-stat strong{display:block;font-size:22px;color:var(--color-text-primary)}.week-stat span{font-size:11px;color:var(--color-text-secondary);font-weight:750}.empty-panel{padding:16px;border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--color-brand) 7%,transparent),var(--color-background-secondary));border:.5px dashed var(--color-border-secondary);color:var(--color-text-secondary);font-size:13px;line-height:1.5}.quick-actions{display:flex;gap:9px;flex-wrap:wrap}.module-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:.5px solid var(--color-border-tertiary);border-radius:16px;background:var(--color-background-secondary);gap:12px}.dot{width:10px;height:10px;border-radius:50%;background:#c7cedd;box-shadow:0 0 0 6px rgba(199,206,221,.18)}.dot.on{background:#1d9e75;box-shadow:0 0 0 6px rgba(29,158,117,.12)}.campaign-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:.5px solid var(--color-border-tertiary);border-radius:16px;background:var(--color-background-secondary);gap:12px}.section-kicker{font-size:12px;font-weight:750;color:var(--color-text-secondary);margin-bottom:12px;letter-spacing:.06em;text-transform:uppercase}.qr-box{width:128px;height:128px;border-radius:18px;background:#fff;padding:10px;border:1px solid var(--color-border-tertiary)}
+  @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.week-grid{grid-template-columns:repeat(2,1fr)}.value-hero{grid-template-columns:1fr}}
+  @media(max-width:640px){.kpi-grid,.week-grid{grid-template-columns:1fr}.value-card{padding:18px}.value-title{font-size:26px}.card[style*="grid-template-columns"]{grid-template-columns:1fr!important}.qr-box{width:110px;height:110px}}
+</style>
+
 <div class="topbar">
   <div>
     <div class="eyebrow">Pilotage</div>
     <div class="title">Dashboard</div>
-    <div class="subtitle">Vue unifiée des performances, des modules actifs et des campagnes en cours avec un rendu aligné sur les maquettes premium.</div>
+    <div class="subtitle">La réponse simple : est-ce que Growlee ramène des contacts, des gains utilisés et des clients en boutique ?</div>
   </div>
-  <div class="badge neutral">30 derniers jours</div>
+  <div class="badge neutral">Aujourd’hui + 7 jours</div>
 </div>
 
-<div class="responsive-4" style="margin-bottom:20px;">
-  <div class="metric-card"><div class="metric-label">Scans</div><div class="metric-value">{{ stats.scans }}</div><div class="metric-delta">activité Growlee</div></div>
-  <div class="metric-card"><div class="metric-label">Données collectées</div><div class="metric-value">{{ stats.contacts }}</div><div class="metric-delta">contacts captés</div></div>
-  <div class="metric-card"><div class="metric-label">Gains gagnés</div><div class="metric-value">{{ stats.gains_won }}</div><div class="metric-delta">{{ stats.gains_waiting }} à récupérer</div></div>
-  <div class="metric-card"><div class="metric-label">Campagnes en cours</div><div class="metric-value">{{ stats.campaigns_live }}</div><div class="metric-delta">actives maintenant</div></div>
-</div>
-
-<div style="font-size:12px; font-weight:600; color:var(--color-text-secondary); margin-bottom:12px; letter-spacing:0.04em;">TUNNEL DE CONVERSION</div>
-<div class="card" style="padding:20px 24px; margin-bottom:20px;">
-  <div style="display:flex; align-items:center; gap:0;">
-    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.scans }}</div><div class="mini">Scan</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:100%;"></div></div></div>
-    <div style="color:var(--color-text-tertiary); font-size:14px; margin:0 -4px;">›</div>
-    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.distributed }}</div><div class="mini">Jeu lancé</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:79%;"></div></div></div>
-    <div style="color:var(--color-text-tertiary); font-size:14px; margin:0 -4px;">›</div>
-    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.contacts }}</div><div class="mini">Coordonnées saisies</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:66%;"></div></div></div>
-    <div style="color:var(--color-text-tertiary); font-size:14px; margin:0 -4px;">›</div>
-    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.review_clicks }}</div><div class="mini">Avis laissé</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:24%;"></div></div></div>
-    <div style="color:var(--color-text-tertiary); font-size:14px; margin:0 -4px;">›</div>
-    <div style="text-align:center; flex:1;"><div style="font-size:18px; font-weight:600;">{{ stats.redeemed }}</div><div class="mini">Wallet add</div><div style="height:4px; background:var(--color-border-tertiary); border-radius:2px; margin:10px 8px 0; overflow:hidden;"><div style="height:100%; background:var(--color-brand); width:15%;"></div></div></div>
+<section class="value-hero">
+  <div class="value-card">
+    <h1 class="value-title">{% if week_metrics.scans %}Votre QR travaille cette semaine.{% else %}Votre QR est prêt à générer ses premiers résultats.{% endif %}</h1>
+    <p class="value-copy">Suivez les actions qui comptent vraiment : scans, coordonnées collectées, gains distribués puis gains utilisés en boutique.</p>
+    <div class="value-lines">
+      <div class="value-line">📲 <span>Votre QR a été scanné <b>{{ week_metrics.scans }}</b> fois cette semaine.</span></div>
+      <div class="value-line">👤 <span><b>{{ week_metrics.contacts }}</b> clients ont laissé leurs coordonnées.</span></div>
+      <div class="value-line">🏪 <span><b>{{ week_metrics.redeemed }}</b> clients sont revenus utiliser leur gain.</span></div>
+    </div>
   </div>
-</div>
+  <div class="value-card">
+    <div class="section-kicker">Actions rapides</div>
+    <div class="quick-actions">
+      {% if primary_entry %}<a class="btn" href="/admin/qr/{{ primary_entry.code }}.svg" target="_blank" rel="noopener">Télécharger QR</a>{% else %}<a class="btn" href="/admin/onboarding/">Générer le QR</a>{% endif %}
+      <a class="btn secondary" href="/admin/rewards/">Créer une récompense</a>
+      <a class="btn secondary" href="/play/{{ merchant.slug }}/?step=landing" target="_blank" rel="noopener">Tester le parcours</a>
+    </div>
+    {% if not week_metrics.scans %}<div class="empty-panel" style="margin-top:14px;">Aucun scan pour l’instant. Téléchargez le QR et placez-le sur le comptoir, les tables ou le flyer.</div>{% endif %}
+  </div>
+</section>
+
+<div class="section-kicker">Aujourd’hui</div>
+<section class="kpi-grid">
+  <div class="kpi-card"><strong>{{ today_metrics.scans }}</strong><span>Scans aujourd’hui</span><em>QR ouvert</em></div>
+  <div class="kpi-card"><strong>{{ today_metrics.contacts }}</strong><span>Contacts collectés</span><em>coordonnées utiles</em></div>
+  <div class="kpi-card"><strong>{{ today_metrics.gains_won }}</strong><span>Gains distribués</span><em>{{ today_metrics.gains_waiting }} à utiliser</em></div>
+  <div class="kpi-card"><strong>{{ today_metrics.redeemed }}</strong><span>Gains utilisés</span><em>retours boutique</em></div>
+  <div class="kpi-card"><strong>{{ today_metrics.review_clicks }}</strong><span>Clics avis Google</span><em>{% if merchant.google_review_url %}suivi agrégé{% else %}lien à configurer{% endif %}</em></div>
+</section>
+
+<section class="card" style="margin-bottom:16px;">
+  <div class="section-kicker">Cette semaine</div>
+  <div class="week-grid">
+    <div class="week-stat"><strong>{{ week_metrics.scans }}</strong><span>scans semaine</span></div>
+    <div class="week-stat"><strong>{{ week_metrics.contacts }}</strong><span>contacts semaine</span></div>
+    <div class="week-stat"><strong>{{ week_metrics.gains_won }}</strong><span>gains distribués</span></div>
+    <div class="week-stat"><strong>{{ week_metrics.redeemed }}</strong><span>gains utilisés</span></div>
+    <div class="week-stat"><strong>{{ week_metrics.conversion_rate }}%</strong><span>conversion scan → contact</span></div>
+    <div class="week-stat"><strong>{{ week_metrics.redeem_rate }}%</strong><span>utilisation des gains</span></div>
+  </div>
+</section>
+
+{% if not week_metrics.contacts or not has_rewards %}
+<section class="responsive-2" style="margin-bottom:16px;">
+  {% if not week_metrics.contacts %}<div class="empty-panel">Aucun client collecté cette semaine. Testez le parcours puis placez le QR là où le client attend : caisse, table, comptoir.</div>{% endif %}
+  {% if not has_rewards %}<div class="empty-panel">Aucune récompense active. Créez un avantage simple : café offert, dessert, remise ou cadeau immédiat.</div>{% endif %}
+</section>
+{% endif %}
 
 <div class="card" style="display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;margin-bottom:20px;">
   <div>
-    <div class="section-title">Votre parcours client est prêt</div>
-    <div class="section-sub">Le QR code principal pointe vers le parcours personnalisé avec vos couleurs, votre logo et votre campagne active.</div>
-    <div class="split-actions"><a class="btn" href="/play/{{ merchant.slug }}/?step=landing">Voir le parcours client</a>{% if primary_entry %}<a class="btn secondary" href="/admin/qr/{{ primary_entry.code }}.svg" target="_blank" rel="noopener">Ouvrir le QR code</a>{% endif %}</div>
+    <div class="section-title">Parcours client</div>
+    <div class="section-sub">Le QR principal pointe vers le parcours personnalisé avec vos couleurs, votre logo, votre campagne et vos modules actifs.</div>
+    <div class="split-actions"><a class="btn" href="/play/{{ merchant.slug }}/?step=landing" target="_blank" rel="noopener">Tester le parcours client</a>{% if primary_entry %}<a class="btn secondary" href="/admin/qr/{{ primary_entry.code }}.svg" target="_blank" rel="noopener">Ouvrir le QR code</a>{% endif %}</div>
   </div>
-  {% if primary_entry %}<img src="/admin/qr/{{ primary_entry.code }}.svg" alt="QR code {{ merchant.name }}" style="width:128px;height:128px;border-radius:18px;background:#fff;padding:10px;border:1px solid var(--color-border-tertiary);">{% endif %}
+  {% if primary_entry %}<img class="qr-box" src="/admin/qr/{{ primary_entry.code }}.svg" alt="QR code {{ merchant.name }}">{% endif %}
 </div>
 
 <div class="responsive-2">
-  <div class="card" style="padding:18px 18px 10px; background:linear-gradient(180deg, color-mix(in srgb, var(--color-brand) 5%, var(--color-background-primary)) 0%, var(--color-background-primary) 100%);">
-    <div style="font-size:12px; font-weight:700; color:var(--color-text-secondary); margin-bottom:14px; letter-spacing:0.06em;">ÉTAT DES MODULES</div>
-
-    <div style="display:flex; flex-direction:column; gap:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary);">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="width:10px; height:10px; border-radius:50%; background:{% if game_active %}#1D9E75{% else %}#C7CEDD{% endif %}; box-shadow:0 0 0 6px {% if game_active %}rgba(29,158,117,.12){% else %}rgba(199,206,221,.18){% endif %};"></div>
-          <div>
-            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">Jeu</div>
-            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{% if game_active %}Actif · {% else %}Désactivé · {% endif %}{{ campaign.get_game_type_display|default:'Roue' }}</div>
-          </div>
-        </div>
-        <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:{% if game_active %}#E1F5EE{% else %}#EEF1F8{% endif %}; color:{% if game_active %}#0F6E56{% else %}#6B7280{% endif %};">{% if game_active %}Actif{% else %}Inactif{% endif %}</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary);">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="width:10px; height:10px; border-radius:50%; background:{% if review_active %}#1D9E75{% else %}#C7CEDD{% endif %}; box-shadow:0 0 0 6px {% if review_active %}rgba(29,158,117,.12){% else %}rgba(199,206,221,.18){% endif %};"></div>
-          <div>
-            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">Avis</div>
-            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">Google + feedback privé</div>
-          </div>
-        </div>
-        <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:{% if review_active %}#E1F5EE{% else %}#EEF1F8{% endif %}; color:{% if review_active %}#0F6E56{% else %}#6B7280{% endif %};">{% if review_active %}Actif{% else %}Inactif{% endif %}</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary);">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="width:10px; height:10px; border-radius:50%; background:{% if wallet_active %}#1D9E75{% else %}#C7CEDD{% endif %}; box-shadow:0 0 0 6px {% if wallet_active %}rgba(29,158,117,.12){% else %}rgba(199,206,221,.18){% endif %};"></div>
-          <div>
-            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">Wallet</div>
-            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">Carte fidélité</div>
-          </div>
-        </div>
-        <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:{% if wallet_active %}#E1F5EE{% else %}#EEF1F8{% endif %}; color:{% if wallet_active %}#0F6E56{% else %}#6B7280{% endif %};">{% if wallet_active %}Actif{% else %}Inactif{% endif %}</span>
-      </div>
+  <div class="card">
+    <div class="section-kicker">État des modules</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="module-row"><div style="display:flex;align-items:center;gap:10px;"><span class="dot {% if game_active %}on{% endif %}"></span><div><div class="section-title">Jeu</div><div class="mini">{% if game_active %}Actif · {% else %}Désactivé · {% endif %}{{ campaign.get_game_type_display|default:'Roue' }}</div></div></div><span class="badge {% if not game_active %}neutral{% endif %}">{% if game_active %}Actif{% else %}Inactif{% endif %}</span></div>
+      <div class="module-row"><div style="display:flex;align-items:center;gap:10px;"><span class="dot {% if review_active %}on{% endif %}"></span><div><div class="section-title">Avis</div><div class="mini">Google + feedback privé</div></div></div><span class="badge {% if not review_active %}neutral{% endif %}">{% if review_active %}Actif{% else %}Inactif{% endif %}</span></div>
+      <div class="module-row"><div style="display:flex;align-items:center;gap:10px;"><span class="dot {% if wallet_active %}on{% endif %}"></span><div><div class="section-title">Wallet</div><div class="mini">Carte fidélité</div></div></div><span class="badge {% if not wallet_active %}neutral{% endif %}">{% if wallet_active %}Actif{% else %}Inactif{% endif %}</span></div>
     </div>
   </div>
 
   <div class="card">
-    <div style="font-size:12px; font-weight:600; color:var(--color-text-secondary); margin-bottom:12px;">ACTIVITÉ RÉCENTE</div>
-    {% for customer in customers|slice:':3' %}
-      <div class="status-row"><span>{{ customer.first_name|default:customer.phone }}</span><span>récent</span></div>
+    <div class="section-kicker">Activité récente</div>
+    {% for customer in customers|slice:':4' %}
+      <div class="status-row"><span>{{ customer.first_name|default:customer.phone }}</span><span>contact collecté</span></div>
     {% empty %}
-      <div class="mini">Aucune activité récente.</div>
+      <div class="empty-panel">Aucune activité récente. Dès qu’un client scanne et laisse ses coordonnées, il apparaîtra ici.</div>
     {% endfor %}
   </div>
 </div>
 
 <div class="responsive-2" style="margin-top:12px;">
-  <div class="card" style="padding:18px; background:linear-gradient(180deg, color-mix(in srgb, #1D9E75 5%, var(--color-background-primary)) 0%, var(--color-background-primary) 100%);">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px;">
-      <div>
-        <div style="font-size:12px; font-weight:700; color:var(--color-text-secondary); letter-spacing:0.06em;">CAMPAGNES EN COURS</div>
-        <div style="font-size:12px; color:var(--color-text-tertiary); margin-top:4px;">Celles qui tournent maintenant</div>
-      </div>
-      <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:#E1F5EE; color:#0F6E56;">{{ stats.campaigns_live }}</span>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:10px;">
-      {% for item in active_campaigns %}
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary); gap:12px;">
-          <div>
-            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">{{ item.name }}</div>
-            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{{ item.get_game_type_display|default:'Roue' }} · {% if item.review_enabled %}Avis activé{% else %}Avis désactivé{% endif %}</div>
-          </div>
-          <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:#E1F5EE; color:#0F6E56;">Actif</span>
-        </div>
-      {% empty %}
-        <div style="padding:16px; border-radius:16px; background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:13px;">Aucune campagne en cours.</div>
-      {% endfor %}
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;"><div><div class="section-kicker" style="margin-bottom:4px;">Campagnes en cours</div><div class="mini">Celles qui tournent maintenant</div></div><span class="badge">{{ stats.campaigns_live }}</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      {% for item in active_campaigns %}<div class="campaign-row"><div><div class="section-title">{{ item.name }}</div><div class="mini">{{ item.get_game_type_display|default:'Roue' }} · {% if item.review_enabled %}Avis activé{% else %}Avis désactivé{% endif %}</div></div><span class="badge">Actif</span></div>{% empty %}<div class="empty-panel">Aucune campagne en cours. Activez une campagne pour démarrer la collecte.</div>{% endfor %}
     </div>
   </div>
 
-  <div class="card" style="padding:18px; background:linear-gradient(180deg, color-mix(in srgb, var(--color-brand) 6%, var(--color-background-primary)) 0%, var(--color-background-primary) 100%);">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px;">
-      <div>
-        <div style="font-size:12px; font-weight:700; color:var(--color-text-secondary); letter-spacing:0.06em;">CAMPAGNES À VENIR</div>
-        <div style="font-size:12px; color:var(--color-text-tertiary); margin-top:4px;">Planifiées pour plus tard</div>
-      </div>
-      <span style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; background:var(--color-brand-soft); color:var(--color-brand);">{{ stats.campaigns_scheduled }}</span>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:10px;">
-      {% for item in scheduled_campaigns %}
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:0.5px solid var(--color-border-tertiary); border-radius:16px; background:var(--color-background-secondary); gap:12px;">
-          <div>
-            <div style="font-size:14px; font-weight:600; color:var(--color-text-primary);">{{ item.name }}</div>
-            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{{ item.get_game_type_display|default:'Roue' }} · Lancement différé</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:12px; font-weight:700; color:var(--color-brand);">Planifiée</div>
-            <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">{{ item.scheduled_for|date:'d/m H:i' }}</div>
-          </div>
-        </div>
-      {% empty %}
-        <div style="padding:16px; border-radius:16px; background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:13px;">Aucune campagne planifiée.</div>
-      {% endfor %}
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;"><div><div class="section-kicker" style="margin-bottom:4px;">Campagnes à venir</div><div class="mini">Planifiées pour plus tard</div></div><span class="badge neutral">{{ stats.campaigns_scheduled }}</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      {% for item in scheduled_campaigns %}<div class="campaign-row"><div><div class="section-title">{{ item.name }}</div><div class="mini">{{ item.get_game_type_display|default:'Roue' }} · lancement différé</div></div><div style="text-align:right;"><div class="mini">{{ item.scheduled_for|date:'d/m H:i' }}</div></div></div>{% empty %}<div class="empty-panel">Aucune campagne planifiée.</div>{% endfor %}
     </div>
   </div>
 </div>

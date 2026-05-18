@@ -83,6 +83,48 @@ class MerchantDailyMetricTests(TestCase):
         self.assertEqual(context['stats']['wallets'], 2)
         self.assertEqual(context['stats']['return_rate'], '30%')
 
+    def test_dashboard_business_metrics_use_daily_aggregates(self):
+        today = timezone.localdate()
+        MerchantDailyMetric.objects.create(
+            merchant=self.merchant,
+            date=today,
+            scans_count=8,
+            contacts_count=3,
+            winners_count=2,
+            redeemed_count=1,
+            review_clicks_count=4,
+        )
+        MerchantDailyMetric.objects.create(
+            merchant=self.merchant,
+            date=today - timezone.timedelta(days=2),
+            scans_count=12,
+            contacts_count=7,
+            winners_count=5,
+            redeemed_count=4,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get('/admin/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Votre QR a été scanné <b>20</b> fois cette semaine.', html=True)
+        self.assertContains(response, '<strong>8</strong><span>Scans aujourd’hui</span>', html=True)
+        self.assertEqual(response.context['today_metrics']['review_clicks'], 4)
+        self.assertEqual(response.context['week_metrics']['conversion_rate'], 50)
+        self.assertEqual(response.context['week_metrics']['redeem_rate'], 71)
+
+    def test_dashboard_business_metrics_fallback_to_live_data_without_aggregates(self):
+        customer = Customer.objects.create(merchant=self.merchant, phone='+33670000005', first_name='Live')
+        GameSession.objects.create(customer=customer, campaign=self.campaign, reward_label='Café', is_winner=True, redeemed=True)
+        self.client.force_login(self.user)
+
+        response = self.client.get('/admin/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['today_metrics']['scans'], 1)
+        self.assertEqual(response.context['week_metrics']['contacts'], 1)
+        self.assertContains(response, '<b>1</b> clients sont revenus utiliser leur gain.', html=True)
+
     def test_merchant_context_falls_back_to_live_counts_without_metrics(self):
         customer = Customer.objects.create(merchant=self.merchant, phone='+33670000005')
         GameSession.objects.create(customer=customer, campaign=self.campaign, reward_label='Live', is_winner=True, redeemed=True)

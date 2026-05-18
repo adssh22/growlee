@@ -16,7 +16,7 @@ from django.core.mail import send_mail
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -260,6 +260,69 @@ def _get_active_campaign_for_merchant(merchant):
     campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
     return campaign if campaign and campaign.is_active else None
 
+
+def _empty_metric_snapshot():
+    return {'scans': 0, 'contacts': 0, 'gains_won': 0, 'redeemed': 0, 'review_clicks': 0}
+
+
+def _metric_snapshot_from_daily(metrics_qs):
+    totals = metrics_qs.aggregate(
+        scans=Sum('scans_count'),
+        contacts=Sum('contacts_count'),
+        gains_won=Sum('winners_count'),
+        redeemed=Sum('redeemed_count'),
+        review_clicks=Sum('review_clicks_count'),
+    )
+    return {key: totals.get(key) or 0 for key in _empty_metric_snapshot()}
+
+
+def _metric_snapshot_from_live_data(merchant, *, since=None, day=None):
+    if merchant is None:
+        return _empty_metric_snapshot()
+    sessions = GameSession.objects.filter(campaign__merchant=merchant)
+    customers = Customer.objects.filter(merchant=merchant, deleted_at__isnull=True)
+    if day is not None:
+        sessions = sessions.filter(created_at__date=day)
+        customers = customers.filter(created_at__date=day)
+    elif since is not None:
+        sessions = sessions.filter(created_at__date__gte=since)
+        customers = customers.filter(created_at__date__gte=since)
+    session_totals = sessions.aggregate(
+        scans=Count('id'),
+        gains_won=Count('id', filter=Q(is_winner=True)),
+        redeemed=Count('id', filter=Q(redeemed=True)),
+    )
+    return {
+        'scans': session_totals['scans'] or 0,
+        'contacts': customers.count(),
+        'gains_won': session_totals['gains_won'] or 0,
+        'redeemed': session_totals['redeemed'] or 0,
+        'review_clicks': 0,
+    }
+
+
+def _enrich_metric_snapshot(snapshot):
+    scans = snapshot.get('scans') or 0
+    contacts = snapshot.get('contacts') or 0
+    gains_won = snapshot.get('gains_won') or 0
+    redeemed = snapshot.get('redeemed') or 0
+    snapshot['conversion_rate'] = int((contacts / scans) * 100) if scans else 0
+    snapshot['redeem_rate'] = int((redeemed / gains_won) * 100) if gains_won else 0
+    snapshot['gains_waiting'] = max(gains_won - redeemed, 0)
+    return snapshot
+
+
+def _merchant_business_metrics(merchant, metrics_qs):
+    today = timezone.localdate()
+    week_start = today - timedelta(days=6)
+    if metrics_qs.exists():
+        today_snapshot = _metric_snapshot_from_daily(metrics_qs.filter(date=today))
+        week_snapshot = _metric_snapshot_from_daily(metrics_qs.filter(date__gte=week_start))
+    else:
+        today_snapshot = _metric_snapshot_from_live_data(merchant, day=today)
+        week_snapshot = _metric_snapshot_from_live_data(merchant, since=week_start)
+    return {'today': _enrich_metric_snapshot(today_snapshot), 'week': _enrich_metric_snapshot(week_snapshot)}
+
 def _merchant_context_for_user(user):
     membership = _first_membership(user)
     merchant = membership.merchant if membership else None
@@ -273,6 +336,7 @@ def _merchant_context_for_user(user):
     rewards = Reward.objects.filter(merchant=merchant, archived_at__isnull=True) if merchant else []
     customers = Customer.objects.filter(merchant=merchant, deleted_at__isnull=True).order_by('-created_at')[:10] if merchant else []
     metrics = MerchantDailyMetric.objects.filter(merchant=merchant) if merchant else MerchantDailyMetric.objects.none()
+    business_metrics = _merchant_business_metrics(merchant, metrics)
     if metrics.exists():
         metric_totals = metrics.aggregate(
             scans=Sum('scans_count'),
@@ -329,6 +393,10 @@ def _merchant_context_for_user(user):
         'rewards': rewards,
         'customers': customers,
         'stats': stats,
+        'business_metrics': business_metrics,
+        'today_metrics': business_metrics['today'],
+        'week_metrics': business_metrics['week'],
+        'has_rewards': rewards.exists() if merchant else False,
         'game_active': game_active,
         'review_active': review_active,
         'wallet_active': wallet_active,
@@ -423,4 +491,3 @@ def _latest_session_for_wallet(request, slug):
     if session is None:
         raise Http404('Aucune session de jeu disponible pour générer le wallet.')
     return session
-
