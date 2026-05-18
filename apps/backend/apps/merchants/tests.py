@@ -453,6 +453,86 @@ class GrowleeControlSubscriptionTests(TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class MerchantOnboardingChecklistTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('launch-owner', 'launch-owner@example.test', 'secret-12345')
+        self.manager = User.objects.create_user('launch-manager', 'launch-manager@example.test', 'secret-12345')
+        self.staff = User.objects.create_user('launch-staff', 'launch-staff@example.test', 'secret-12345')
+        self.merchant = Merchant.objects.create(
+            name='Launch Shop',
+            slug='launch-shop',
+            address='1 rue du Test',
+            business_sector='Restaurant',
+            contact_email='owner@launch.test',
+            google_review_url='https://example.test/review',
+            is_active=True,
+            onboarding_completed=True,
+            onboarding_fee_paid=True,
+            public_journey_tested=True,
+        )
+        self.campaign = Campaign.objects.create(merchant=self.merchant, name='Launch Campaign', is_active=True)
+        Reward.objects.create(merchant=self.merchant, campaign=self.campaign, name='Café', description='Café offert', active=True)
+        EntryPoint.objects.create(merchant=self.merchant, campaign=self.campaign, name='QR principal', code='launch-shop-qr-main', channel='qr')
+        Subscription.objects.create(merchant=self.merchant, status=Subscription.STATUS_ACTIVE, provider=Subscription.PROVIDER_MANUAL)
+        MerchantMembership.objects.create(user=self.owner, merchant=self.merchant, role='owner')
+        MerchantMembership.objects.create(user=self.manager, merchant=self.merchant, role='manager')
+        MerchantMembership.objects.create(user=self.staff, merchant=self.merchant, role='staff')
+
+    def test_onboarding_checklist_shows_complete_launch_progress(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.get('/admin/onboarding/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Votre commerce est prêt à être lancé')
+        self.assertContains(response, '100%')
+        self.assertContains(response, '/admin/qr/launch-shop-qr-main.svg')
+        self.assertEqual(response.context['onboarding_progress'], 100)
+
+    def test_manager_can_view_onboarding_but_staff_cannot(self):
+        self.client.force_login(self.manager)
+        response = self.client.get('/admin/onboarding/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Plan de lancement boutique')
+
+        account_response = self.client.get('/admin/account/')
+        self.assertEqual(account_response.status_code, 302)
+        self.assertEqual(account_response['Location'], '/admin/onboarding/')
+
+        self.client.force_login(self.staff)
+        response = self.client.get('/admin/onboarding/')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/admin/employee/')
+
+    def test_onboarding_mark_public_journey_tested_flag(self):
+        self.merchant.public_journey_tested = False
+        self.merchant.save(update_fields=['public_journey_tested'])
+        self.client.force_login(self.owner)
+
+        response = self.client.post('/admin/onboarding/', {'form_action': 'mark_public_journey_tested'})
+
+        self.assertEqual(response.status_code, 302)
+        self.merchant.refresh_from_db()
+        self.assertTrue(self.merchant.public_journey_tested)
+        self.assertTrue(AuditLog.objects.filter(action='merchant.onboarding.public_journey_tested', merchant=self.merchant).exists())
+
+    def test_onboarding_progress_is_partial_when_data_missing(self):
+        self.merchant.google_review_url = ''
+        self.merchant.public_journey_tested = False
+        self.merchant.onboarding_fee_paid = False
+        self.merchant.save(update_fields=['google_review_url', 'public_journey_tested', 'onboarding_fee_paid'])
+        Subscription.objects.filter(merchant=self.merchant).update(status=Subscription.STATUS_SUSPENDED)
+        self.client.force_login(self.owner)
+
+        response = self.client.get('/admin/onboarding/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Prochaine étape')
+        self.assertLess(response.context['onboarding_progress'], 100)
+        self.assertFalse(response.context['onboarding_ready'])
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class AuditLogActionTests(TestCase):
     def setUp(self):
         self.owner = User.objects.create_user('merchant-owner', password='secret-12345')

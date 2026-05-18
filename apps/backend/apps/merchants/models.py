@@ -52,6 +52,7 @@ class Merchant(models.Model):
     heading_font = models.CharField(max_length=40, choices=FONT_CHOICES, default='inter')
     body_font = models.CharField(max_length=40, choices=FONT_CHOICES, default='inter')
     google_review_url = models.URLField(blank=True, null=True)
+    public_journey_tested = models.BooleanField(default=False)
     employee_pin_hash = models.CharField(max_length=128, default=default_employee_pin_hash)
     is_demo = models.BooleanField(default=False)
     onboarding_completed = models.BooleanField(default=False)

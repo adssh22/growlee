@@ -1,6 +1,6 @@
 import stripe
 from django.core.paginator import Paginator
-from django.db.models import Count, OuterRef, Prefetch, Subquery
+from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 
 from apps.core.common_views import *  # noqa: F401,F403
 from apps.core.audit import log_audit_event
@@ -16,6 +16,7 @@ from apps.core.common_views import (  # noqa: F401
     _employee_mode_block_response,
     _ensure_default_growlee_setup,
     _ensure_spin_defaults,
+    _ensure_subscription_for_merchant,
     _first_membership,
     _font_stack,
     _get_active_campaign_for_merchant,
@@ -74,20 +75,69 @@ def merchant_checkout(request):
     messages.info(request, 'Checkout Growlee prêt : configurez Stripe ou GROWLEE_PAYMENT_LINK_PRO pour activer le paiement.')
     return render(request, 'admin/pending_payment.html', {'merchant': merchant, 'pricing_plans': _pricing_plans()})
 
+
+def _onboarding_launch_context(merchant):
+    """Build a robust launch checklist for non-technical merchants."""
+    campaign = Campaign.objects.filter(merchant=merchant).order_by('-created_at', '-id').first()
+    reward_query = Reward.objects.filter(merchant=merchant, archived_at__isnull=True, active=True)
+    if campaign:
+        reward_query = reward_query.filter(Q(campaign=campaign) | Q(campaign__isnull=True))
+    reward_exists = reward_query.exists()
+    qr_entry = EntryPoint.objects.filter(merchant=merchant, channel='qr').order_by('-created_at', '-id').first()
+    subscription = _ensure_subscription_for_merchant(merchant)
+    commerce_configured = all([
+        (merchant.name or '').strip(),
+        (merchant.address or '').strip(),
+        (merchant.business_sector or '').strip(),
+        (merchant.contact_email or '').strip(),
+    ]) or bool(merchant.onboarding_completed)
+    payment_ready = bool(merchant.onboarding_fee_paid or (subscription and subscription.unlocks_paid_features and merchant.is_active))
+    checklist = [
+        {'key': 'merchant', 'title': 'Commerce configuré', 'description': 'Nom, adresse, secteur et contact sont renseignés.', 'done': commerce_configured, 'action_label': 'Compléter le commerce', 'action_url': '/admin/account/'},
+        {'key': 'campaign', 'title': 'Campagne active', 'description': 'Le module jeu/parcours est prêt à recevoir des clients.', 'done': bool(campaign and campaign.is_active), 'action_label': 'Configurer la campagne', 'action_url': '/admin/game/'},
+        {'key': 'reward', 'title': 'Récompense créée', 'description': 'Au moins un avantage actif peut être distribué.', 'done': reward_exists, 'action_label': 'Ajouter une récompense', 'action_url': '/admin/rewards/'},
+        {'key': 'review', 'title': 'Lien avis Google renseigné', 'description': 'Les clients satisfaits peuvent laisser un avis public.', 'done': bool((merchant.google_review_url or '').strip()), 'action_label': 'Configurer les avis', 'action_url': '/admin/game/review/'},
+        {'key': 'qr', 'title': 'QR code généré', 'description': 'Le QR principal est prêt à être imprimé ou partagé.', 'done': bool(qr_entry), 'action_label': 'Voir le QR code', 'action_url': f"/admin/qr/{qr_entry.code}.svg" if qr_entry else '/admin/account/'},
+        {'key': 'tested', 'title': 'Parcours client testé', 'description': 'Le parcours public a été ouvert et vérifié sur mobile.', 'done': bool(merchant.public_journey_tested), 'action_label': 'Tester mon parcours', 'action_url': f'/play/{merchant.slug}/', 'post_action': 'mark_public_journey_tested'},
+        {'key': 'payment', 'title': 'Moyen de paiement / abonnement actif', 'description': 'Le compte est débloqué pour lancer Growlee en boutique.', 'done': payment_ready, 'action_label': 'Activer l’abonnement', 'action_url': '/admin/checkout/'},
+    ]
+    done_count = sum(1 for item in checklist if item['done'])
+    total_count = len(checklist)
+    return {
+        'onboarding_checklist': checklist,
+        'onboarding_done_count': done_count,
+        'onboarding_total_count': total_count,
+        'onboarding_progress': round((done_count / total_count) * 100) if total_count else 0,
+        'onboarding_next_item': next((item for item in checklist if not item['done']), None),
+        'onboarding_ready': done_count == total_count,
+        'qr_entry_code': qr_entry.code if qr_entry else '',
+        'subscription': subscription,
+    }
+
 @login_required
-@merchant_role_required(can_manage_billing)
+@merchant_role_required(can_manage_campaigns)
 def merchant_onboarding(request):
     membership = MerchantMembership.objects.select_related('merchant').filter(user=request.user).first()
     merchant = membership.merchant if membership else None
     if merchant is None:
         messages.error(request, 'Aucun commerce lié à ce compte.')
         return redirect('admin-dashboard')
-    if request.method == 'GET' and request.path == '/admin/onboarding/' and merchant.onboarding_completed:
+    if request.path == '/admin/onboarding/':
+        if request.method == 'POST' and request.POST.get('form_action') == 'mark_public_journey_tested':
+            merchant.public_journey_tested = True
+            merchant.save(update_fields=['public_journey_tested'])
+            log_audit_event(request, 'merchant.onboarding.public_journey_tested', target=merchant, merchant=merchant)
+            messages.success(request, 'Parcours client marqué comme testé.')
+            return redirect('merchant-onboarding')
         context = _merchant_context_for_user(request.user)
         if context.get('campaign') is None:
             _ensure_default_growlee_setup(merchant)
             context = _merchant_context_for_user(request.user)
-        return render(request, 'admin/configuration.html', context)
+        context.update(_onboarding_launch_context(merchant))
+        return render(request, 'admin/onboarding_checklist.html', context)
+    if membership.role != 'owner':
+        messages.error(request, 'Seul le propriétaire peut modifier les informations de compte.')
+        return redirect('merchant-onboarding')
     merchant_form = MerchantForm(
         request.POST or None,
         request.FILES or None,
@@ -537,4 +587,3 @@ def redeem_session(request, session_id):
         log_audit_event(request, 'merchant.session.redeem', target=session, merchant=merchant, metadata={'customer_id': session.customer_id, 'reward_label': session.reward_label})
         messages.success(request, f'Gain marqué comme utilisé pour {session.customer.phone}.')
     return redirect('customer-detail', customer_id=session.customer_id)
-
